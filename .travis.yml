@@ -4,47 +4,29 @@ sudo: false
 
 language: go
 
-# Only the last two Go releases are supported by the Go team with security
-# updates. Any older versions be considered deprecated. Don't bother testing
-# with them.
 go:
-  - 1.9.x
-  - 1.x
+  - "1.x"
+  - "tip"
 
-before_install:
-  - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && openssl aes-256-cbc -K $encrypted_26c593b079d9_key -iv $encrypted_26c593b079d9_iv -in .gitcookies.enc -out .gitcookies -d || true'
+matrix:
+  allow_failures:
+    - go: tip
+  fast_finish: true
 
-  # Download and install vgo
-
-  # Install linters and misspell
-  - go get -u github.com/alecthomas/gometalinter
-  - gometalinter --install
-
+#before_install:
 
 install:
-  - dep status -v
+  - go get -t ./...
+  - go get github.com/alecthomas/gometalinter
 
+#before_script:
 
-# Only clone the most recent commit.
-git:
-  depth: 1
-
-# Skip the install step. Don't `go get` dependencies. Only build with the code
-# in vendor/
-install: true
-
-# Don't email me the results of the test runs.
-notifications:
-  email: false
-
-# Anything in before_script that returns a nonzero exit code will flunk the
-# build and immediately stop. It's sorta like having set -e enabled in bash.
-before_script:
-  - go get -u github.com/alecthomas/gometalinter
-
-# script always runs to completion (set +e). If we have linter issues AND a
-# failing test, we want to see both.
 script:
   - gometalinter --install
-  - gometalinter ./...
+  - gometalinter --disable-all -E vet -E gofmt -E misspell -E ineffassign -E goimports -E deadcode --tests --vendor ./...
   - go test -v -race ./...
+
+#after_script:
+
+notifications:
+  email: false
