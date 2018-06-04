@@ -2,7 +2,7 @@
 
 **Fast searching of the WordPress Plugin & Theme Repositories.**
 
-[![License](https://img.shields.io/badge/license-MIT-red.svg)](https://github.com/wpdirectory/wpdir/blob/master/LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/wpdirectory/wpdir)](https://goreportcard.com/report/github.com/wpdirectory/wpdir)
+[![License](https://img.shields.io/badge/license-MIT-red.svg)](https://github.com/wpdirectory/wpdir/blob/master/LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/wpdirectory/wpdir)](https://goreportcard.com/report/github.com/wpdirectory/wpdir) [![Build Status](https://travis-ci.org/wpdirectory/wpdir.svg?branch=master)](https://travis-ci.org/wpdirectory/wpdir)
 
 WPDirectory provides a web interface for viewing and searching the WordPress.org [Plugin](https://plugins.svn.wordpress.org/) and [Theme](https://themes.svn.wordpress.org/) Repositories. It is spawned from the [WPDS](https://github.com/PeterBooker/wpds) project and aims to avoid many people having to download and search the data locally.
 
