@@ -16,12 +16,12 @@ matrix:
 install:
   - go get ./...
 
-before_script:
-  - go get github.com/alecthomas/gometalinter
+#before_script:
+  #- go get github.com/alecthomas/gometalinter
 
 script:
-  - gometalinter --install
-  - gometalinter --disable-all -E vet -E gofmt -E misspell -E ineffassign -E goimports -E deadcode --tests --vendor ./...
+  #- gometalinter --install
+  #- gometalinter --disable-all -E vet -E gofmt -E misspell -E ineffassign -E goimports -E deadcode --tests --vendor ./...
   - go test -v -race ./...
 
 #after_script:
