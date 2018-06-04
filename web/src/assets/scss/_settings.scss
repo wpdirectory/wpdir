@@ -1,0 +1,59 @@
+$global-font-size: 100% !default;
+$base-font-size: 16;
+
+// Colors
+$primary: #D24632;
+$secondary: #7DC9DA;
+
+$background: #122938;
+
+$gray-light: #f7f7f7;
+$gray: #737373;
+$gray-dark: #353535;
+
+$text: #444444;
+
+// Brand Colors
+$reddit: #FF5700;
+$twitter: #1DA1F2;
+$facebook: #3B5998;
+$instagram: #262626;
+
+// Grid
+$gutter: 32px;
+
+// Breakpoints
+$breakpoints: (
+  small: 0,
+  medium: 640px,
+  large: 1024px,
+  xlarge: 1200px,
+  xxlarge: 1440px,
+);
+
+// Typography
+$font-family: 'Open Sans', sans-serif;
+$font-color: #444444;
+
+// Header
+$heading-font-family: 'Roboto', sans-serif;
+$heading-font-weight: bold;
+$heading-color: $font-color;
+
+$header-styles-small: (
+  'h1': ('font-size': 24),
+  'h2': ('font-size': 20),
+  'h3': ('font-size': 19),
+  'h4': ('font-size': 18),
+  'h5': ('font-size': 17),
+  'h6': ('font-size': 16),
+);
+
+$header-styles-medium: (
+  'h1': ('font-size': 36),
+  'h2': ('font-size': 28),
+  'h3': ('font-size': 24),
+  'h4': ('font-size': 20),
+  'h5': ('font-size': 18),
+  'h6': ('font-size': 16),
+);

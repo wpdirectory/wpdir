@@ -1,0 +1,30 @@
+/*--------------------------------------------------------------
+# Header
+--------------------------------------------------------------*/
+
+header.header {
+    grid-template-columns: 200px 1fr;
+    grid-auto-rows: 79px;
+
+    background-color: $background;
+    //border-bottom: #dedede 1px solid;
+
+    .title {
+        a {
+            display: grid;
+            height: 79px;
+            align-content: center;
+            text-align: center;
+
+            font-size: 22px;
+            font-weight: normal;
+            color: #fff;
+        }
+        a:hover,
+        a:active,
+        a:focus {
+            //background-color: #f4f4f4;
+            text-decoration: underline;
+        }
+    }
+}

@@ -1,0 +1,13 @@
+/*--------------------------------------------------------------
+# Content
+--------------------------------------------------------------*/
+
+section.content {
+    grid-template-columns: 280px 1fr;
+
+    background-color: #edebec;
+    padding-left: 2em;
+    padding-right: 2em;
+
+    min-height: 800px;
+}

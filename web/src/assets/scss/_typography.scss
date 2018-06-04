@@ -1,0 +1,88 @@
+/*--------------------------------------------------------------
+# Typography
+--------------------------------------------------------------*/
+html,
+body,
+input,
+select,
+optgroup,
+textarea {
+	font-family: $font-family;
+	font-size: 16px;
+	font-size: 1rem;
+	line-height: 1.5;
+	color: $font-color;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	clear: both;
+	color: lighten($text, 10%);
+	margin: 0 0 1em 0;
+    font-family: $heading-font-family;
+    font-weight: $heading-font-weight;
+    color: $heading-color;
+    text-rendering: optimizeLegibility;
+}
+
+// Header Sizes
+@each $header, $header-defs in $header-styles-small {
+  #{$header} {
+    font-size: rem-calc(map-get($header-defs, font-size));
+  }
+}
+
+@each $header, $header-defs in $header-styles-medium {
+  @include medium-up() {
+    #{$header} {
+      font-size: rem-calc(map-get($header-defs, font-size));
+    }
+  }
+}
+
+p {
+	margin-bottom: 1.5em;
+}
+
+dfn, cite, em, i {
+	font-style: italic;
+}
+
+blockquote {
+	margin: 0 1.5em;
+}
+
+address {
+	margin: 0 0 1.5em;
+}
+
+pre {
+	display: block;
+	background: #eee;
+	font-family: "Courier 10 Pitch", Courier, monospace;
+	font-size: rem-calc(16);
+	line-height: 1.6;
+	margin: 0 0 rem-calc(16) 0;
+	max-width: 100%;
+	overflow: auto;
+	padding: rem-calc(16);
+}
+
+code, kbd, tt, var {
+	font-family: Monaco, Consolas, "Andale Mono", "DejaVu Sans Mono", monospace;
+	font-size: 15px;
+	font-size: 0.9375rem;
+}
+
+abbr, acronym {
+	border-bottom: 1px dotted #666;
+	cursor: help;
+}
+
+mark, ins {
+	background: #fff9c0;
+	text-decoration: none;
+}
+
+big {
+	font-size: 125%;
+}

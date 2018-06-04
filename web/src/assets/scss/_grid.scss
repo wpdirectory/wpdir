@@ -1,0 +1,44 @@
+/*--------------------------------------------------------------
+# Grid
+--------------------------------------------------------------*/
+
+.grid-x,
+.grid-y {
+  display: grid;
+
+  &.gutter-x {
+    grid-column-gap: $gutter;
+  }
+  &.gutter-y {
+    grid-row-gap: $gutter;
+  }
+  &.padding-x {
+    padding-left: $gutter;
+    padding-right: $gutter;
+  }
+  &.padding-y {
+    padding-top: $gutter;
+    padding-bottom: $gutter;
+  }
+}
+
+.grid-x {
+  grid-template-columns: 1fr;
+}
+
+.grid-y {
+  grid-template-rows: 1fr;
+}
+
+@mixin small-only {
+  @media only screen and (max-width: 639px) { @content; }
+}
+@mixin medium-up {
+  @media only screen and (min-width: 640px) { @content; }
+}
+@mixin large-up {
+  @media only screen and (min-width: 1024px) { @content; }
+}
+@mixin xlarge-up {
+  @media only screen and (min-width: 1200px) { @content; }
+}

@@ -1,0 +1,68 @@
+/*--------------------------------------------------------------
+# Navigation
+--------------------------------------------------------------*/
+
+header nav {
+    margin-left: 300px;
+    ul.menu {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        grid-auto-rows: 79px;
+
+        list-style: none;
+        margin: 0;
+        padding: 0;
+
+        li {
+            a {
+                display: grid;
+                height: 79px;
+                align-content: center;
+                text-align: center;
+                text-decoration: none;
+                color: #fff;
+            }
+        }
+        
+
+        a:hover,
+        a:active,
+        a:focus {
+            //background-color: #f4f4f4;
+            text-decoration: underline;
+        }
+
+        li.has-dropdown:hover,
+        li.has-dropdown:active,
+        li.has-dropdown:focus {
+
+            ul.sub-menu {
+                //display: grid;
+            }
+        }
+
+        ul.sub-menu {
+            //display: grid;
+            grid-template-columns: 1fr;
+            grid-auto-rows: 49px;
+            display: none;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+            border-left: #dedede 1px solid;
+            border-bottom: #dedede 1px solid;
+            border-right: #dedede 1px solid;
+            li {
+                a {
+                    display: grid;
+                    height: 49px;
+                    color: #fff;
+                }
+            }
+        }
+
+
+
+    }
+}
