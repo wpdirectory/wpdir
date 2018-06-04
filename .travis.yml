@@ -1,5 +1,3 @@
-# This is a weird way of telling Travis to use the fast container-based test
-# runner instead of the slow VM-based runner.
 sudo: false
 
 language: go
@@ -13,13 +11,14 @@ matrix:
     - go: tip
   fast_finish: true
 
-#before_install:
+before_install:
+  - go get -u golang.org/x/vgo
 
 install:
-  - go get -t ./...
-  - go get github.com/alecthomas/gometalinter
+  - vgo get -t ./...
 
-#before_script:
+before_script:
+  - go get github.com/alecthomas/gometalinter
 
 script:
   - gometalinter --install
