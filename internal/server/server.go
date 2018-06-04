@@ -48,10 +48,6 @@ func (s *Server) Setup() {
 	s.Router.Use(middleware.Recoverer)
 	s.Router.Use(middleware.DefaultCompress)
 
-	// Auth Middleware
-	//s.Router.Use(jwtauth.Verifier(auth.TokenAuth))
-	//s.Router.Use(jwtauth.Authenticator)
-
 	// Set a timeout value on the request context (ctx), that will signal
 	// through ctx.Done() that the request has timed out and further
 	// processing should be stopped.
