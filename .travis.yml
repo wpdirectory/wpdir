@@ -15,7 +15,7 @@ before_install:
   - go get -u golang.org/x/vgo
 
 install:
-  - vgo get -t ./...
+  - vgo get ./...
 
 before_script:
   - go get github.com/alecthomas/gometalinter
