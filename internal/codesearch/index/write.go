@@ -5,7 +5,6 @@
 package index
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -94,11 +93,11 @@ func makePostEntry(trigram, fileid uint32) postEntry {
 // or if it contains more than maxTextTrigrams distinct trigrams AND
 // it has a ratio of trigrams to filesize > maxTrigramRatio.
 const (
-	maxFileLen       = 1 << 25
-	maxLineLen       = 2000
-	maxLongLineRatio = 0.1
-	maxTextTrigrams  = 20000
-	maxTrigramRatio  = 0.1
+	maxFileLen = 1 << 25
+	maxLineLen = 2000000
+	//maxLongLineRatio = 0.1
+	maxTextTrigrams = 200000
+	//maxTrigramRatio  = 0.1
 )
 
 // AddPaths adds the given paths to the index's list of paths.
@@ -179,26 +178,6 @@ func (ix *IndexWriter) Add(name string, f io.Reader) string {
 				longLines++
 			}
 			linelen = 0
-		}
-	}
-
-	if n > 0 {
-		trigramRatio := float32(ix.trigram.Len()) / float32(n)
-		if trigramRatio > maxTrigramRatio && ix.trigram.Len() > maxTextTrigrams {
-			skipReason = fmt.Sprintf("Trigram ratio too high (%0.2f), probably not text", trigramRatio)
-			if ix.LogSkip {
-				log.Printf("%s: %s\n", name, skipReason)
-			}
-			return skipReason
-		}
-
-		longLineRatio := float32(longLines) / float32(numLines)
-		if longLineRatio > maxLongLineRatio {
-			skipReason = fmt.Sprintf("Too many long lines, ratio: %0.2f", longLineRatio)
-			if ix.LogSkip {
-				log.Printf("%s: %s\n", name, skipReason)
-			}
-			return skipReason
 		}
 	}
 
