@@ -2,6 +2,7 @@ $global-font-size: 100% !default;
 $base-font-size: 16;
 
 // Colors
+// Colors
 $primary: #D24632;
 $secondary: #7DC9DA;
 
@@ -10,8 +11,6 @@ $background: #122938;
 $gray-light: #f7f7f7;
 $gray: #737373;
 $gray-dark: #353535;
-
-$text: #444444;
 
 // Brand Colors
 $reddit: #FF5700;
@@ -33,12 +32,12 @@ $breakpoints: (
 
 // Typography
 $font-family: 'Open Sans', sans-serif;
-$font-color: #444444;
+$font-color: #4a4a4a;
 
 // Header
 $heading-font-family: 'Roboto', sans-serif;
 $heading-font-weight: bold;
-$heading-color: $font-color;
+$heading-color: lighten($font-color, 20%);
 
 $header-styles-small: (
   'h1': ('font-size': 24),

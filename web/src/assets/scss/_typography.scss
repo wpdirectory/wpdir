@@ -16,12 +16,11 @@ textarea {
 
 h1, h2, h3, h4, h5, h6 {
 	clear: both;
-	color: lighten($text, 10%);
+	color: $heading-color;;
 	margin: 0 0 1em 0;
-    font-family: $heading-font-family;
-    font-weight: $heading-font-weight;
-    color: $heading-color;
-    text-rendering: optimizeLegibility;
+  font-family: $heading-font-family;
+  font-weight: $heading-font-weight;
+  text-rendering: optimizeLegibility;
 }
 
 // Header Sizes

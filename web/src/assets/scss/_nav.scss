@@ -2,11 +2,19 @@
 # Navigation
 --------------------------------------------------------------*/
 
-header nav {
-    margin-left: 300px;
+nav.main-menu {
+    display: none;
+
+    &.active {
+        display: block;
+        grid-column-start: 1; 
+        grid-column-end: 3;
+        grid-row-start: 2; 
+        grid-row-end: 3; 
+    }
     ul.menu {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        grid-template-columns: 1fr;
         grid-auto-rows: 79px;
 
         list-style: none;
@@ -31,38 +39,136 @@ header nav {
             //background-color: #f4f4f4;
             text-decoration: underline;
         }
+    }
 
-        li.has-dropdown:hover,
-        li.has-dropdown:active,
-        li.has-dropdown:focus {
-
-            ul.sub-menu {
-                //display: grid;
-            }
-        }
-
-        ul.sub-menu {
-            //display: grid;
-            grid-template-columns: 1fr;
-            grid-auto-rows: 49px;
-            display: none;
+    .contact {
+        text-align: center;
+        color: #fff;
+        margin: rem-calc(30) 0 rem-calc(30) 0;
+        ul {
             list-style: none;
             margin: 0;
             padding: 0;
-            background-color: #fff;
-            border-left: #dedede 1px solid;
-            border-bottom: #dedede 1px solid;
-            border-right: #dedede 1px solid;
-            li {
-                a {
-                    display: grid;
-                    height: 49px;
-                    color: #fff;
-                }
-            }
+        }
+    }
+
+    @include medium-up() {
+        .contact {
+            display: none;
+        }
+    }
+}
+
+@include medium-up() {
+    nav.main-menu {
+        display: block;
+        ul.menu {
+            grid-template-columns: repeat( auto-fit, minmax(100px, 1fr) );
+        }
+    }
+    .header .toggle {
+        display: none;
+    }
+}
+
+/*--------------------------------------------------------------
+# Nav Toggle
+--------------------------------------------------------------*/
+
+$toggle-layer-width: 34px !default;
+$toggle-layer-height: 4px !default;
+$toggle-layer-spacing: 5px !default;
+$toggle-color: #fff;
+
+.toggle {
+    //padding: rem-calc(15) rem-calc(14);
+    padding-right: rem-calc(18);
+    display: inline-block;
+    cursor: pointer;
+  
+    transition-property: opacity, filter;
+    transition-duration: 0.15s;
+    transition-timing-function: linear;
+    text-align: right;
+    line-height: 79px;
+}
+  
+.toggle-box {
+    width: $toggle-layer-width ;
+    height: $toggle-layer-height * 3 + $toggle-layer-spacing * 2;
+    display: inline-block;
+    position: relative;
+    line-height: normal;
+}
+  
+.toggle-inner {
+    display: block;
+    top: 50%;
+    margin-top: $toggle-layer-height / -2;
+  
+    &,
+    &::before,
+    &::after {
+      width: $toggle-layer-width ;
+      height: $toggle-layer-height;
+      background-color: $toggle-color;
+      border-radius: rem-calc(4);
+      position: absolute;
+      transition-property: transform;
+      transition-duration: 0.15s;
+      transition-timing-function: ease;
+    }
+  
+    &::before,
+    &::after {
+      content: "";
+      display: block;
+    }
+  
+    &::before {
+      top: ($toggle-layer-spacing + $toggle-layer-height) * -1;
+    }
+  
+    &::after {
+      bottom: ($toggle-layer-spacing + $toggle-layer-height) * -1;
+    }
+}
+
+.toggle {
+    .toggle-inner {
+      transition-duration: 0.075s;
+      transition-timing-function: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+
+      &::before {
+        transition: top 0.075s 0.12s ease,
+                    opacity 0.075s ease;
+      }
+
+      &::after {
+        transition: bottom 0.075s 0.12s ease,
+                    transform 0.075s cubic-bezier(0.55, 0.055, 0.675, 0.19);
+      }
+    }
+
+    &.active {
+      .toggle-inner {
+        transform: rotate(45deg);
+        transition-delay: 0.12s;
+        transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+
+        &::before {
+          top: 0;
+          opacity: 0;
+          transition: top 0.075s ease,
+                      opacity 0.075s 0.12s ease;
         }
 
-
-
+        &::after {
+          bottom: 0;
+          transform: rotate(-90deg);
+          transition: bottom 0.075s ease,
+                      transform 0.075s 0.12s cubic-bezier(0.215, 0.61, 0.355, 1);
+        }
+      }
     }
 }

@@ -80,7 +80,7 @@ input[type="submit"] {
 	background: $primary;
 	color: #fff;
 	padding: rem-calc(10) rem-calc(16);
-	border-radius: 2px;
+	border-radius: 0;
 	cursor: pointer;
 }
 
@@ -120,7 +120,7 @@ input[type="datetime-local"],
 input[type="color"],
 textarea {
 	//color: $gray;
-	background: $gray-light;
+	background: darken($gray-light, 5%);
 	border: none;
 	border-radius: 0px;
 	padding: rem-calc(10) rem-calc(16);
@@ -142,7 +142,7 @@ input[type="datetime"]:focus,
 input[type="datetime-local"]:focus,
 input[type="color"]:focus,
 textarea:focus {
-	background: darken($gray-light, 5%);
+	background: darken($gray-light, 10%);
 	outline: none;
 }
 
