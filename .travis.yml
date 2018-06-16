@@ -2,20 +2,12 @@ sudo: false
 
 language: go
 
+script:
+  - go test -race -v ./...
+
 go:
   - 1.10.x
-
-#before_install:
-
-install:
-  - go get ./...
-
-#before_script:
-
-script:
-  - go test -race ./...
-
-#after_script:
+  - tip
 
 notifications:
   email: false
