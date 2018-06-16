@@ -93,8 +93,8 @@ func makePostEntry(trigram, fileid uint32) postEntry {
 // or if it contains more than maxTextTrigrams distinct trigrams AND
 // it has a ratio of trigrams to filesize > maxTrigramRatio.
 const (
-	maxFileLen = 1 << 25
-	maxLineLen = 2000000
+	maxFileLen = 5242880 // 5MB
+	maxLineLen = 2097152 // 2MB
 	//maxLongLineRatio = 0.1
 	maxTextTrigrams = 200000
 	//maxTrigramRatio  = 0.1
