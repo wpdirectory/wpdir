@@ -3,6 +3,10 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/go-chi/chi"
+	"github.com/wpdirectory/wpdir/internal/index"
+	"github.com/wpdirectory/wpdir/internal/store/ulid"
 )
 
 // getSearchList ...
@@ -31,23 +35,50 @@ func (s *Server) getSearchList() http.HandlerFunc {
 
 // getSearch ...
 func (s *Server) getSearch() http.HandlerFunc {
+
+	type getSearchResponse struct {
+		Status  int                     `json:"status"`
+		ID      string                  `json:"id"`
+		Results []*index.SearchResponse `json:"results"`
+		Err     string                  `json:"error"`
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		fight := ""
-		writeResp(w, fight)
+
+		var resp getSearchResponse
+
+		if searchID := chi.URLParam(r, "id"); searchID != "" {
+			resp.ID = searchID
+			s.lock.RLock()
+			if val, ok := s.Searches[searchID]; ok {
+				resp.Results = val
+				resp.Status = 200
+			} else {
+				resp.Err = "Search Not Found."
+				resp.Status = 404
+			}
+			s.lock.RUnlock()
+
+		} else {
+			resp.Err = "You must specify a valid Search ID."
+			resp.Status = 404
+		}
+
+		writeResp(w, resp)
 	}
 }
 
 // createSearch ...
 func (s *Server) createSearch() http.HandlerFunc {
 	type createSearchRequest struct {
-		input  string
-		target string
+		Input  string `json:"input"`
+		Target string `json:"target"`
 	}
 
 	type createSearchResponse struct {
-		status int
-		id     string
-		err    string
+		Status int    `json:"status"`
+		ID     string `json:"id"`
+		Err    string `json:"error"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -59,9 +90,19 @@ func (s *Server) createSearch() http.HandlerFunc {
 			panic(err)
 		}
 
-		// Create Search...
+		id := ulid.New()
+
+		var empty []*index.SearchResponse
+
+		s.lock.Lock()
+		s.Searches[id] = empty
+		s.lock.Unlock()
+
+		// Perform non-blocking Search...
+		go s.doSearch(data.Input, id)
 
 		var resp createSearchResponse
+		resp.ID = id
 		writeResp(w, resp)
 	}
 }

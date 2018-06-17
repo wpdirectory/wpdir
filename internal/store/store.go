@@ -3,6 +3,7 @@ package store
 import (
 	"log"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"time"
@@ -60,4 +61,11 @@ func (s *Store) Close() {
 
 	//s.sql.Close()
 
+}
+
+// DeleteFolder deletes the folder and all its contents at path.
+func DeleteFolder(filepath string) error {
+	_, err := exec.Command("rm", "-rf", filepath).Output()
+
+	return err
 }

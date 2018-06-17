@@ -92,7 +92,7 @@ func PluginNeedsUpdate(plugin svn.LogEntry) (bool, string) {
 
 			if tag == stableTag {
 
-				return true, fmt.Sprintf(wpRepoURL, "plugins", slug+"/tags/"+stableTag)
+				return true, fmt.Sprintf(WPRepoURL, "plugins", slug+"/tags/"+stableTag)
 
 				// TODO: Stable tag is only used if the tags readme and plugin file have the same value.
 
@@ -118,7 +118,7 @@ func PluginNeedsUpdate(plugin svn.LogEntry) (bool, string) {
 		}
 	}
 	if tagExists != false {
-		return true, fmt.Sprintf(wpRepoURL, "plugins", slug+"/tags/"+stableTag)
+		return true, fmt.Sprintf(WPRepoURL, "plugins", slug+"/tags/"+stableTag)
 	}
 
 	// If we have not found a reason to ignore it, assume we should update.

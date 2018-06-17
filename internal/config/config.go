@@ -16,8 +16,9 @@ type Config struct {
 	DataDir  string
 	IndexDir string
 	WD       string
-	HTTP     struct {
-		Port string
+	Ports    struct {
+		HTTP  string
+		HTTPS string
 	}
 }
 
@@ -28,7 +29,8 @@ func Setup() *Config {
 	viper.SetDefault("name", "WP Directory")
 	viper.SetDefault("commit", "")
 	viper.SetDefault("date", "")
-	viper.SetDefault("http.port", "9077")
+	viper.SetDefault("ports.http", "9077")
+	viper.SetDefault("ports.https", "9078")
 	viper.SetDefault("datadir", "F:\\wpdir\\data")
 	viper.SetDefault("indexdir", "F:\\wpdir\\index")
 
@@ -57,7 +59,8 @@ func Setup() *Config {
 		WD:       wd,
 	}
 
-	config.HTTP.Port = viper.GetString("http.port")
+	config.Ports.HTTP = viper.GetString("ports.http")
+	config.Ports.HTTPS = viper.GetString("ports.https")
 
 	return config
 

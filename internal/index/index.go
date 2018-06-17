@@ -57,6 +57,7 @@ type Match struct {
 
 type SearchResponse struct {
 	Matches        []*FileMatch
+	Slug           string
 	FilesWithMatch int
 	FilesOpened    int           `json:"-"`
 	Duration       time.Duration `json:"-"`
@@ -74,7 +75,8 @@ type ExcludedFile struct {
 }
 
 type IndexRef struct {
-	Url  string
+	Name string
+	Slug string
 	Rev  string
 	Time time.Time
 	dir  string
@@ -212,7 +214,7 @@ func (n *Index) Search(pat string, opt *SearchOptions) (*SearchResponse, error) 
 		if len(matches) > 0 {
 			filesCollected++
 			results = append(results, &FileMatch{
-				Filename: name,
+				Filename: n.Ref.Slug + string(os.PathSeparator) + name,
 				Matches:  matches,
 			})
 		}
@@ -449,7 +451,7 @@ func Read(dir string) (*IndexRef, error) {
 	return m, nil
 }
 
-func Build(opt *IndexOptions, dst, src, url, rev string) (*IndexRef, error) {
+func Build(opt *IndexOptions, dst, src, slug, rev string) (*IndexRef, error) {
 	if _, err := os.Stat(dst); err != nil {
 		if err := os.MkdirAll(dst, os.ModePerm); err != nil {
 			return nil, err
@@ -465,36 +467,7 @@ func Build(opt *IndexOptions, dst, src, url, rev string) (*IndexRef, error) {
 	}
 
 	r := &IndexRef{
-		Url:  url,
-		Rev:  rev,
-		Time: time.Now(),
-		dir:  dst,
-	}
-
-	if err := r.writeManifest(); err != nil {
-		return nil, err
-	}
-
-	return r, nil
-}
-
-func BuildNew(opt *IndexOptions, dst, src, url, rev string) (*IndexRef, error) {
-	if _, err := os.Stat(dst); err != nil {
-		if err := os.MkdirAll(dst, os.ModePerm); err != nil {
-			return nil, err
-		}
-	}
-
-	if err := os.Mkdir(filepath.Join(dst, "raw"), os.ModePerm); err != nil {
-		return nil, err
-	}
-
-	if err := indexAllFiles(opt, dst, src); err != nil {
-		return nil, err
-	}
-
-	r := &IndexRef{
-		Url:  url,
+		Slug: slug,
 		Rev:  rev,
 		Time: time.Now(),
 		dir:  dst,

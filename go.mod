@@ -2,12 +2,15 @@ module github.com/wpdirectory/wpdir
 
 require (
 	github.com/fsnotify/fsnotify v1.4.7
-	github.com/go-chi/chi v1.0.0
+	github.com/giantswarm/retry-go v0.0.0-20151203102909-d78cea247d5e
+	github.com/go-chi/chi v0.0.0-20171222161133-e83ac2304db3
 	github.com/go-chi/cors v1.0.0
 	github.com/go-chi/render v1.0.1
 	github.com/hashicorp/hcl v0.0.0-20180404174102-ef8a98b0bbce
+	github.com/juju/errgo v0.0.0-20140925100237-08cceb5d0b53
 	github.com/magiconair/properties v1.8.0
 	github.com/mitchellh/mapstructure v0.0.0-20180511142126-bb74f1db0675
+	github.com/oklog/ulid v0.3.0
 	github.com/patrickmn/go-cache v1.0.0
 	github.com/pelletier/go-toml v1.1.0
 	github.com/pressly/chi v1.0.0

@@ -10,7 +10,6 @@ import (
 	"github.com/wpdirectory/wpdir/internal/server"
 	"github.com/wpdirectory/wpdir/internal/stats"
 	"github.com/wpdirectory/wpdir/internal/store"
-	"github.com/wpdirectory/wpdir/internal/sync"
 )
 
 func main() {
@@ -40,14 +39,6 @@ func main() {
 	s.Store = store.New(s.Config)
 
 	s.Logger.Printf("Starting WPDirectory - Version: %s\n", s.Config.Version)
-
-	// Setup background sync process.
-	sync.Setup()
-
-	//err := store.FreshStart()
-	//if err != nil {
-	//s.Logger.Fatalf("Failed fresh start: %s\n", err)
-	//}
 
 	// Setup HTTP server.
 	s.Setup()
