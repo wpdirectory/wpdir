@@ -2,6 +2,11 @@ import React, { Component } from 'react'
 import SearchForm from '../general/SearchForm'
 
 class Home extends Component {
+
+  componentDidMount(){
+    document.title = 'WordPress Directory Searcher - WPdirectory'
+  }
+
   render() {
       return (
         <div className="page page-home">

@@ -1,4 +1,5 @@
 import React, { Component } from 'react'
+import { withRouter } from 'react-router-dom';
 import Dashicon from './Dashicon.js'
 
 class SearchForm extends Component {
@@ -19,10 +20,10 @@ class SearchForm extends Component {
   
     handleSubmit(event) {
       event.preventDefault();
-      this.postData('http://localhost:9077/api/v1/search/new/', {input: this.state.input, target: 'plugins'})
+      this.postData('https://wpdirectory.net/api/v1/search/new/', {input: this.state.input, target: 'plugins'})
         .then(data => {
             console.log(data)
-            this.props.history.push("/search/"+data.id)
+            this.props.history.push('/search/' + data.id + '/')
         }) // JSON from `response.json()` call
         .catch(error => console.error(error))
     }
@@ -74,4 +75,4 @@ class SearchForm extends Component {
     }
 }
 
-export default SearchForm
+export default withRouter(SearchForm)

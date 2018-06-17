@@ -15,6 +15,7 @@ section.content {
         width: 100%;
         max-width: 1200px;
         margin: 0 auto;
+        overflow: hidden;
         h1, h2 {
             margin-bottom: 0;
         }
@@ -62,6 +63,7 @@ section.content {
     .search-results {
         display: block;
         grid-area: results;
+        overflow: hidden;
         .results {
             margin: rem-calc(30) 0;
             .result {
@@ -96,7 +98,9 @@ section.content {
                     border-left: 1px solid darken( $gray-light, 10% );
                     overflow: scroll;
                     overflow-y: hidden;
+                    //overflow: hidden;
                     li {
+                        max-height: 1.5em;
                         .num {
                             padding: rem-calc(0) rem-calc(16);
                             text-align: right;

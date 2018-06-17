@@ -1,6 +1,11 @@
 import React, { Component } from 'react';
 
 class NotFound extends Component {
+
+  componentDidMount(){
+    document.title = 'Not Found - WPdirectory'
+  }
+
   render(){
       return (
         <div className="page page-404">
