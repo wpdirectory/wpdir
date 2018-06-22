@@ -20,10 +20,10 @@ class SearchForm extends Component {
   
     handleSubmit(event) {
       event.preventDefault();
-      this.postData('https://wpdirectory.net/api/v1/search/new/', {input: this.state.input, target: 'plugins'})
+      this.postData('https://wpdirectory.net/api/v1/search/new', {input: this.state.input, target: 'plugins'})
         .then(data => {
             console.log(data)
-            this.props.history.push('/search/' + data.id + '/')
+            this.props.history.push('/search/' + data.id)
         }) // JSON from `response.json()` call
         .catch(error => console.error(error))
     }
