@@ -1,181 +1,314 @@
 package repo
 
 import (
-	"fmt"
+	"encoding/json"
+	"errors"
+	"io/ioutil"
+	"log"
+	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
+	"strconv"
+	"sync"
+	"time"
+	"unicode/utf8"
 
+	"github.com/wpdirectory/wpdir/internal/config"
+	"github.com/wpdirectory/wpdir/internal/db"
+	"github.com/wpdirectory/wpdir/internal/index"
+	"github.com/wpdirectory/wpdir/internal/plugin"
+	"github.com/wpdirectory/wpdir/internal/searcher"
 	"github.com/wpdirectory/wpdir/internal/svn"
 )
 
-var (
-	regexStableTag = regexp.MustCompile(`Stable tag: (.+)`)
+const (
+	pluginManagementUser = "plugin-master"
 )
 
-// PluginReadme ...
-type PluginReadme struct {
-	Contributors    []string
-	Tags            []string
-	RequiresAtLeast string
-	TestedUpTo      string
-	RequiresPHP     string
-	StableTag       string
-	License         string
-	LicenseURI      string
+// PluginRepo ...
+type PluginRepo struct {
+	Config *config.Config
+	List   map[string]*plugin.Plugin
+
+	Revision    int
+	Updated     time.Time
+	UpdateQueue chan string
+	sync.RWMutex
 }
 
-// PluginNeedsUpdate ...
-func PluginNeedsUpdate(plugin svn.LogEntry) (bool, string) {
+// Len ...
+func (pr *PluginRepo) Len() int {
+	return len(pr.List)
+}
 
-	// Get the plugin slug
-	parts := strings.Split(plugin.Paths[0].File, "/")
-	slug := parts[1]
+// Rev ...
+func (pr *PluginRepo) Rev() int {
+	return pr.Revision
+}
 
-	// If it is an automated change, ignore it.
-	// Mostly commonly the initial empty commit when plugins are approved.
-	if plugin.Author == pluginManagementUser {
-		return false, ""
+func (pr *PluginRepo) save() error {
+	pr.Lock()
+	defer pr.Unlock()
+
+	rev := strconv.Itoa(pr.Revision)
+
+	return db.PutToBucket("plugins", []byte(rev), "repos")
+}
+
+func (pr *PluginRepo) load() error {
+	pr.RLock()
+	defer pr.RUnlock()
+	bytes, err := db.GetFromBucket("plugins", "repos")
+	if err != nil {
+		return err
 	}
 
-	// If all updates were inside the `/assets/` and `/branches/` folders, ignore it.
-	// This means that no live code updates occurred.
-	var ignoredFolders = true
-	for _, commit := range plugin.Paths {
+	rev, err := strconv.Atoi(string(bytes))
+	if err != nil || rev != 0 {
+		return err
+	}
+	pr.Revision = rev
 
-		parts := strings.Split(commit.File, "/")
-		if len(parts) > 2 && parts[2] != "assets" && parts[2] != "branches" {
-			ignoredFolders = false
+	return nil
+}
+
+// Exists ...
+func (pr *PluginRepo) Exists(slug string) bool {
+	pr.Lock()
+	defer pr.Unlock()
+	_, ok := pr.List[slug]
+	return ok
+}
+
+// Get ...
+func (pr *PluginRepo) Get(slug string) Extension {
+	pr.Lock()
+	defer pr.Unlock()
+	p := pr.List[slug]
+	return p
+}
+
+// Add ...
+func (pr *PluginRepo) Add(slug string) {
+	pr.RLock()
+	defer pr.RUnlock()
+	pr.List[slug] = &plugin.Plugin{
+		Slug: slug,
+	}
+	pr.QueueUpdate(slug)
+}
+
+// Set ...
+func (pr *PluginRepo) Set(slug string, p *plugin.Plugin) {
+	pr.RLock()
+	defer pr.RUnlock()
+	pr.List[slug] = p
+}
+
+// Remove ...
+func (pr *PluginRepo) Remove(slug string) {
+	pr.RLock()
+	defer pr.RUnlock()
+	delete(pr.List, slug)
+}
+
+// UpdateIndex ...
+func (pr *PluginRepo) UpdateIndex(idx *index.Index) error {
+	var slug string
+	if slug = idx.Ref.Slug; slug == "" {
+		// bad index, perhaps delete?
+		return errors.New("Index contains empty slug")
+	}
+
+	if !pr.Exists(slug) {
+		return errors.New("Index does not match an existing plugin")
+	}
+
+	err := pr.List[slug].Searcher.SwapIndexes(idx)
+	if err != nil {
+		pr.List[slug].SetIndexed(false)
+		pr.List[slug].Status = 1
+		return err
+	}
+
+	pr.List[slug].SetIndexed(true)
+	pr.List[slug].Status = 0
+
+	return nil
+}
+
+// QueueUpdate ...
+func (pr *PluginRepo) QueueUpdate(slug string) {
+	pr.UpdateQueue <- slug
+}
+
+// UpdateWorker ...
+func (pr *PluginRepo) UpdateWorker() {
+	for {
+		slug := <-pr.UpdateQueue
+		err := pr.ProcessUpdate(slug)
+		if err != nil {
+			log.Printf("Plugin (%s) Update Failed: %s\n", slug, err)
+			//pr.UpdateQueue <- slug
 		}
-
 	}
-	if ignoredFolders == true {
-		return false, ""
+}
+
+// ProcessUpdate ...
+func (pr *PluginRepo) ProcessUpdate(slug string) error {
+	p := pr.Get(slug).(*plugin.Plugin)
+	err := p.LoadAPIData()
+	if err != nil {
+		p.Status = 1
+		return err
 	}
 
-	stableTag := GetPluginStableTag(plugin)
+	p.Status = 0
 
-	var readmeTouched = false
-	var tagsTouched []string
-	var codeTouched = false
+	err = p.Update()
+	if err != nil {
+		p.SetIndexed(false)
+		return err
+	}
+	p.SetIndexed(true)
 
-	// TODO: Start by listing all tags which were changed, including trunk as a tag.
-	// Loop through changes and look for specific cases
-	for _, commit := range plugin.Paths {
+	p.Save()
 
-		parts := strings.Split(commit.File, "/")
+	return nil
+}
 
-		filename := filepath.Base(commit.File)
-		if filename == "readme.txt" || filename == "readme.md" {
-			readmeTouched = true
+// UpdateList updates our Plugin list.
+func (pr *PluginRepo) UpdateList() error {
+	// Fetch list from SVN
+	// https://plugins.svn.wordpress.org/
+	list, err := svn.GetList("plugins", "")
+	if err != nil {
+		return err
+	}
+
+	for _, item := range list {
+		if !utf8.Valid([]byte(item.Name)) {
+			return errors.New("Plugin slug is not valid utf8")
 		}
-
-		if len(parts) >= 4 && parts[2] == "tags" && parts[3] != "" {
-			tagsTouched = append(tagsTouched, parts[3])
-		}
-
-		// Has code been updated
-		// Forward slash is included as it might be a folder copy, like tagging a release.
-		if commit.File[1:] == "/" || commit.File[4:] == ".php" {
-			codeTouched = true
-		}
-
-	}
-
-	if readmeTouched == true {
-
-	}
-
-	if len(tagsTouched) > 0 {
-
-		for _, tag := range tagsTouched {
-
-			if tag == stableTag {
-
-				return true, fmt.Sprintf(WPRepoURL, "plugins", slug+"/tags/"+stableTag)
-
-				// TODO: Stable tag is only used if the tags readme and plugin file have the same value.
-
-			}
-
-		}
-
-	}
-
-	if codeTouched == true {
-
-	}
-
-	// Then calculate which tag is currently live, including trunk as a tag.
-
-	// If the live tag was not changed, then we can return false.
-
-	tags, _ := GetPluginTags(slug)
-	var tagExists = false
-	for _, v := range tags {
-		if v == stableTag {
-			tagExists = true
+		if !pr.Exists(item.Name) {
+			pr.Add(item.Name)
 		}
 	}
-	if tagExists != false {
-		return true, fmt.Sprintf(WPRepoURL, "plugins", slug+"/tags/"+stableTag)
-	}
 
-	// If we have not found a reason to ignore it, assume we should update.
-	return true, slug + "/trunk/"
+	return nil
+}
+
+// Worker ...
+func (pr *PluginRepo) Worker() error {
+	updateAPIData := time.NewTicker(time.Hour * 24).C
+
+	checkSVN := time.NewTicker(time.Minute * 5).C
+
+	for {
+		select {
+		case <-updateAPIData:
+			// Update Plugins API Data
+			log.Println("Update Pluins API Data.")
+		case <-checkSVN:
+			// Check SVN for Plugin Updates
+			log.Println("Check SVN for Plugin updates.")
+		}
+	}
+}
+
+// LoadExisting ...
+func (pr *PluginRepo) LoadExisting() {
+
+	pr.loadDBData()
+	pr.loadIndexes()
 
 }
 
-// GetPluginStableTag ...
-func GetPluginStableTag(plugin svn.LogEntry) string {
-
-	// Get the plugin slug
-	parts := strings.Split(plugin.Paths[0].File, "/")
-	slug := parts[1]
-
-	out, err := GetCat("plugins", slug, plugin.Revision)
+// loadDBData loads all existing Plugin data from the DB.
+func (pr *PluginRepo) loadDBData() {
+	plugins, err := db.GetAllFromBucket("plugins")
 	if err != nil {
-		return ""
+		return
 	}
 
-	// TODO: Currently using fragile regex which captures everything,
-	// so 1a.43355674.b0 would be a valid stable tag. Needs improvement,
-	// check out the wp.org repo parses them.
-	matches := regexStableTag.FindAllStringSubmatch(string(out), -1)
+	log.Printf("Found %d Plugin(s) in DB.\n", len(plugins))
 
-	var stableTag = matches[0][1]
+	for slug, bytes := range plugins {
+		var p plugin.Plugin
+		err := json.Unmarshal(bytes, &p)
+		if err != nil {
+			continue
+		}
+		p.Status = 1
+		p.Searcher = &searcher.Searcher{}
 
-	// If no Stable tag is set fallback to trunk and return.
-	if stableTag == "" {
-		stableTag = "trunk"
-		return stableTag
+		pr.Set(slug, &p)
 	}
-
-	// Check if the Stable tag exists in the repo, otherwise fallback to trunk.
-	_, err = GetList("plugins", slug+"/tags/"+stableTag)
-	if err != nil {
-		stableTag = "trunk"
-		return stableTag
-	}
-
-	return stableTag
-
 }
 
-// GetPluginTags ...
-func GetPluginTags(slug string) ([]string, error) {
+// loadIndexes reads all existing Indexes and attempts to match them to a Plugin.
+func (pr *PluginRepo) loadIndexes() {
+	indexDir := filepath.Join(pr.Config.WD, "data", "index", "plugins")
 
-	out, err := GetList("plugins", slug+"/tags/")
+	dirs, err := ioutil.ReadDir(indexDir)
 	if err != nil {
-		return []string{}, err
+		log.Printf("Failed to read Plugin index dir: %s\n", err)
+		return
 	}
 
-	var tags []string
+	log.Printf("Found %d existing Plugin indexes.\n", len(dirs))
 
-	for _, v := range out {
-		tags = append(tags, v.Name)
+	var loaded int
+
+	for _, dir := range dirs {
+		// If not Directory discard.
+		if !dir.IsDir() {
+			continue
+		}
+
+		path := filepath.Join(indexDir, dir.Name())
+
+		// Read Index
+		ref, err := index.Read(path)
+		if err != nil {
+			os.RemoveAll(path)
+			continue
+		}
+
+		// Create Index
+		idx, err := ref.Open()
+		if err != nil {
+			os.RemoveAll(path)
+			continue
+		}
+
+		err = pr.UpdateIndex(idx)
+		if err != nil {
+			os.RemoveAll(path)
+			continue
+		}
+		loaded++
+	}
+	log.Printf("Loaded %d Plugin indexes", loaded)
+}
+
+// Summary ...
+func (pr *PluginRepo) Summary() *RepoSummary {
+	pr.Lock()
+	defer pr.Unlock()
+
+	rs := &RepoSummary{
+		Revision: pr.Revision,
+		Total:    len(pr.List),
+		Queue:    len(pr.UpdateQueue),
 	}
 
-	return tags, nil
+	for _, p := range pr.List {
+		p.Lock()
+		if p.Status == 1 {
+			rs.Closed++
+		}
+		p.Unlock()
+	}
 
+	return rs
 }

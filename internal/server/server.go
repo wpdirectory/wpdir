@@ -2,45 +2,75 @@ package server
 
 import (
 	"log"
-	"sync"
 
 	"github.com/go-chi/chi"
 	"github.com/wpdirectory/wpdir/internal/config"
-	"github.com/wpdirectory/wpdir/internal/index"
-	"github.com/wpdirectory/wpdir/internal/search"
-	"github.com/wpdirectory/wpdir/internal/store"
+	"github.com/wpdirectory/wpdir/internal/repo"
 )
 
 // Server holds all the data the App needs
 type Server struct {
-	Store           store.DataStore
-	Logger          *log.Logger
-	Config          *config.Config
-	Router          *chi.Mux
-	PluginSearchers map[string]*search.Searcher
-	ThemeSearchers  map[string]*search.Searcher
-	Searches        map[string][]*index.SearchResponse
-	lock            sync.RWMutex
+	Logger   *log.Logger
+	Config   *config.Config
+	Router   *chi.Mux
+	Plugins  repo.Repo
+	Themes   repo.Repo
+	Searches *SearchManager
 }
 
 // New returns a pointer to the main server struct
-func New() *Server {
+func New(log *log.Logger, config *config.Config) *Server {
 
-	return &Server{
-		PluginSearchers: make(map[string]*search.Searcher),
-		ThemeSearchers:  make(map[string]*search.Searcher),
-		Searches:        make(map[string][]*index.SearchResponse),
+	// Init Repos
+	pr := repo.New("plugins", config)
+	tr := repo.New("themes", config)
+
+	// Load Existing from DB
+	pr.LoadExisting()
+	tr.LoadExisting()
+
+	// Initial List
+	err := pr.UpdateList()
+	if err != nil {
+		log.Fatalf("Could not get initial plugin list.")
+	}
+	err = tr.UpdateList()
+	if err != nil {
+		log.Fatalf("Could not get initial theme list.")
 	}
 
+	// Start Workers
+	go pr.UpdateWorker()
+	go tr.UpdateWorker()
+
+	latest := &Latest{
+		List: make([]*LatestSearch, 0),
+	}
+
+	sm := &SearchManager{
+		Queue:  make(chan string, 200),
+		List:   make(map[string]*Search),
+		Latest: latest,
+	}
+
+	s := &Server{
+		Config:   config,
+		Logger:   log,
+		Plugins:  pr.(*repo.PluginRepo),
+		Themes:   tr.(*repo.ThemeRepo),
+		Searches: sm,
+	}
+
+	// Start Worker to Process Searches
+	go s.SearchWorker()
+
+	return s
 }
 
 // Setup ...
 func (s *Server) Setup() {
 
 	// TODO: Pass shutdown channel for graceful shutdowns.
-
-	// Start background Sync
-	go s.startSync()
 
 	// Start HTTP Server
 	s.startHTTP()

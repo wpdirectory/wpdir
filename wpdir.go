@@ -6,10 +6,9 @@ import (
 	"os"
 
 	"github.com/wpdirectory/wpdir/internal/config"
+	"github.com/wpdirectory/wpdir/internal/db"
 	"github.com/wpdirectory/wpdir/internal/log"
 	"github.com/wpdirectory/wpdir/internal/server"
-	"github.com/wpdirectory/wpdir/internal/stats"
-	"github.com/wpdirectory/wpdir/internal/store"
 )
 
 func main() {
@@ -23,22 +22,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Println("Starting WPDirectory")
+
 	// Setup Stats.
-	stats.Setup()
+	//stats.Setup()
+
+	// Create Logger
+	l := log.New()
+
+	// Create Config
+	c := config.Setup()
+
+	// Setup BoltDB
+	db.Setup(c.WD)
+	defer db.Close()
 
 	// Setup server struct to hold all App data
-	s := server.New()
-
-	// Setup Logger
-	s.Logger = log.New()
-
-	// Setup Config
-	s.Config = config.Setup()
-
-	// Setup Data Store
-	s.Store = store.New(s.Config)
-
-	s.Logger.Printf("Starting WPDirectory - Version: %s\n", s.Config.Version)
+	s := server.New(l, c)
 
 	// Setup HTTP server.
 	s.Setup()

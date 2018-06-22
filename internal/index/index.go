@@ -1,11 +1,14 @@
 package index
 
 import (
+	"archive/zip"
+	"bytes"
 	"compress/gzip"
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -32,7 +35,7 @@ const (
 type Index struct {
 	Ref *IndexRef
 	idx *index.Index
-	lck sync.RWMutex
+	sync.RWMutex
 }
 
 type IndexOptions struct {
@@ -75,11 +78,9 @@ type ExcludedFile struct {
 }
 
 type IndexRef struct {
-	Name string
-	Slug string
-	Rev  string
 	Time time.Time
 	dir  string
+	Slug string
 }
 
 func (r *IndexRef) Dir() string {
@@ -108,20 +109,21 @@ func (r *IndexRef) Remove() error {
 }
 
 func (n *Index) Close() error {
-	n.lck.Lock()
-	defer n.lck.Unlock()
+	n.Lock()
+	defer n.Unlock()
 	return n.idx.Close()
 }
 
 func (n *Index) Destroy() error {
-	n.lck.Lock()
-	defer n.lck.Unlock()
+	n.Lock()
+	defer n.Unlock()
 	if err := n.idx.Close(); err != nil {
 		return err
 	}
 	return n.Ref.Remove()
 }
 
+// GetDir ...
 func (n *Index) GetDir() string {
 	return n.Ref.dir
 }
@@ -134,6 +136,7 @@ func toStrings(lines [][]byte) []string {
 	return strs
 }
 
+// GetRegexpPattern ...
 func GetRegexpPattern(pat string, ignoreCase bool) string {
 	if ignoreCase {
 		return "(?i)(?m)" + pat
@@ -141,11 +144,12 @@ func GetRegexpPattern(pat string, ignoreCase bool) string {
 	return "(?m)" + pat
 }
 
-func (n *Index) Search(pat string, opt *SearchOptions) (*SearchResponse, error) {
+// Search ...
+func (n *Index) Search(pat, slug string, opt *SearchOptions) (*SearchResponse, error) {
 	startedAt := time.Now()
 
-	n.lck.RLock()
-	defer n.lck.RUnlock()
+	n.RLock()
+	defer n.RUnlock()
 
 	re, err := regexp.Compile(GetRegexpPattern(pat, opt.IgnoreCase))
 	if err != nil {
@@ -214,7 +218,7 @@ func (n *Index) Search(pat string, opt *SearchOptions) (*SearchResponse, error) 
 		if len(matches) > 0 {
 			filesCollected++
 			results = append(results, &FileMatch{
-				Filename: n.Ref.Slug + string(os.PathSeparator) + name,
+				Filename: slug + string(os.PathSeparator) + name,
 				Matches:  matches,
 			})
 		}
@@ -225,7 +229,6 @@ func (n *Index) Search(pat string, opt *SearchOptions) (*SearchResponse, error) 
 		FilesWithMatch: filesFound,
 		FilesOpened:    filesOpened,
 		Duration:       time.Now().Sub(startedAt),
-		Revision:       n.Ref.Rev,
 	}, nil
 }
 
@@ -316,6 +319,7 @@ func addDirToIndex(dst, src, path string) error {
 	}
 
 	dup := filepath.Join(dst, "raw", rel)
+	log.Printf("About to Index Dir: %s\n", rel)
 	return os.Mkdir(dup, os.ModePerm)
 }
 
@@ -451,6 +455,17 @@ func Read(dir string) (*IndexRef, error) {
 	return m, nil
 }
 
+// Open the index in dir for searching.
+func Open(dir string) (*Index, error) {
+	r, err := Read(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Open()
+}
+
+// Build ...
 func Build(opt *IndexOptions, dst, src, slug, rev string) (*IndexRef, error) {
 	if _, err := os.Stat(dst); err != nil {
 		if err := os.MkdirAll(dst, os.ModePerm); err != nil {
@@ -467,8 +482,6 @@ func Build(opt *IndexOptions, dst, src, slug, rev string) (*IndexRef, error) {
 	}
 
 	r := &IndexRef{
-		Slug: slug,
-		Rev:  rev,
 		Time: time.Now(),
 		dir:  dst,
 	}
@@ -480,12 +493,174 @@ func Build(opt *IndexOptions, dst, src, slug, rev string) (*IndexRef, error) {
 	return r, nil
 }
 
-// Open the index in dir for searching.
-func Open(dir string) (*Index, error) {
-	r, err := Read(dir)
+// BuildFromZip ...
+func BuildFromZip(opt *IndexOptions, archive []byte, dst, slug string) (*IndexRef, error) {
+
+	zr, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
 	if err != nil {
 		return nil, err
 	}
 
-	return r.Open()
+	if err := os.Mkdir(dst, os.ModePerm); err != nil {
+		return nil, err
+	}
+
+	if err := os.Mkdir(filepath.Join(dst, "raw"), os.ModePerm); err != nil {
+		return nil, err
+	}
+
+	if err := indexAllZipFiles(opt, dst, zr.File); err != nil {
+		return nil, err
+	}
+
+	r := &IndexRef{
+		Time: time.Now(),
+		dir:  dst,
+		Slug: slug,
+	}
+
+	if err := r.writeManifest(); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+func indexAllZipFiles(opt *IndexOptions, dst string, files []*zip.File) error {
+	ix := index.Create(filepath.Join(dst, "tri"))
+	defer ix.Close()
+
+	excluded := []*ExcludedFile{}
+
+	// Make a file to store the excluded files for this repo
+	fileHandle, err := os.Create(filepath.Join(dst, "excluded_files.json"))
+	if err != nil {
+		return err
+	}
+	defer fileHandle.Close()
+
+	processFile := func(name string, file *zip.File) error {
+		info := file.FileInfo()
+		path := filepath.Dir(name)
+
+		// Is this file considered "special", this means it's not even a part
+		// of the source repository (like .git or .svn).
+		if containsString(opt.SpecialFiles, name) {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		if opt.ExcludeDotFiles && name[0] == '.' {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+
+			excluded = append(excluded, &ExcludedFile{
+				name,
+				reasonDotFile,
+			})
+			return nil
+		}
+
+		if info.IsDir() {
+			return addZipDirToIndex(dst, name, path)
+		}
+
+		if info.Mode()&os.ModeType != 0 {
+			excluded = append(excluded, &ExcludedFile{
+				name,
+				reasonInvalidMode,
+			})
+			return nil
+		}
+
+		txt, err := isZipTextFile(file)
+		if err != nil {
+			return err
+		}
+
+		if !txt {
+			excluded = append(excluded, &ExcludedFile{
+				name,
+				reasonNotText,
+			})
+			return nil
+		}
+
+		reasonForExclusion, err := addZipFileToIndex(ix, dst, name, path, file)
+		if err != nil {
+			return err
+		}
+		if reasonForExclusion != "" {
+			excluded = append(excluded, &ExcludedFile{name, reasonForExclusion})
+		}
+
+		return nil
+	}
+
+	for _, file := range files {
+		if err = processFile(file.Name, file); err != nil {
+			return err
+		}
+	}
+
+	if err := writeExcludedFilesJSON(filepath.Join(dst, excludedFileJSONFilename), excluded); err != nil {
+		return err
+	}
+
+	ix.Flush()
+
+	return nil
+}
+
+func addZipFileToIndex(ix *index.IndexWriter, dst, src, path string, file *zip.File) (string, error) {
+	r, err := file.Open()
+	if err != nil {
+		return "", err
+	}
+	defer r.Close()
+
+	dup := filepath.Join(dst, "raw", file.Name)
+	w, err := os.Create(dup)
+	if err != nil {
+		return "", err
+	}
+	defer w.Close()
+
+	g := gzip.NewWriter(w)
+	defer g.Close()
+
+	return ix.Add(file.Name, io.TeeReader(r, g)), nil
+}
+
+func isZipTextFile(file *zip.File) (bool, error) {
+	buf := make([]byte, filePeekSize)
+	r, err := file.Open()
+	if err != nil {
+		return false, err
+	}
+	defer r.Close()
+
+	n, err := io.ReadFull(r, buf)
+	if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
+		return false, err
+	}
+
+	buf = buf[:n]
+
+	if n < filePeekSize {
+		// read the whole file, must be valid.
+		return utf8.Valid(buf), nil
+	}
+
+	// read a prefix, allow trailing partial runes.
+	return validUTF8IgnoringPartialTrailingRune(buf), nil
+
+}
+
+func addZipDirToIndex(dst, src, path string) error {
+	dup := filepath.Join(dst, "raw", path)
+	return os.Mkdir(dup, os.ModePerm)
 }

@@ -1,127 +1,69 @@
 package repo
 
 import (
-	"fmt"
-	"time"
-
-	"github.com/wpdirectory/wpdir/internal/svn"
+	"github.com/wpdirectory/wpdir/internal/config"
+	"github.com/wpdirectory/wpdir/internal/index"
+	"github.com/wpdirectory/wpdir/internal/plugin"
+	"github.com/wpdirectory/wpdir/internal/theme"
 )
 
-const (
-	// WPRepoURL is the URL for the WordPress SVN Repos
-	WPRepoURL = "https://%s.svn.wordpress.org/%s"
-)
+// Repo ...
+type Repo interface {
+	Len() int
+	Rev() int
 
-var (
-	pluginManagementUser = "plugin-master"
-	themeManagementUser  = "theme-master"
-)
+	Exists(slug string) bool
+	Get(slug string) Extension
+	Add(slug string)
+	Remove(slug string)
+	UpdateIndex(idx *index.Index) error
+	UpdateList() error
 
-// Extension represents a WordPress Extension (Plugin/Theme).
-type Extension struct {
-	Name     string
-	Slug     string
-	Version  string
-	Revision string
-	Dir      string
-	Time     time.Time
+	LoadExisting()
+
+	QueueUpdate(slug string)
+	UpdateWorker()
+	ProcessUpdate(slug string) error
+
+	Summary() *RepoSummary
 }
 
-// GetLogLatest gets details of the latest Revision.
-func GetLogLatest(repo string, path string) (svn.LogEntry, error) {
-
-	URL := fmt.Sprintf(WPRepoURL, repo, path)
-
-	args := []string{URL, "-v", "-r", "HEAD"}
-
-	out, err := svn.Log(args...)
-
-	if len(out) > 0 {
-		return out[0], err
+// New returns a new Repo
+func New(t string, c *config.Config) Repo {
+	var repo Repo
+	switch t {
+	case "plugins":
+		repo = &PluginRepo{
+			Config:      c,
+			List:        make(map[string]*plugin.Plugin),
+			Revision:    0,
+			UpdateQueue: make(chan string, 100000),
+		}
+	case "themes":
+		repo = &ThemeRepo{
+			Config:      c,
+			List:        make(map[string]*theme.Theme),
+			Revision:    0,
+			UpdateQueue: make(chan string, 100000),
+		}
 	}
-
-	return svn.LogEntry{}, err
-
+	return repo
 }
 
-// GetLogDiff gets details of the Revisions between the two values provided.
-func GetLogDiff(repo string, path string, start int, end int) ([]svn.LogEntry, error) {
-
-	URL := fmt.Sprintf(WPRepoURL, repo, path)
-
-	diff := fmt.Sprintf("%d:%d", start, end)
-
-	args := []string{URL, "-v", "-r", diff}
-
-	out, err := svn.Log(args...)
-
-	return out, err
-
+// RepoSummary ...
+type RepoSummary struct {
+	Revision int `json:"revision"`
+	Total    int `json:"total"`
+	Closed   int `json:"closed"`
+	Queue    int `json:"queue"`
 }
 
-// GetList gets details of all folders inside the path.
-func GetList(repo string, path string) ([]svn.ListEntry, error) {
-
-	URL := fmt.Sprintf(WPRepoURL, repo, path)
-
-	args := []string{URL}
-
-	out, err := svn.List(args...)
-
-	return out, err
-
-}
-
-// GetDiff gets the files which changed between the two values provided.
-func GetDiff(repo string, path string, start int, end int) ([]byte, error) {
-
-	URL := fmt.Sprintf(WPRepoURL, repo, path)
-	diff := fmt.Sprintf("%d:%d", start, end)
-	args := []string{URL, "-r", diff, "--xml", "--summarize"}
-
-	out, err := svn.Diff(args...)
-
-	return out, err
-
-}
-
-// GetCat gets the contents from the remote path, at (optional) revision.
-func GetCat(repo string, path string, revision int) ([]byte, error) {
-
-	URL := fmt.Sprintf(WPRepoURL, repo, path)
-	args := []string{URL}
-
-	if revision != 0 {
-		args = append(args, "-r")
-		args = append(args, fmt.Sprintf("%d", revision))
-	}
-
-	out, err := svn.Cat(args...)
-
-	return out, err
-
-}
-
-// DoExport writes the remote files from path to local dest.
-func DoExport(repo string, path string, dest string) error {
-
-	URL := fmt.Sprintf(WPRepoURL, repo, path)
-	args := []string{URL, dest, "-q", "--force", "--depth", "infinity"}
-
-	err := svn.Export(args...)
-
-	return err
-
-}
-
-// DoCheckout creates a local svn repo at dest from remote at path.
-func DoCheckout(repo string, path string, dest string) error {
-
-	URL := fmt.Sprintf(WPRepoURL, repo, path)
-	args := []string{URL, dest, "-q"}
-
-	err := svn.Checkout(args...)
-
-	return err
-
+// Extension ...
+type Extension interface {
+	GetStatus() string
+	HasIndex() bool
+	SetIndexed(idx bool)
+	LoadAPIData() error
+	Update() error
+	Save() error
 }

@@ -6,11 +6,122 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 const (
-	wpRepoURL = "https://%s.svn.wordpress.org/%s"
+	// WPRepoURL is the URL for the WordPress SVN Repos
+	WPRepoURL = "https://%s.svn.wordpress.org/%s"
 )
+
+// Extension represents a WordPress Extension (Plugin/Theme).
+type Extension struct {
+	Name     string
+	Slug     string
+	Version  string
+	Revision string
+	Dir      string
+	Time     time.Time
+}
+
+// GetLogLatest gets details of the latest Revision.
+func GetLogLatest(repo string, path string) (LogEntry, error) {
+
+	URL := fmt.Sprintf(WPRepoURL, repo, path)
+
+	args := []string{URL, "-v", "-r", "HEAD"}
+
+	out, err := log(args...)
+
+	if len(out) > 0 {
+		return out[0], err
+	}
+
+	return LogEntry{}, err
+
+}
+
+// GetLogDiff gets details of the Revisions between the two values provided.
+func GetLogDiff(repo string, path string, start int, end int) ([]LogEntry, error) {
+
+	URL := fmt.Sprintf(WPRepoURL, repo, path)
+
+	diff := fmt.Sprintf("%d:%d", start, end)
+
+	args := []string{URL, "-v", "-r", diff}
+
+	out, err := log(args...)
+
+	return out, err
+
+}
+
+// GetList gets details of all folders inside the path.
+func GetList(repo string, path string) ([]ListEntry, error) {
+
+	URL := fmt.Sprintf(WPRepoURL, repo, path)
+
+	args := []string{URL}
+
+	out, err := list(args...)
+
+	return out, err
+
+}
+
+// GetDiff gets the files which changed between the two values provided.
+func GetDiff(repo string, path string, start int, end int) ([]byte, error) {
+
+	URL := fmt.Sprintf(WPRepoURL, repo, path)
+	diffs := fmt.Sprintf("%d:%d", start, end)
+	args := []string{URL, "-r", diffs, "--xml", "--summarize"}
+
+	out, err := diff(args...)
+
+	return out, err
+
+}
+
+// GetCat gets the contents from the remote path, at (optional) revision.
+func GetCat(repo string, path string, revision int) ([]byte, error) {
+
+	URL := fmt.Sprintf(WPRepoURL, repo, path)
+	args := []string{URL}
+
+	if revision != 0 {
+		args = append(args, "-r")
+		args = append(args, fmt.Sprintf("%d", revision))
+	}
+
+	out, err := cat(args...)
+
+	return out, err
+
+}
+
+// DoExport writes the remote files from path to local dest.
+func DoExport(repo string, path string, dest string) error {
+
+	URL := fmt.Sprintf(WPRepoURL, repo, path)
+	args := []string{URL, dest, "-q", "--force", "--depth", "infinity"}
+
+	err := export(args...)
+
+	return err
+
+}
+
+// DoCheckout creates a local svn repo at dest from remote at path.
+func DoCheckout(repo string, path string, dest string) error {
+
+	URL := fmt.Sprintf(WPRepoURL, repo, path)
+	args := []string{URL, dest, "-q"}
+
+	err := checkout(args...)
+
+	return err
+
+}
 
 // LogResponse contains the response from the `svn log` command.
 type LogResponse struct {
@@ -33,8 +144,8 @@ type Path struct {
 	File      string `xml:",chardata"`
 }
 
-// Log performs the `svn log` command.
-func Log(args ...string) ([]LogEntry, error) {
+// log performs the `svn log` command.
+func log(args ...string) ([]LogEntry, error) {
 	// Force xml format as it is required below.
 	args = append([]string{"log", "--xml"}, args...)
 
@@ -70,8 +181,8 @@ type Commit struct {
 	Date     string `xml:"date"`
 }
 
-// List performs the `svn list` command.
-func List(args ...string) ([]ListEntry, error) {
+// list performs the `svn list` command.
+func list(args ...string) ([]ListEntry, error) {
 	// Force xml format as it is required below.
 	args = append([]string{"list", "--xml"}, args...)
 
@@ -89,8 +200,8 @@ func List(args ...string) ([]ListEntry, error) {
 	return response.List, nil
 }
 
-// Diff performs the `svn diff` command.
-func Diff(args ...string) ([]byte, error) {
+// diff performs the `svn diff` command.
+func diff(args ...string) ([]byte, error) {
 	cmd := append([]string{"diff"}, args...)
 
 	out, err := exec.Command("svn", cmd...).Output()
@@ -101,21 +212,21 @@ func Diff(args ...string) ([]byte, error) {
 	return out, nil
 }
 
-// Export performs the `svn export` command.
-func Export(args ...string) error {
+// export performs the `svn export` command.
+func export(args ...string) error {
 	args = append([]string{"export"}, args...)
 
 	out, err := command(args...)
 	if err != nil {
 		argString := strings.Join(args, " ")
-		return errors.New("SVN command failed: svn export " + argString + ": " + err.Error() + ": " + string(out))
+		return errors.New("SVN Export Command Failed: " + argString + ": " + err.Error() + ": " + string(out))
 	}
 
 	return err
 }
 
-// Cat performs the `svn cat` command.
-func Cat(args ...string) ([]byte, error) {
+// cat performs the `svn cat` command.
+func cat(args ...string) ([]byte, error) {
 	// Force xml format as it is required below.
 	args = append([]string{"cat"}, args...)
 
@@ -127,8 +238,8 @@ func Cat(args ...string) ([]byte, error) {
 	return out, nil
 }
 
-// Checkout performs the `svn checkout` command.
-func Checkout(args ...string) error {
+// checkout performs the `svn checkout` command.
+func checkout(args ...string) error {
 	args = append([]string{"checkout"}, args...)
 
 	_, err := command(args...)
@@ -149,9 +260,9 @@ func command(args ...string) ([]byte, error) {
 	return out, nil
 }
 
-// IsFolder wraps the `List` func for a specific purpose.
+// IsFolder wraps the `list` command for a specific purpose.
 func IsFolder(directory string, path string) bool {
-	URL := fmt.Sprintf(wpRepoURL, directory, path)
+	URL := fmt.Sprintf(WPRepoURL, directory, path)
 
 	args := []string{"list", URL, "--depth=empty"}
 
