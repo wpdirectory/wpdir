@@ -6,7 +6,7 @@
 
 WPDirectory provides a web interface for viewing and searching the WordPress.org [Plugin](https://plugins.svn.wordpress.org/) and [Theme](https://themes.svn.wordpress.org/) Repositories. It is spawned from the [WPDS](https://github.com/PeterBooker/wpds) project and aims to avoid many people having to download and search the data locally.
 
-WPDirectory is still in early development and the website is not yet live. I hope to have a functioning prototype by the end of June. Once it is live it will be available at [wpdirectory.net](https://wpdirectory.net).
+WPDirectory is still in early development but now has an alpha version intermittently live at [https://wpdirectory.net/](https://wpdirectory.net/). I am currently working towards improving the user-experience and then I will arrange production hosting.
 
 ## FAQs
 
