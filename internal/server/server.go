@@ -53,6 +53,10 @@ func New(log *log.Logger, config *config.Config) *Server {
 		Latest: latest,
 	}
 
+	// Load Existing Searches
+	count := sm.Load()
+	log.Printf("Loaded %d searches.", count)
+
 	s := &Server{
 		Config:   config,
 		Logger:   log,
