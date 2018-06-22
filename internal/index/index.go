@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	matchLimit               = 10000
+	matchLimit               = 1000
 	manifestFilename         = "metadata.gob"
 	excludedFileJSONFilename = "excluded_files.json"
 	filePeekSize             = 2048
