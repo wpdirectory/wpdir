@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -87,7 +88,13 @@ func (s *Server) getSearch() http.HandlerFunc {
 			var resp getSearchResponse
 			s.Searches.Lock()
 			defer s.Searches.Unlock()
-			srch := s.Searches.List[searchID]
+			srch, ok := s.Searches.List[searchID]
+			if !ok {
+				var resp errResponse
+				resp.Err = fmt.Sprintf("Search %s not found.", searchID)
+				writeResp(w, resp)
+				return
+			}
 			srch.Lock()
 			defer srch.Unlock()
 			resp.ID = srch.ID
@@ -106,7 +113,6 @@ func (s *Server) getSearch() http.HandlerFunc {
 		} else {
 			var resp errResponse
 			resp.Err = "You must specify a valid Search ID."
-
 			writeResp(w, resp)
 		}
 	}
