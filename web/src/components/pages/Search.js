@@ -21,7 +21,7 @@ class Search extends Component {
 
   componentWillMount = () => {
 
-    fetch('https://wpdirectory.net/api/v1/search/' + this.props.match.params.id + '/')
+    fetch('https://wpdirectory.net/api/v1/search/' + this.props.match.params.id)
     .then( response => {
       return response.json()
       
@@ -43,7 +43,7 @@ class Search extends Component {
   }
 
   tick = () => {
-    fetch('https://wpdirectory.net/api/v1/search/' + this.props.match.params.id + '/')
+    fetch('https://wpdirectory.net/api/v1/search/' + this.props.match.params.id)
     .then( response => {
       return response.json()
       
@@ -125,9 +125,7 @@ class Search extends Component {
   render() {
 
     let searchResults
-
     if ( this.state.matches.length && this.state.matches.length > 0 ) {
-
       searchResults = this.state.matches.map( (match, idx) => {
         return (
           <div key={idx} className="result">
@@ -145,17 +143,13 @@ class Search extends Component {
               <li><span className="num">{match.line_num + 2}</span><span className="excerpt"><code>{match.after[1]}</code></span></li>
             </ul>
           </div>
-          )
+        )
       })
-
     } else {
-
       searchResults = <p>Sorry, no results found.</p>
-
     }
 
     let duration
-
     if (this.state.status !== 0) {
       duration = this.progressTime(this.state.started);
     } else {

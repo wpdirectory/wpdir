@@ -24,11 +24,10 @@ class Repos extends Component {
   }
 
   componentDidMount() {
-    document.title = 'Repositories - WPdirectory'
+    document.title = 'Repositories Overview - WPdirectory'
   }
 
   render() {
-
     return (
       <div className="page page-repos">
         <div className="panel plugins">

@@ -13,7 +13,7 @@ class Home extends Component {
 
   componentWillMount = () => {
 
-    fetch('https://wpdirectory.net/api/v1/searches/latest/')
+    fetch('https://wpdirectory.net/api/v1/searches/latest')
     .then( response => {
       return response.json()
       
@@ -48,7 +48,7 @@ class Home extends Component {
       latestSearches = this.state.searches.map( (search, idx) => {
         return (
           <li key={idx}>
-            <span className="input"><a href={"https://wpdirectory.net/search/" + search.id + '/'} title={search.input}>{search.input.substring(0, 34)}</a></span>
+            <span className="input"><a href={"https://wpdirectory.net/search/" + search.id} title={search.input}>{search.input.substring(0, 34)}</a></span>
             <span className="matches">{search.matches}</span>
             <span className="directory" title={search.repo.charAt(0).toUpperCase() + search.repo.slice(1)}>{this.getRepoIcon(search.repo)}</span>
           </li>

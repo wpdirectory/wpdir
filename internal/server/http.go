@@ -25,6 +25,7 @@ func (s *Server) startHTTP() {
 	s.Router.Use(middleware.Logger)
 	s.Router.Use(middleware.Recoverer)
 	s.Router.Use(middleware.DefaultCompress)
+	s.Router.Use(middleware.RedirectSlashes)
 
 	// Set a timeout value on the request context (ctx), that will signal
 	// through ctx.Done() that the request has timed out and further
@@ -43,7 +44,7 @@ func (s *Server) startHTTP() {
 	s.Router.Use(cors.Handler)
 
 	filesDir := filepath.Join("D:/projects/go/src/github.com/wpdirectory/wpdir", "web", "build")
-	FileServer(s.Router, "/", http.Dir(filesDir))
+	FileServer(s.Router, "/static", http.Dir(filesDir))
 
 	s.routes()
 
@@ -80,11 +81,10 @@ func (s *Server) routes() {
 
 	// Add Routes
 	s.Router.Get("/", s.static())
-	s.Router.Get("/search/", s.static())
-	s.Router.Get("/search/{id}/", s.static())
-	s.Router.Get("/searches/", s.static())
-	s.Router.Get("/status/", s.static())
-	s.Router.Get("/about/", s.static())
+	s.Router.Get("/search/{id}", s.static())
+	s.Router.Get("/searches", s.static())
+	s.Router.Get("/repos", s.static())
+	s.Router.Get("/about", s.static())
 
 	// Add API v1 routes
 	s.Router.Mount("/api/v1", s.apiRoutes())
@@ -98,16 +98,16 @@ func (s *Server) apiRoutes() chi.Router {
 
 	r := chi.NewRouter()
 
-	r.Get("/search/{id}/", s.getSearch())
-	r.Post("/search/new/", s.createSearch())
-	r.Get("/searches/", s.getSearchList())
-	r.Get("/searches/latest/", s.getSearchesLatest())
+	r.Get("/search/{id}", s.getSearch())
+	r.Post("/search/new", s.createSearch())
+	r.Get("/searches", s.getSearchList())
+	r.Get("/searches/latest", s.getSearchesLatest())
 
-	r.Get("/repo/{name}/", s.getRepo())
-	r.Get("/repos/overview/", s.getRepoOverview())
+	r.Get("/repo/{name}", s.getRepo())
+	r.Get("/repos/overview", s.getRepoOverview())
 
-	r.Get("/plugin/{slug}/", s.getPlugin())
-	r.Get("/theme/{slug}/", s.getTheme())
+	r.Get("/plugin/{slug}", s.getPlugin())
+	r.Get("/theme/{slug}", s.getTheme())
 
 	return r
 
