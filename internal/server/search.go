@@ -188,7 +188,6 @@ func (s *Server) processSearch(ID string) error {
 			go func(p *plugin.Plugin) {
 				resp, err := p.Searcher.Search(srch.Input, p.Slug, opts)
 				if err != nil {
-					log.Printf("Search failed: %s\n", err)
 					<-limiter
 					return
 				}
