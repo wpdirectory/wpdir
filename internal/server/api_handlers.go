@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -75,8 +76,8 @@ func (s *Server) getSearch() http.HandlerFunc {
 
 		if searchID := chi.URLParam(r, "id"); searchID != "" {
 
-			bytes, err := db.GetFromBucket(searchID, "searches")
-			if err == nil {
+			bytes, _ := db.GetFromBucket(searchID, "searches")
+			if len(bytes) > 0 {
 				w.Header().Set("Content-Type", "application/json;charset=utf-8")
 				w.Header().Set("Vary", "Accept-Encoding")
 				w.WriteHeader(http.StatusOK)
