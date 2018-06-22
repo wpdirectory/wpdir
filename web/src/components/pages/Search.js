@@ -14,7 +14,7 @@ class Search extends Component {
       completed: '',
       progress: 0,
       total: 0,
-      status: 0,
+      status: 5,
       matches: []
     };
   }
