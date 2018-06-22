@@ -29,18 +29,14 @@ class Header extends Component {
         <nav className={ this.state.toggle ? 'main-menu active' : 'main-menu' } aria-label="Main Navigation">
           <ul className="menu">
             <li><NavLink to="/searches">Searches</NavLink></li>
-            <li><NavLink to="/stats">Stats</NavLink></li>
-            <li><NavLink to="/reports">Reports</NavLink></li>
+            <li><NavLink to="/repos">Repos</NavLink></li>
             <li><NavLink to="/about">About</NavLink></li>
           </ul>
           <div className="contact">
-          <p>
-            Want to talk? Send me a message:<br />
-            <a href="mailto: mail@wpdirectory.net">mail@wpdirectory.net</a>
-          </p>
+          <p>Feedback or questions?</p>
           <ul className="social-links">
-            <li><a href="https://www.twitter.com/wpdir/" target="_blank" rel="noopener noreferrer">Twitter</a></li>
-            <li><a href="https://www.reddit.com/user/peterbooker/" target="_blank" rel="noopener noreferrer">Reddit</a></li>
+            <li><a href="mailto: mail@peterbooker.com">Email</a></li>
+            <li><a href="https://www.twitter.com/peter_booker/" target="_blank" rel="noopener noreferrer">Twitter</a></li>
             <li><a href="https://github.com/wpdirectory/wpdir" target="_blank" rel="noopener noreferrer">Github</a></li>
           </ul>
           </div>

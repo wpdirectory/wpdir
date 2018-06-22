@@ -26,24 +26,38 @@ section.content {
 # Home Page
 --------------------------------------------------------------*/
 
-.search-form {
-    .input-choice {
-        margin-bottom: rem-calc(16);
-        .input {
-            width: 100%;
+.page-home {
+    .panel {
+        display: block;
+        overflow: hidden;
+    }
+
+    .search-form {
+        .input-choice {
+            margin-bottom: rem-calc(16);
+            .input {
+                width: 100%;
+            }
+        }
+        .directory-choice {
+            margin-bottom: rem-calc(16);
         }
     }
-    .directory-choice {
-        margin-bottom: rem-calc(16);
+    
+    .search-list {
+        li {
+            span {
+                margin-right: rem-calc(10);
+                a {
+                    word-wrap: break-word;
+                }
+            }
+            
+        }
     }
 }
 
-.search-list {
-    li {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-    }
-}
+
 
 /*--------------------------------------------------------------
 # Search Page
@@ -98,7 +112,7 @@ section.content {
                     border-left: 1px solid darken( $gray-light, 10% );
                     overflow: scroll;
                     overflow-y: hidden;
-                    //overflow: hidden;
+                    white-space: nowrap;
                     li {
                         max-height: 1.5em;
                         .num {
@@ -118,6 +132,13 @@ section.content {
     .search-info {
         display: block;
         grid-area: info;
+        overflow: hidden;
+
+        .info {
+            dd {
+                word-wrap: break-word;
+            }
+        }
     }
 }
 
@@ -127,5 +148,27 @@ section.content {
         grid-template-areas: 
           "title title"
           "results info";
+    }
+}
+
+/*--------------------------------------------------------------
+# Repos Page
+--------------------------------------------------------------*/
+.page-repos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-gap: $gutter;
+
+    .plugins,
+    .themes {
+        display: block;
+        .details {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            .name {
+                font-weight: bold;
+            }
+        }
     }
 }
