@@ -86,6 +86,10 @@ func (s *Server) routes() {
 	s.Router.Get("/repos", s.static())
 	s.Router.Get("/about", s.static())
 
+	// Need to disable RedirectSlashes middleware to enable this
+	// redirects to /debug/prof/ which causes redirect loop
+	//s.Router.Mount("/debug", middleware.Profiler())
+
 	// Add API v1 routes
 	s.Router.Mount("/api/v1", s.apiRoutes())
 
@@ -100,7 +104,7 @@ func (s *Server) apiRoutes() chi.Router {
 
 	r.Get("/search/{id}", s.getSearch())
 	r.Post("/search/new", s.createSearch())
-	r.Get("/searches", s.getSearchList())
+	r.Get("/searches/{limit}", s.getSearches())
 	r.Get("/searches/latest", s.getSearchesLatest())
 
 	r.Get("/repo/{name}", s.getRepo())

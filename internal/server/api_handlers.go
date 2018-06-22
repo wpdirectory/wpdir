@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -52,6 +53,61 @@ func (s *Server) getSearchesLatest() http.HandlerFunc {
 		var resp getSearchesLatestResponse
 
 		resp.Searches = s.Searches.Latest.Get()
+
+		writeResp(w, resp)
+	}
+}
+
+// getSearches ...
+func (s *Server) getSearches() http.HandlerFunc {
+	type searchOverview struct {
+		ID        string    `json:"id"`
+		Input     string    `json:"input"`
+		Repo      string    `json:"repo"`
+		Matches   int       `json:"matches"`
+		Started   time.Time `json:"started,omitempty"`
+		Completed time.Time `json:"completed,omitempty"`
+		Progress  int       `json:"progress"`
+		Total     int       `json:"total"`
+		Status    status    `json:"status"`
+	}
+
+	type getSearchesResponse struct {
+		Searches []*searchOverview `json:"searches,omitempty"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		var resp getSearchesResponse
+		s.Searches.Lock()
+		defer s.Searches.Unlock()
+
+		searchLimit := chi.URLParam(r, "limit")
+		limit, err := strconv.Atoi(searchLimit)
+		if err != nil || limit < 10 || limit > 100 {
+			var resp errResponse
+			resp.Err = "You must specify a valid limit (10-100)."
+			writeResp(w, resp)
+			return
+		}
+
+		i := 1
+		for _, srch := range s.Searches.List {
+			so := &searchOverview{
+				ID:        srch.ID,
+				Input:     srch.Input,
+				Repo:      srch.Repo,
+				Matches:   len(srch.Matches),
+				Started:   srch.Started,
+				Completed: srch.Completed,
+				Progress:  srch.Progress,
+				Total:     srch.Total,
+				Status:    srch.Status,
+			}
+			resp.Searches = append(resp.Searches, so)
+			if i++; i == limit {
+				break
+			}
+		}
 
 		writeResp(w, resp)
 	}
