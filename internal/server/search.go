@@ -113,12 +113,44 @@ func (sm *SearchManager) Get(ID string) *Search {
 	return s
 }
 
+// Set ...
+func (sm *SearchManager) Set(s *Search) {
+	sm.RLock()
+	defer sm.RUnlock()
+	_, ok := sm.List[s.ID]
+	if !ok {
+		sm.List[s.ID] = s
+	}
+}
+
 // Exists ...
 func (sm *SearchManager) Exists(ID string) bool {
 	sm.Lock()
 	defer sm.Unlock()
 	_, ok := sm.List[ID]
 	return ok
+}
+
+// Load ...
+func (sm *SearchManager) Load() int {
+	i := 0
+	list, err := db.GetAllFromBucket("searches")
+	if err != nil {
+		return i
+	}
+
+	for ID, bytes := range list {
+		var s Search
+		err := json.Unmarshal(bytes, &s)
+		if err != nil {
+			log.Printf("Failed loading search: %s %s\n", ID, err)
+			db.DeleteFromBucket(ID, "searches")
+		}
+		sm.Set(&s)
+		i++
+	}
+
+	return i
 }
 
 // NewSearch ...
