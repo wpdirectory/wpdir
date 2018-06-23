@@ -161,14 +161,15 @@ func (pr *PluginRepo) ProcessUpdate(slug string) error {
 		p.Status = 1
 		return err
 	}
-
 	p.Status = 0
 
 	err = p.Update()
 	if err != nil {
+		p.Status = 1
 		p.SetIndexed(false)
 		return err
 	}
+	p.Status = 0
 	p.SetIndexed(true)
 
 	p.Save()
@@ -240,6 +241,9 @@ func (pr *PluginRepo) loadDBData() {
 		}
 		p.Status = 1
 		p.Searcher = &searcher.Searcher{}
+		if p.Name == "" {
+			pr.QueueUpdate(p.Slug)
+		}
 
 		pr.Set(slug, &p)
 	}
