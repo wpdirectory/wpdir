@@ -48,6 +48,11 @@ func New(log *log.Logger, config *config.Config) *Server {
 		List:  make(map[string]*Search),
 	}
 
+	// Debug Delete Searches
+	// Need to reset after break code changes
+	//del := sm.Empty()
+	//log.Printf("Deleted %d searches.", del)
+
 	// Load Existing Searches
 	count := sm.Load()
 	log.Printf("Loaded %d searches.", count)
