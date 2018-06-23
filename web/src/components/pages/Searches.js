@@ -45,7 +45,7 @@ class Searches extends Component {
     } else {
       searchList = <tr><th>Sorry, no searches found.</th></tr>
     }
-
+    
     return (
       <div className="page page-searches">
         <div className="panel searches">

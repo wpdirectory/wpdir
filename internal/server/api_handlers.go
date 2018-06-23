@@ -75,17 +75,22 @@ func (s *Server) getSearches() http.HandlerFunc {
 
 // getSearch ...
 func (s *Server) getSearch() http.HandlerFunc {
+	type summaryResponse struct {
+		List  []*Item `json:"list"`
+		Total int     `json:"total"`
+	}
 	type getSearchResponse struct {
-		ID        string    `json:"id"`
-		Input     string    `json:"input"`
-		Repo      string    `json:"repo"`
-		Matches   int       `json:"matches"`
-		Started   time.Time `json:"started,omitempty"`
-		Completed time.Time `json:"completed,omitempty"`
-		Progress  int       `json:"progress"`
-		Total     int       `json:"total"`
-		Status    status    `json:"status"`
-		Opts      Options   `json:"options"`
+		ID        string          `json:"id"`
+		Input     string          `json:"input"`
+		Repo      string          `json:"repo"`
+		Matches   int             `json:"matches"`
+		Started   time.Time       `json:"started,omitempty"`
+		Completed time.Time       `json:"completed,omitempty"`
+		Progress  int             `json:"progress"`
+		Total     int             `json:"total"`
+		Status    status          `json:"status"`
+		Summary   summaryResponse `json:"summary"`
+		Opts      Options         `json:"options"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -111,8 +116,25 @@ func (s *Server) getSearch() http.HandlerFunc {
 			if !srch.Started.IsZero() {
 				resp.Started = srch.Started
 			}
+			// If the search is complete add extra data
 			if !srch.Completed.IsZero() {
 				resp.Completed = srch.Completed
+				resp.Summary = summaryResponse{
+					Total: srch.Summary.Total,
+				}
+				// For each plugin with matches, add extra data
+				for _, v := range srch.Summary.List {
+					item := &Item{Slug: v.Slug}
+					p := s.Plugins.Get(v.Slug).(*plugin.Plugin)
+					p.Lock()
+					item.Name = p.Name
+					item.Version = p.Version
+					item.Homepage = p.Homepage
+					item.ActiveInstalls = p.ActiveInstalls
+					item.Matches = v.Matches
+					p.Unlock()
+					resp.Summary.List = append(resp.Summary.List, item)
+				}
 			}
 			resp.Progress = srch.Progress
 			resp.Total = srch.Total

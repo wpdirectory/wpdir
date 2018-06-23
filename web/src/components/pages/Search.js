@@ -17,7 +17,11 @@ class Search extends Component {
       progress: 0,
       total: 0,
       status: 5,
-      matches: 0
+      matches: 0,
+      summary: {
+        list: [],
+        total: 0,
+      },
     };
   }
 
@@ -42,6 +46,9 @@ class Search extends Component {
       this.setState({ total: data.total })
       this.setState({ status: data.status })
       this.setState({ matches: data.matches })
+      if (data.summary) {
+        this.setState({ summary: data.summary })
+      }
       this.setState({ isLoading: false })
     })
 
@@ -67,6 +74,9 @@ class Search extends Component {
       this.setState({ total: data.total })
       this.setState({ status: data.status })
       this.setState({ matches: data.matches })
+      if (data.summary) {
+        this.setState({ summary: data.summary })
+      }
       this.setState({ isLoading: false })
     })
   }
@@ -111,6 +121,18 @@ class Search extends Component {
     }
 
     return slug + '/' + name
+  }
+
+  formatName = (slug, name, version) => {
+    if (name === undefined) {
+      return slug
+    } else {
+      if (version === undefined) {
+        return name
+      } else {
+        return name + ' (' + version + ')'
+      }
+    }
   }
 
   calcProgress = (current, total) => {
@@ -196,6 +218,42 @@ class Search extends Component {
   }
 
   render() {
+    let margin
+    if (this.state.status === 2) {
+      margin = {
+        margin: '0 0 0 0',
+      }
+    } else {
+      margin = {}
+    }
+
+    let searchSummary
+    if ( !!this.state.summary.list && this.state.summary.list.length && this.state.summary.list.length > 0 ) {
+      let extensions = this.state.summary.list.sort( (a,b) => a.installs < b.installs )
+      searchSummary = (
+        <div className="search-summary panel">
+          <h2>Summary <small>{this.state.summary.total}{ ' matches'}</small></h2>
+          <div className="summary">
+            <ul className="list">
+              {extensions.map( (extn, idx) => {
+                return (
+                  <li key={idx}>
+                    <div className="extn">
+                      <span className="matches">{extn.matches}</span>
+                      <span className="installs">{extn.installs}</span>
+                      <span className="name">{this.formatName(extn.slug, extn.name, extn.version)}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      )
+    } else {
+      searchSummary = <li>Sorry, no matches found.</li>
+    }
+
     if ( this.state.isLoading === true ) {
       return (
         <div className="page page-search">
@@ -211,13 +269,14 @@ class Search extends Component {
       return (
         <div className="page page-search">
           <div className="title panel">
-            <h1>Search - {this.getStatus(this.state.status)}</h1>
+            <h1 style={margin}>Search - {this.getStatus(this.state.status)}</h1>
             {(() => {
               if (this.state.status === 1) {
                 return (<ProgressBar progress={this.calcProgress(this.state.progress, this.state.total)} />)
               }
             })()}
           </div>
+          {searchSummary}
           {this.formatOverview()}
         </div>
       )

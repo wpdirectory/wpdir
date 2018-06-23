@@ -33,6 +33,8 @@ type Search struct {
 	Total     int       `json:"total"`
 	Status    status    `json:"status"`
 	Opts      Options   `json:"options"`
+	Summary   *Summary  `json:"summary,omitempty"`
+	Public    bool      `json:"-"`
 	sync.RWMutex
 }
 
@@ -54,15 +56,31 @@ type Match struct {
 }
 
 type SearchRequest struct {
-	Input string
-	Repo  string
-	Time  time.Time
-	Opts  Options
+	Input  string
+	Repo   string
+	Public bool
+	Time   time.Time
+	Opts   Options
 }
 
 type Options struct {
 	CaseSensitive  bool `json:"case_sensitive"`
 	LinesOfContext int  `json:"lines_context"`
+}
+
+type Summary struct {
+	List  []*Item `json:"list"`
+	Total int     `json:"total"`
+	sync.RWMutex
+}
+
+type Item struct {
+	Slug           string `json:"slug"`
+	Name           string `json:"name,omitempty"`
+	Version        string `json:"version,omitempty"`
+	Homepage       string `json:"homepage,omitempty"`
+	ActiveInstalls int    `json:"installs,omitempty"`
+	Matches        int    `json:"matches"`
 }
 
 // Get ...
@@ -117,6 +135,22 @@ func (sm *SearchManager) Load() int {
 	return i
 }
 
+// Empty ...
+func (sm *SearchManager) Empty() int {
+	i := 0
+	list, err := db.GetAllFromBucket("searches")
+	if err != nil {
+		return i
+	}
+
+	for ID := range list {
+		db.DeleteFromBucket(ID, "searches")
+		i++
+	}
+
+	return i
+}
+
 // NewSearch ...
 func (sm *SearchManager) NewSearch(sr SearchRequest) string {
 	sm.RLock()
@@ -159,6 +193,11 @@ func (s *Server) processSearch(ID string) error {
 	srch.Started = time.Now()
 	srch.Status = started
 
+	sum := &Summary{
+		List:  []*Item{},
+		Total: 0,
+	}
+
 	opts := &index.SearchOptions{
 		Offset:         0,
 		Limit:          0,
@@ -191,9 +230,15 @@ func (s *Server) processSearch(ID string) error {
 					<-limiter
 					return
 				}
+
+				item := &Item{
+					Slug: p.Slug,
+				}
 				for _, result := range resp.Matches {
 					for _, match := range result.Matches {
 						totalMatches++
+						sum.Total++
+						item.Matches++
 						m := &Match{
 							Slug:     p.Slug,
 							File:     result.Filename,
@@ -207,8 +252,14 @@ func (s *Server) processSearch(ID string) error {
 						srch.Unlock()
 					}
 				}
+				sum.RLock()
+				sum.List = append(sum.List, item)
+				sum.RUnlock()
 				<-limiter
 			}(p)
+			srch.Lock()
+			srch.Summary = sum
+			srch.Unlock()
 		}
 
 		break

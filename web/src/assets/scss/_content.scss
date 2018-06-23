@@ -6,10 +6,10 @@ section.content {
     grid-template-columns: 1fr;
 
     background-color: #edebec;
-    padding-left: 2em;
-    padding-right: 2em;
+    padding-left: 0px;
+    padding-right: 0px;
 
-    min-height: 800px;
+    min-height: 600px;
 
     .page {
         width: 100%;
@@ -24,16 +24,18 @@ section.content {
     }
 }
 
+@include medium-up {
+    section.content {
+        padding-left: 2em;
+        padding-right: 2em;
+    }
+}
+
 /*--------------------------------------------------------------
 # Home Page
 --------------------------------------------------------------*/
 
 .page-home {
-    .panel {
-        display: block;
-        overflow: hidden;
-    }
-
     .search-form {
         .input-choice {
             margin-bottom: rem-calc(16);
@@ -68,61 +70,45 @@ section.content {
     grid-template-areas: 
       "title"
       "info"
-      "results";
+      "summary";
     grid-gap: $gutter;
     .title {
-        display: block;
         grid-area: title;
     }
-    .search-results {
-        display: block;
-        grid-area: results;
-        overflow: hidden;
-        .results {
-            margin: rem-calc(30) 0;
-            .result {
-                margin-bottom: rem-calc(30);
-                color: $gray;
-                &:last-of-type {
-                    margin-bottom: 0;
-                }
-                .file {
-                    border: 1px solid darken( $gray-light, 10% );
-                    background-color: $gray-light;
-                    padding: rem-calc(12) rem-calc(16);
-                    .name {
-                        font-weight: bold;
-                    }
-                    .link {
-                        float: right;
-                        color: darken( $gray-light, 10% );
-                        &:hover,
-                        &:focus,
-                        &:active {
-                            color: darken( $gray-light, 20% );
-                        }
-                    }
-                }
-                ul.lines {
-                    list-style: none;
-                    margin: 0;
-                    padding: 0;
-                    border-right: 1px solid darken( $gray-light, 10% );
+    .search-summary {
+        grid-area: summary;
+        .summary {
+            ul.list {
+                list-style: none;
+                padding: 0;
+                margin: 0 0 rem-calc(20) 0;
+                border: 1px solid darken( $gray-light, 10% );
+                border-bottom: none;
+                li {
                     border-bottom: 1px solid darken( $gray-light, 10% );
-                    border-left: 1px solid darken( $gray-light, 10% );
-                    overflow: scroll;
-                    overflow-y: hidden;
-                    white-space: nowrap;
-                    li {
-                        max-height: 1.5em;
-                        .num {
-                            padding: rem-calc(0) rem-calc(16);
-                            text-align: right;
-                            min-width: 4em;
-                            border-right: 1px solid darken( $gray-light, 10% );
+                    padding: rem-calc(8) rem-calc(10);
+                    overflow: hidden;
+                    .extn {
+                        span {
+                            display: block;
+                            float: right;
                         }
-                        .excerpt {
-                            padding: rem-calc(0) rem-calc(16);
+                        .name {
+                            margin-right: rem-calc(6);
+                            float: left;
+                            text-overflow: ellipsis;
+                            overflow: hidden; 
+                            white-space: nowrap;
+                            max-width: 300px;
+                        }
+                        .installs {
+                            margin-right: rem-calc(6);
+                            text-align: right;
+                            min-width: 80px;
+                        }
+                        .matches {
+                            text-align: right;
+                            min-width: 60px;
                         }
                     }
                 }
@@ -147,7 +133,38 @@ section.content {
         grid-template-columns: 2fr 1fr;
         grid-template-areas: 
           "title title"
-          "results info";
+          "summary info";
+          .search-summary {
+            .summary {
+                ul.list {
+                    li {
+                        .extn {
+                            .name {
+                                max-width: 450px;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@include large-up {
+    .page-search {
+        .search-summary {
+            .summary {
+                ul.list {
+                    li {
+                        .extn {
+                            .name {
+                                max-width: 550px;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
