@@ -17,6 +17,11 @@ class About extends Component {
               <p>If you have feedback, questions or issues please let me know on <a href="https://github.com/wpdirectory/wpdir">github.com/wpdirectory/wpdir</a> or send me a message on the WordPress Slack (peterbooker).</p>
             </div>
             <div className="panel">
+              <h2>Licenses</h2>
+              <p>Logo(s) were kindly contributed by <a href="https://github.com/reallinfo" rel="noopener noreferrer" target="_blank">reallinfo</a> and are licensed under <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener noreferrer" target="_blank">CC BY 4.0</a>.</p>
+              <p>The <code>codesearch</code> library has been included from <a href="https://github.com/etsy/hound/tree/master/codesearch" rel="noopener noreferrer" target="_blank">etsy/hound</a> under MIT, which was amended from <a href="https://github.com/google/codesearch" rel="noopener noreferrer" target="_blank">google/codesearch</a> under <a href="https://github.com/google/codesearch/blob/master/LICENSE" rel="noopener noreferrer" target="_blank">BSD 3</a>.</p>
+            </div>
+            <div className="panel">
               <h2>Privacy</h2>
               <p>WPdirectory does not store any information relating to visistors and/or users. The only information collected is internal metrics, via Prometheus, things like how many searches occured. That is right- no cookies, ads, visitor tracking, etc.</p>
             </div>
