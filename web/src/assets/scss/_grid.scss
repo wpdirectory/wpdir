@@ -18,6 +18,7 @@
 .grid-x,
 .grid-y {
   display: grid;
+  grid-auto-rows: min-content;
 
   &.gutter-x {
     grid-column-gap: $gutter;

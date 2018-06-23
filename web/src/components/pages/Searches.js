@@ -1,18 +1,23 @@
 import React, { Component } from 'react'
-import Dashicon from '../general/Dashicon.js'
+import { Link } from 'react-router-dom';
 
 class Searches extends Component {
 
   constructor(props) {
     super(props);
     this.state = {
-        searches: []
+      isLoading: true,
+      searches: [],
     };
+  }
+
+  upperCaseFirst = (name) => {
+    return name.charAt(0).toUpperCase() + name.slice(1)
   }
 
   componentWillMount = () => {
 
-    fetch('https://wpdirectory.net/api/v1/searches')
+    fetch('https://wpdirectory.net/api/v1/searches/100')
     .then( response => {
       return response.json()
       
@@ -28,38 +33,35 @@ class Searches extends Component {
   }
 
   render() {
-
+    
     let searchList
     if ( this.state.searches.length && this.state.searches.length > 0 ) {
-      searchList = this.state.matches.map( function(match, idx) {
+      let searches = this.state.searches.sort( (a,b) => Date.parse(a.started) < Date.parse(b.started) );
+      searchList = searches.map( (search, idx) => {
         return (
-          <div key={idx} className="result">
-            <div className="file">
-              <span className="name">{match.file}</span>
-              <a className="link" href={"https://plugins.trac.wordpress.org/browser/" + match.slug} target="_blank" rel="noopener noreferrer">
-                <Dashicon icon="external" size={ 22 } />
-              </a>
-            </div>
-            <ul className="lines">
-                <li>
-                  <span className="num">{match.line_num}</span>
-                  <span className="excerpt"><code>{match.line_text}</code></span>
-                </li>
-            </ul>
-          </div>
+          <tr key={idx}><td><Link to={'/search/' + search.id}>{search.input}</Link></td><td>{this.upperCaseFirst(search.repo)}</td><td>{search.matches}</td></tr>
         )
       })
     } else {
-      searchList = <p>Sorry, no searches found.</p>
+      searchList = <tr><th>Sorry, no searches found.</th></tr>
     }
 
     return (
       <div className="page page-searches">
         <div className="panel searches">
           <h2>Search List</h2>
-          <ul className="details">
-            {searchList}
-          </ul>
+          <table className="searches-table">
+            <thead>
+              <tr>
+                <th width="auto">Input</th>
+                <th width="100">Repo</th>
+                <th width="100">Matches</th>
+              </tr>
+            </thead>
+            <tbody>
+              {searchList}
+            </tbody>
+          </table>
         </div>
       </div>
     )

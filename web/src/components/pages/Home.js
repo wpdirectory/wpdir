@@ -1,4 +1,5 @@
 import React, { Component } from 'react'
+import { Link } from 'react-router-dom';
 import SearchForm from '../general/SearchForm'
 import Dashicon from '../general/Dashicon.js'
 
@@ -13,7 +14,7 @@ class Home extends Component {
 
   componentWillMount = () => {
 
-    fetch('https://wpdirectory.net/api/v1/searches/latest')
+    fetch('https://wpdirectory.net/api/v1/searches/10')
     .then( response => {
       return response.json()
       
@@ -44,11 +45,11 @@ class Home extends Component {
     let latestSearches
 
     if ( this.state.searches.length && this.state.searches.length > 0 ) {
-
-      latestSearches = this.state.searches.map( (search, idx) => {
+      let searches = this.state.searches.sort( (a,b) => Date.parse(a.started) < Date.parse(b.started) );
+      latestSearches = searches.map( (search, idx) => {
         return (
           <li key={idx}>
-            <span className="input"><a href={"https://wpdirectory.net/search/" + search.id} title={search.input}>{search.input.substring(0, 34)}</a></span>
+            <span className="input"><Link to={'/search/' + search.id} title={search.input}>{search.input.substring(0, 34)}</Link></span>
             <span className="matches">{search.matches}</span>
             <span className="directory" title={search.repo.charAt(0).toUpperCase() + search.repo.slice(1)}>{this.getRepoIcon(search.repo)}</span>
           </li>

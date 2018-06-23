@@ -16,8 +16,10 @@ section.content {
         max-width: 1200px;
         margin: 0 auto;
         overflow: hidden;
-        h1, h2 {
-            margin-bottom: 0;
+        .panel {
+            display: block;
+            overflow: hidden;
+            border: #dedede 1px solid;
         }
     }
 }
@@ -56,8 +58,6 @@ section.content {
         }
     }
 }
-
-
 
 /*--------------------------------------------------------------
 # Search Page

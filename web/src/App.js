@@ -7,6 +7,7 @@ import Header from './components/Header'
 import Footer from './components/Footer'
 import Home from './components/pages/Home'
 import Search from './components/pages/Search'
+import Searches from './components/pages/Searches'
 import Repos from './components/pages/Repos'
 import About from './components/pages/About'
 import NotFound from './components/pages/NotFound'
@@ -21,7 +22,7 @@ class App extends Component {
           <section className="content grid-x padding-y">
             <Switch>
               <Route exact path="/" component={Home} />
-              <Route path="/searches" component={Home} />
+              <Route path="/searches" component={Searches} />
               <Route path="/search/new" component={Home} />
               <Route path="/search/:id" component={Search} />
               <Route path="/repos" component={Repos} />
