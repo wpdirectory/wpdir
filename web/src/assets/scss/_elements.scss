@@ -124,6 +124,32 @@ table {
 }
 
 /*--------------------------------------------------------------
+# List Tables
+--------------------------------------------------------------*/
+ul.table {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 rem-calc(20) 0;
+    border: 1px solid darken( $gray-light, 10% );
+    border-bottom: none;
+
+    li:first-of-type {
+        background-color: darken( $gray-light, 10% );
+    }
+    li {
+        display: table-row;
+        vertical-align: middle;
+
+        span {
+            display: table-cell;
+            vertical-align: inherit;
+            padding: rem-calc(8) rem-calc(10);
+            border-bottom: 1px solid darken( $gray-light, 10% );
+        }
+    }
+}
+
+/*--------------------------------------------------------------
 # Dashicons
 --------------------------------------------------------------*/
 

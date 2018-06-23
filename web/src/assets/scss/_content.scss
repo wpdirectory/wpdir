@@ -78,38 +78,27 @@ section.content {
     .search-summary {
         grid-area: summary;
         .summary {
-            ul.list {
+            ul.table {
                 list-style: none;
                 padding: 0;
                 margin: 0 0 rem-calc(20) 0;
                 border: 1px solid darken( $gray-light, 10% );
                 border-bottom: none;
                 li {
-                    border-bottom: 1px solid darken( $gray-light, 10% );
-                    padding: rem-calc(8) rem-calc(10);
-                    overflow: hidden;
-                    .extn {
-                        span {
-                            display: block;
-                            float: right;
-                        }
-                        .name {
-                            margin-right: rem-calc(6);
-                            float: left;
-                            text-overflow: ellipsis;
-                            overflow: hidden; 
-                            white-space: nowrap;
-                            max-width: 300px;
-                        }
-                        .installs {
-                            margin-right: rem-calc(6);
-                            text-align: right;
-                            min-width: 80px;
-                        }
-                        .matches {
-                            text-align: right;
-                            min-width: 60px;
-                        }
+                    //span {}
+                    .name {
+                        text-overflow: ellipsis;
+                        overflow: hidden; 
+                        white-space: nowrap;
+                        max-width: 500px;
+                    }
+                    .installs {
+                        text-align: right;
+                        min-width: 80px;
+                    }
+                    .matches {
+                        text-align: right;
+                        min-width: 60px;
                     }
                 }
             }
