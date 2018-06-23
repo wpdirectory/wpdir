@@ -43,14 +43,9 @@ func New(log *log.Logger, config *config.Config) *Server {
 	go pr.UpdateWorker()
 	go tr.UpdateWorker()
 
-	latest := &Latest{
-		List: make([]*LatestSearch, 0),
-	}
-
 	sm := &SearchManager{
-		Queue:  make(chan string, 200),
-		List:   make(map[string]*Search),
-		Latest: latest,
+		Queue: make(chan string, 200),
+		List:  make(map[string]*Search),
 	}
 
 	// Load Existing Searches

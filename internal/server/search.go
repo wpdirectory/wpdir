@@ -17,49 +17,9 @@ import (
 )
 
 type SearchManager struct {
-	Queue  chan string
-	List   map[string]*Search
-	Latest *Latest
+	Queue chan string
+	List  map[string]*Search
 	sync.RWMutex
-}
-
-type Latest struct {
-	List []*LatestSearch
-	sync.RWMutex
-}
-
-type LatestSearch struct {
-	ID      string `json:"id"`
-	Input   string `json:"input"`
-	Repo    string `json:"repo"`
-	Matches int    `json:"matches"`
-}
-
-// Push ...
-func (l *Latest) Push(ID, input, repo string, matches int) {
-	l.RLock()
-	defer l.RUnlock()
-
-	ls := &LatestSearch{
-		ID:      ID,
-		Input:   input,
-		Repo:    repo,
-		Matches: matches,
-	}
-	l.List = append([]*LatestSearch{ls}, l.List...)
-
-	// If we have more than 10, remove the last item
-	if len(l.List) > 10 {
-		l.List = l.List[:len(l.List)-1]
-	}
-}
-
-// Get ...
-func (l *Latest) Get() []*LatestSearch {
-	l.Lock()
-	defer l.Unlock()
-
-	return l.List
 }
 
 type Search struct {
@@ -149,6 +109,10 @@ func (sm *SearchManager) Load() int {
 		sm.Set(&s)
 		i++
 	}
+
+	// TODO: Order the searches before loading
+	// perhaps use a temporary list to sort then
+	// add to the SearchManager
 
 	return i
 }
@@ -295,9 +259,6 @@ func (s *Server) processSearch(ID string) error {
 
 	srch.Lock()
 	defer srch.Unlock()
-
-	// Add to Latest List
-	s.Searches.Latest.Push(srch.ID, srch.Input, srch.Repo, len(srch.Matches))
 
 	bytes, err := json.Marshal(srch)
 	if err != nil {
