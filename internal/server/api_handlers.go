@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
-	"github.com/wpdirectory/wpdir/internal/db"
 	"github.com/wpdirectory/wpdir/internal/plugin"
 	"github.com/wpdirectory/wpdir/internal/repo"
 	"github.com/wpdirectory/wpdir/internal/theme"
@@ -17,45 +16,6 @@ import (
 type errResponse struct {
 	Code string `json:"code,omitempty"`
 	Err  string `json:"error"`
-}
-
-// getSearchList ...
-func (s *Server) getSearchList() http.HandlerFunc {
-	type fightsResponse struct {
-		Fights []string
-		Time   string
-	}
-	return func(w http.ResponseWriter, r *http.Request) {
-		fights := fightsResponse{
-			Fights: []string{
-				"Fight 1",
-				"Fight 2",
-				"Fight 3",
-				"Fight 4",
-				"Fight 5",
-				"Fight 6",
-				"Fight 7",
-				"Fight 8",
-			},
-			Time: "15:59 12/05/2018",
-		}
-		writeResp(w, fights)
-	}
-}
-
-// getSearchesLatest ...
-func (s *Server) getSearchesLatest() http.HandlerFunc {
-	type getSearchesLatestResponse struct {
-		Searches []*LatestSearch `json:"searches,omitempty"`
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		var resp getSearchesLatestResponse
-
-		resp.Searches = s.Searches.Latest.Get()
-
-		writeResp(w, resp)
-	}
 }
 
 // getSearches ...
@@ -119,8 +79,8 @@ func (s *Server) getSearch() http.HandlerFunc {
 		ID        string    `json:"id"`
 		Input     string    `json:"input"`
 		Repo      string    `json:"repo"`
-		Matches   []*Match  `json:"matches"`
-		Started   time.Time `json:"started"`
+		Matches   int       `json:"matches"`
+		Started   time.Time `json:"started,omitempty"`
 		Completed time.Time `json:"completed,omitempty"`
 		Progress  int       `json:"progress"`
 		Total     int       `json:"total"`
@@ -131,15 +91,6 @@ func (s *Server) getSearch() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if searchID := chi.URLParam(r, "id"); searchID != "" {
-
-			bytes, _ := db.GetFromBucket(searchID, "searches")
-			if len(bytes) > 0 {
-				w.Header().Set("Content-Type", "application/json;charset=utf-8")
-				w.Header().Set("Vary", "Accept-Encoding")
-				w.WriteHeader(http.StatusOK)
-				w.Write(bytes)
-				return
-			}
 
 			var resp getSearchResponse
 			s.Searches.Lock()
@@ -156,9 +107,13 @@ func (s *Server) getSearch() http.HandlerFunc {
 			resp.ID = srch.ID
 			resp.Input = srch.Input
 			resp.Repo = srch.Repo
-			resp.Matches = srch.Matches
-			resp.Started = srch.Started
-			resp.Completed = srch.Completed
+			resp.Matches = len(srch.Matches)
+			if !srch.Started.IsZero() {
+				resp.Started = srch.Started
+			}
+			if !srch.Completed.IsZero() {
+				resp.Completed = srch.Completed
+			}
 			resp.Progress = srch.Progress
 			resp.Total = srch.Total
 			resp.Status = srch.Status
