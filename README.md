@@ -1,4 +1,4 @@
-<p align="center"><img src="web/public/static/assets/horizontal.svg" alt="wpdir" height="200px"></p>
+<p align="center"><img src="web/public/static/assets/horizontal.svg" alt="wpdir" height="120px"></p>
 
 
 **Fast searching of the WordPress Plugin & Theme Repositories.**
