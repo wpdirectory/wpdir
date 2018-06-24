@@ -218,7 +218,7 @@ func (n *Index) Search(pat, slug string, opt *SearchOptions) (*SearchResponse, e
 		if len(matches) > 0 {
 			filesCollected++
 			results = append(results, &FileMatch{
-				Filename: slug + string(os.PathSeparator) + name,
+				Filename: name,
 				Matches:  matches,
 			})
 		}
