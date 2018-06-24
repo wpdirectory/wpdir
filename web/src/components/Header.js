@@ -30,6 +30,7 @@ class Header extends Component {
 
         <nav className={ this.state.toggle ? 'main-menu active' : 'main-menu' } aria-label="Main Navigation">
           <ul className="menu">
+            <li><NavLink to="/">Home</NavLink></li>
             <li><NavLink to="/searches">Searches</NavLink></li>
             <li><NavLink to="/repos">Repos</NavLink></li>
             <li><NavLink to="/about">About</NavLink></li>

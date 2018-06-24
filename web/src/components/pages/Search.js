@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import Loadicon from '../general/Loadicon.js'
 import ProgressBar from '../general/ProgressBar.js'
+import Summary from '../general/search/Summary.js'
 
 class Search extends Component {
 
@@ -229,26 +230,11 @@ class Search extends Component {
 
     let searchSummary
     if ( !!this.state.summary.list && this.state.summary.list.length && this.state.summary.list.length > 0 ) {
-      let extensions = this.state.summary.list.sort( (a,b) => a.installs < b.installs )
+      //let extensions = this.state.summary.list.sort( (a,b) => a.installs < b.installs )
       searchSummary = (
         <div className="search-summary panel">
-          <h2>Summary <small>{this.state.summary.total}{ ' matches'}</small></h2>
-          <div className="summary">
-            <ul className="accordion">
-              {extensions.map( (extn, idx) => {
-                return (
-                  <li key={idx} className="accordion-item">
-                    <button href="#" className="accordion-title" role="tab">{this.formatName(extn.slug, extn.name, extn.version)}</button>
-                    <div className="accordion-content">
-                      <ul>
-                        <li>/health-check/health-check.php</li>
-                      </ul>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          <h2>Summary <small> {this.state.summary.total}{ ' matches'}</small></h2>
+          <Summary id={this.state.id} items={this.state.summary.list} />
         </div>
       )
     } else {

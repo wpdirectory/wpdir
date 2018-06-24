@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import { Link } from 'react-router-dom';
-import SearchForm from '../general/SearchForm'
+import SearchForm from '../general/search/SearchForm'
 import Dashicon from '../general/Dashicon.js'
 
 class Home extends Component {

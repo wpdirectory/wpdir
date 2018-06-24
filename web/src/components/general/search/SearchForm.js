@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import { withRouter } from 'react-router-dom';
-import Dashicon from './Dashicon.js'
+import Dashicon from '../Dashicon.js'
 
 class SearchForm extends Component {
     constructor(props) {
