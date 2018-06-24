@@ -35,7 +35,7 @@ class Searches extends Component {
   render() {
     
     let searchList
-    if ( this.state.searches.length && this.state.searches.length > 0 ) {
+    if ( !!this.state.searches && this.state.searches.length && this.state.searches.length > 0 ) {
       let searches = this.state.searches.sort( (a,b) => Date.parse(a.started) < Date.parse(b.started) );
       searchList = searches.map( (search, idx) => {
         return (
