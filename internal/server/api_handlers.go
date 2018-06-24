@@ -56,7 +56,7 @@ func (s *Server) getSearches() http.HandlerFunc {
 				ID:        srch.ID,
 				Input:     srch.Input,
 				Repo:      srch.Repo,
-				Matches:   len(srch.Matches),
+				Matches:   srch.Matches.Total,
 				Started:   srch.Started,
 				Completed: srch.Completed,
 				Progress:  srch.Progress,
@@ -112,7 +112,7 @@ func (s *Server) getSearch() http.HandlerFunc {
 			resp.ID = srch.ID
 			resp.Input = srch.Input
 			resp.Repo = srch.Repo
-			resp.Matches = len(srch.Matches)
+			resp.Matches = srch.Matches.Total
 			if !srch.Started.IsZero() {
 				resp.Started = srch.Started
 			}
@@ -130,7 +130,9 @@ func (s *Server) getSearch() http.HandlerFunc {
 					item.Name = p.Name
 					item.Version = p.Version
 					item.Homepage = p.Homepage
-					item.ActiveInstalls = p.ActiveInstalls
+					if item.ActiveInstalls = p.ActiveInstalls; item.ActiveInstalls == 0 {
+						item.ActiveInstalls = 0
+					}
 					item.Matches = v.Matches
 					p.Unlock()
 					resp.Summary.List = append(resp.Summary.List, item)
@@ -146,6 +148,55 @@ func (s *Server) getSearch() http.HandlerFunc {
 		} else {
 			var resp errResponse
 			resp.Err = "You must specify a valid Search ID."
+			writeResp(w, resp)
+		}
+	}
+}
+
+// getSearchMatches ...
+func (s *Server) getSearchMatches() http.HandlerFunc {
+	type getMatchesResponse struct {
+		List  []*Match `json:"matches"`
+		Total int      `json:"total"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		searchID := chi.URLParam(r, "id")
+		itemSlug := chi.URLParam(r, "slug")
+
+		if searchID != "" && itemSlug != "" {
+
+			var resp getMatchesResponse
+			s.Searches.Lock()
+			defer s.Searches.Unlock()
+
+			srch, ok := s.Searches.List[searchID]
+			if !ok {
+				var resp errResponse
+				resp.Err = fmt.Sprintf("Search (%s) not found.", searchID)
+				writeResp(w, resp)
+				return
+			}
+
+			srch.Matches.Lock()
+			defer srch.Matches.Unlock()
+			matches, ok := srch.Matches.List[itemSlug]
+			if !ok {
+				var resp errResponse
+				resp.Err = fmt.Sprintf("Item (%s) has no matches for search (%s).", itemSlug, searchID)
+				writeResp(w, resp)
+				return
+			}
+
+			resp.List = matches
+			resp.Total = len(matches)
+
+			writeResp(w, resp)
+
+		} else {
+			var resp errResponse
+			resp.Err = "You must specify a valid Search ID and Item Slug."
 			writeResp(w, resp)
 		}
 	}

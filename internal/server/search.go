@@ -26,7 +26,7 @@ type Search struct {
 	ID        string    `json:"id"`
 	Input     string    `json:"input"`
 	Repo      string    `json:"repo"`
-	Matches   []*Match  `json:"matches"`
+	Matches   Matches   `json:"matches"`
 	Started   time.Time `json:"started"`
 	Completed time.Time `json:"completed,omitempty"`
 	Progress  int       `json:"progress"`
@@ -46,21 +46,19 @@ const (
 	completed
 )
 
-type Match struct {
-	Slug     string   `json:"slug"`
-	File     string   `json:"file"`
-	LineNum  int      `json:"line_num"`
-	LineText string   `json:"line_text"`
-	Before   []string `json:"before"`
-	After    []string `json:"after"`
+type Matches struct {
+	List  map[string][]*Match `json:"list"`
+	Total int                 `json:"total"`
+	sync.RWMutex
 }
 
-type SearchRequest struct {
-	Input  string
-	Repo   string
-	Public bool
-	Time   time.Time
-	Opts   Options
+type Match struct {
+	Slug     string `json:"slug"`
+	File     string `json:"file"`
+	LineNum  int    `json:"line_num"`
+	LineText string `json:"line_text"`
+	//Before   []string `json:"before,omitempty"`
+	//After    []string `json:"after,omitempty"`
 }
 
 type Options struct {
@@ -76,11 +74,19 @@ type Summary struct {
 
 type Item struct {
 	Slug           string `json:"slug"`
-	Name           string `json:"name,omitempty"`
-	Version        string `json:"version,omitempty"`
-	Homepage       string `json:"homepage,omitempty"`
-	ActiveInstalls int    `json:"installs,omitempty"`
+	Name           string `json:"name"`
+	Version        string `json:"version"`
+	Homepage       string `json:"homepage"`
+	ActiveInstalls int    `json:"installs"`
 	Matches        int    `json:"matches"`
+}
+
+type SearchRequest struct {
+	Input  string
+	Repo   string
+	Public bool
+	Time   time.Time
+	Opts   Options
 }
 
 // Get ...
@@ -187,6 +193,7 @@ func (s *Server) SearchWorker() {
 func (s *Server) processSearch(ID string) error {
 	s.Searches.Lock()
 	srch := s.Searches.List[ID]
+	srch.Matches.List = make(map[string][]*Match)
 	s.Searches.Unlock()
 
 	var totalMatches int
@@ -244,12 +251,11 @@ func (s *Server) processSearch(ID string) error {
 							File:     result.Filename,
 							LineNum:  match.LineNumber,
 							LineText: match.Line,
-							Before:   match.Before,
-							After:    match.After,
 						}
-						srch.Lock()
-						srch.Matches = append(srch.Matches, m)
-						srch.Unlock()
+						srch.Matches.RLock()
+						srch.Matches.Total++
+						srch.Matches.List[p.Slug] = append(srch.Matches.List[p.Slug], m)
+						srch.Matches.RUnlock()
 					}
 				}
 				sum.RLock()
@@ -270,33 +276,50 @@ func (s *Server) processSearch(ID string) error {
 
 		for _, t := range tr.List {
 			srch.Progress++
-			if !t.HasIndex() {
+			if !t.HasIndex() || t.Status != 0 {
 				continue
 			}
-			t.Lock()
-			defer t.Unlock()
 			limiter <- struct{}{}
+
 			go func(t *theme.Theme) {
 				resp, err := t.Searcher.Search(srch.Input, t.Slug, opts)
-				if err != nil || len(resp.Matches) == 0 {
+				if err != nil {
 					<-limiter
 					return
 				}
+				if len(resp.Matches) == 0 {
+					<-limiter
+					return
+				}
+
+				item := &Item{
+					Slug: t.Slug,
+				}
 				for _, result := range resp.Matches {
 					for _, match := range result.Matches {
+						totalMatches++
+						sum.Total++
+						item.Matches++
 						m := &Match{
 							Slug:     t.Slug,
 							File:     result.Filename,
 							LineNum:  match.LineNumber,
 							LineText: match.Line,
-							Before:   match.Before,
-							After:    match.After,
 						}
-						srch.Matches = append(srch.Matches, m)
+						srch.Matches.RLock()
+						srch.Matches.Total++
+						srch.Matches.List[t.Slug] = append(srch.Matches.List[t.Slug], m)
+						srch.Matches.RUnlock()
 					}
 				}
+				sum.RLock()
+				sum.List = append(sum.List, item)
+				sum.RUnlock()
 				<-limiter
 			}(t)
+			srch.Lock()
+			srch.Summary = sum
+			srch.Unlock()
 		}
 
 		break
