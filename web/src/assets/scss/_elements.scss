@@ -124,44 +124,6 @@ table {
 }
 
 /*--------------------------------------------------------------
-# Accordion
---------------------------------------------------------------*/
-ul.accordion {
-    margin-left: 0;
-    background: #fefefe;
-    list-style-type: none;
-    li.accordion-item {
-        &.is-active {
-            display: block;
-        }
-        .accordion-title {
-            position: relative;
-            display: block;
-            padding: 1.25rem 1rem;
-            border: 1px solid #e6e6e6;
-            border-bottom: 0;
-            font-size: 0.75rem;
-            line-height: 1;
-            background-color: #fff;
-            color: $primary;
-            width: 100%;
-            text-align: left;
-            
-        }
-        .accordion-content {
-            display: none;
-        }
-        &.is-active > .accordion-content {
-            display: block;
-        }
-        &:last-child:not(.is-active) > .accordion-title {
-            border-bottom: 1px solid #e6e6e6;
-            border-radius: 0 0 0 0;
-        }
-    }
-}
-
-/*--------------------------------------------------------------
 # List Tables
 --------------------------------------------------------------*/
 ul.table {
