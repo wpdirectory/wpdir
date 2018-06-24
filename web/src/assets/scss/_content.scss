@@ -74,6 +74,7 @@ section.content {
     grid-gap: $gutter;
     .title {
         grid-area: title;
+        margin-bottom: 0;
     }
     .search-summary {
         grid-area: summary;

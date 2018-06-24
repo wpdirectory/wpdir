@@ -28,7 +28,7 @@ nav.main-menu {
                 align-content: center;
                 text-align: center;
                 text-decoration: none;
-                color: #fff;
+                //color: #fff;
             }
         }
         
@@ -43,7 +43,7 @@ nav.main-menu {
 
     .contact {
         text-align: center;
-        color: #fff;
+        //color: #fff;
         margin: rem-calc(30) 0 rem-calc(30) 0;
         ul {
             list-style: none;
@@ -78,10 +78,9 @@ nav.main-menu {
 $toggle-layer-width: 34px !default;
 $toggle-layer-height: 4px !default;
 $toggle-layer-spacing: 5px !default;
-$toggle-color: #fff;
+$toggle-color: $font-color;
 
 .toggle {
-    //padding: rem-calc(15) rem-calc(14);
     padding-right: rem-calc(18);
     display: inline-block;
     cursor: pointer;

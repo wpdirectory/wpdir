@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
 import { NavLink, Link } from 'react-router-dom';
+//import LogoIcon from './general/logos/LogoIcon.js'
+import Logo from './general/logos/Logo.js'
 
 class Header extends Component {
   constructor(props) {
@@ -18,7 +20,7 @@ class Header extends Component {
     return (
       <header className="header grid-x gutter-x">
         <div className="title">
-          <Link to="/">WPDir</Link>
+          <Link to="/"><Logo width={255} height={50} /></Link>
         </div>
         <a className={ this.state.toggle ? 'menu-toggle toggle active' : 'menu-toggle toggle' } aria-controls="primary-menu" aria-expanded="false" onClick={this.toggle}>
           <div className="toggle-box">

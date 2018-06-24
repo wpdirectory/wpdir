@@ -4,19 +4,18 @@
 
 header.header {
     grid-template-columns: 1fr 2fr;
-
-    background-color: $background;
+    background-color: #fff;
+    border-bottom: #dedede 1px solid;
 
     .title {
         a {
-            height: 79px;
-            align-content: center;
             padding-left: rem-calc(20);
-            line-height: 79px;
-
-            font-size: 22px;
-            font-weight: normal;
-            color: #fff;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            svg.logo {
+                margin-right: rem-calc(10);
+            }
         }
         a:hover,
         a:active,

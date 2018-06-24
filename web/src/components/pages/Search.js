@@ -234,14 +234,16 @@ class Search extends Component {
         <div className="search-summary panel">
           <h2>Summary <small>{this.state.summary.total}{ ' matches'}</small></h2>
           <div className="summary">
-            <ul className="table">
-              <li><span>Extension</span><span>Active Installs</span><span>Matches</span></li>
+            <ul className="accordion">
               {extensions.map( (extn, idx) => {
                 return (
-                  <li key={idx}>
-                    <span className="name">{this.formatName(extn.slug, extn.name, extn.version)}</span>
-                    <span className="installs">{extn.installs}</span>
-                    <span className="matches">{extn.matches}</span>
+                  <li key={idx} className="accordion-item">
+                    <button href="#" className="accordion-title" role="tab">{this.formatName(extn.slug, extn.name, extn.version)}</button>
+                    <div className="accordion-content">
+                      <ul>
+                        <li>/health-check/health-check.php</li>
+                      </ul>
+                    </div>
                   </li>
                 );
               })}
