@@ -230,15 +230,18 @@ class Search extends Component {
 
     let searchSummary
     if ( !!this.state.summary.list && this.state.summary.list.length && this.state.summary.list.length > 0 ) {
-      //let extensions = this.state.summary.list.sort( (a,b) => a.installs < b.installs )
       searchSummary = (
         <div className="search-summary panel">
           <h2>Summary <small> {this.state.summary.total}{ ' matches'}</small></h2>
-          <Summary id={this.state.id} items={this.state.summary.list} />
+          <Summary repo={this.state.repo} id={this.state.id} items={this.state.summary.list} />
         </div>
       )
     } else {
-      searchSummary = <li>Sorry, no matches found.</li>
+      searchSummary = (
+        <div className="search-summary panel">
+          <Loadicon />
+        </div>
+      )
     }
 
     if ( this.state.isLoading === true ) {
