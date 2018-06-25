@@ -42,6 +42,14 @@ func (s *Searcher) SwapIndexes(idx *index.Index) error {
 	return nil
 }
 
+// Dir returns the index dir
+func (s *Searcher) Dir() string {
+	s.Lock()
+	defer s.Unlock()
+
+	return s.idx.Ref.Dir()
+}
+
 // Perform a basic search on the current index using the supplied pattern
 // and the options.
 //
