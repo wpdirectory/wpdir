@@ -1,9 +1,14 @@
 package server
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -199,6 +204,116 @@ func (s *Server) getSearchMatches() http.HandlerFunc {
 			resp.Err = "You must specify a valid Search ID and Item Slug."
 			writeResp(w, resp)
 		}
+	}
+}
+
+// getRepo ...
+func (s *Server) getMatchFile() http.HandlerFunc {
+	type getFileRequest struct {
+		Repo string `json:"repo"`
+		Slug string `json:"slug"`
+		File string `json:"file"`
+	}
+	type getFileResponse struct {
+		Code string `json:"code"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		decoder := json.NewDecoder(r.Body)
+
+		var data getFileRequest
+		err := decoder.Decode(&data)
+		if err != nil {
+			var resp errResponse
+			resp.Err = "Could not decode the POST body"
+			writeResp(w, resp)
+			return
+		}
+
+		if data.Repo != "" && data.Slug != "" && data.File != "" {
+			var resp getFileResponse
+			path, err := s.getFilePath(data.Repo, data.Slug, data.File)
+			if err != nil {
+				var resp errResponse
+				resp.Err = "File could not be found"
+				writeResp(w, resp)
+				return
+			}
+
+			f, err := os.Open(path)
+			if err != nil {
+				var resp errResponse
+				resp.Err = "File could not be opened"
+				writeResp(w, resp)
+				return
+			}
+			defer f.Close()
+
+			c, err := gzip.NewReader(f)
+			if err != nil {
+				var resp errResponse
+				resp.Err = "File could not be decoded"
+				writeResp(w, resp)
+				return
+			}
+			defer c.Close()
+
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(c)
+			content := buf.String()
+
+			resp.Code = string(content)
+			writeResp(w, resp)
+		} else {
+			var resp errResponse
+			resp.Err = "You must specify a valid repository, slug and filename"
+			writeResp(w, resp)
+		}
+	}
+}
+
+func (s *Server) getFilePath(repo, slug, file string) (string, error) {
+	switch repo {
+	case "plugins":
+		if !s.Plugins.Exists(slug) {
+			return "", errors.New("No matching plugin")
+		}
+		p := s.Plugins.Get(slug).(*plugin.Plugin)
+		if !p.HasIndex() {
+			return "", errors.New("Plugin has no indexed files")
+		}
+		dir := p.Searcher.Dir()
+
+		path := filepath.Join(dir, "raw", file)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			return "", errors.New("File not found")
+		}
+
+		return path, nil
+
+	case "themes":
+		if !s.Themes.Exists(slug) {
+			return "", errors.New("No matching theme")
+		}
+
+		t := s.Themes.Get(slug).(*theme.Theme)
+		if !t.HasIndex() {
+			return "", errors.New("Theme has no indexed files")
+		}
+
+		t.Searcher.Lock()
+		dir := t.Searcher.Dir()
+		t.Searcher.Unlock()
+
+		path := filepath.Join(dir, "raw", file)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			return "", errors.New("File not found")
+		}
+
+		return path, nil
+
+	default:
+		return "", errors.New("No matching repository")
 	}
 }
 
