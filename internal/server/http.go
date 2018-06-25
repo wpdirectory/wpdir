@@ -43,6 +43,8 @@ func (s *Server) startHTTP() {
 	})
 	s.Router.Use(cors.Handler)
 
+	// TODO: Automated build process to package static assets internally
+	// Update this to use internally bundled assets
 	filesDir := filepath.Join("D:/projects/go/src/github.com/wpdirectory/wpdir", "web", "build")
 	FileServer(s.Router, "/static", http.Dir(filesDir))
 
