@@ -16,10 +16,10 @@ class App extends Component {
   render() {
     return (
       <Router>
-        <div className="app">
+        <div className="app grid-y medium-grid-frame">
           <Header />
 
-          <section className="content grid-x padding-y">
+          <section className="content cell medium-auto medium-cell-block-container">
             <Switch>
               <Route exact path="/" component={Home} />
               <Route path="/searches" component={Searches} />

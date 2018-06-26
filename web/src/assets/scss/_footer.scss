@@ -3,21 +3,12 @@
 --------------------------------------------------------------*/
 
 footer.footer {
-    grid-template-columns: repeat(4, 1fr);
-
     background-color: #fff;
     border-top: #dedede 1px solid;
-    padding: 2em 0 0 0;
-
-    div {
-        align-content: center;
-        text-align: center;
-    }
 
     .info {
-        grid-column-start: 1;
-        grid-column-end: 5;
-        padding: 0.6em 0;
-        color: lighten($font-color, 30%);
+        color: smart-scale($body-font-color, 30%, 40%);
+        padding: rem-calc(20 10);
+        text-align: center;
     }
 }

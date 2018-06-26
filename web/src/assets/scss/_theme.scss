@@ -1,8 +1,8 @@
 /*--------------------------------------------------------------
-# Utilities
+# WPdirectory
 --------------------------------------------------------------*/
 
-@function rem-calc($size) {
-    $remSize: $size / $base-font-size;
-    @return #{$remSize}rem;
-}
+@import 'header';
+@import 'nav';
+@import 'content';
+@import 'footer';

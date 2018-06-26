@@ -96,7 +96,7 @@ class Summary extends Component {
     if ( !!this.state.items && this.state.items.length && this.state.items.length > 0 ) {
       summaryItems = this.state.items.map( (item, key) => {
         return (
-          <Item id={this.state.id} item={item} key={key} />
+          <Item repo={this.props.repo} id={this.state.id} item={item} key={key} />
         );
       })
     } else {
@@ -104,7 +104,7 @@ class Summary extends Component {
     }
 
     return (
-	    <ul className="summary">
+	    <ul className="accordion summary">
         <li className="header">
           <button className="name" onClick={this.sortByName}>Name{this.sortIcon('name')}</button>
           <button className="installs" onClick={this.sortByInstalls}>Installs{this.sortIcon('installs')}</button>

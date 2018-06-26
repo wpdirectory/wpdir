@@ -47,21 +47,23 @@ class Searches extends Component {
     }
     
     return (
-      <div className="page page-searches">
-        <div className="panel searches">
-          <h2>Search List</h2>
-          <table className="searches-table">
-            <thead>
-              <tr>
-                <th width="auto">Input</th>
-                <th width="100">Repo</th>
-                <th width="100">Matches</th>
-              </tr>
-            </thead>
-            <tbody>
-              {searchList}
-            </tbody>
-          </table>
+      <div className="page page-searches grid-container">
+        <div className="grid-x grid-margin-x grid-margin-y">
+          <div className="panel cell small-12">
+            <h2>Search List</h2>
+            <table className="searches-table">
+              <thead>
+                <tr>
+                  <th width="auto">Input</th>
+                  <th width="100">Repo</th>
+                  <th width="100">Matches</th>
+                </tr>
+              </thead>
+              <tbody>
+                {searchList}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     )

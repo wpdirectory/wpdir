@@ -29,7 +29,7 @@ class Matches extends Component {
     if ( !!this.state.matches && this.state.matches.length && this.state.matches.length > 0 ) {
       matchList = this.state.matches.map( (match, key) => {
         return (
-          <Match match={match} key={key} />
+          <Match repo={this.props.repo} match={match} key={key} />
         );
       })
     } else {

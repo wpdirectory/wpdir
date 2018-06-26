@@ -107,13 +107,6 @@ class Search extends Component {
     return Math.floor(active/1000) + ' Seconds'
   }
 
-  tracURL = (slug, name, linenum) => {
-    console.log(name)
-    let len = slug.length
-    name = name.slice((len * 2) + 1)
-    return 'https://plugins.trac.wordpress.org/browser/' + slug + '/trunk' + name + '/#L' + linenum
-  }
-
   formatFilename = (slug, name) => {
     let len = slug.length
     name = name.slice((len * 2) + 1)
@@ -165,53 +158,71 @@ class Search extends Component {
     switch( this.state.status ) {
       case 2:
         return (
-          <div className="search-info panel">
+          <div className="search-info panel cell small-12">
             <h2>Overview</h2>
             <div className="info">
-              <dl>
-                <dt>Search Input</dt>
-                <dd>{this.state.input}</dd>
-                <dt>Repository</dt>
-                <dd>{this.upperCaseFirst(this.state.repo)}</dd>
-                <dt>Matches</dt>
-                <dd>{this.state.matches}</dd>
-                <dt>Time Taken</dt>
-                <dd>{duration}</dd>
-              </dl>
+              <div className="info grid-x grid-margin-x grid-margin-y">
+                <div className="cell small-12 medium-6">
+                  <h5>Search Regex</h5>
+                  {this.state.input}
+                </div>
+                <div className="cell small-12 medium-6">
+                  <h5>Repository</h5>
+                  {this.upperCaseFirst(this.state.repo)}
+                </div>
+                <div className="cell small-12 medium-6">
+                  <h5>Total Matches</h5>
+                  {this.state.matches}
+                </div>
+                <div className="cell small-12 medium-6">
+                  <h5>Time Taken</h5>
+                  {duration}
+                </div>
+              </div>
             </div>
           </div>
         )
       case 1:
         return (
-          <div className="search-info panel">
-            <h2>Overview</h2>
-            <div className="info">
-              <dl>
-                <dt>Search Input</dt>
-                <dd>{this.state.input}</dd>
-                <dt>Repository</dt>
-                <dd>{this.upperCaseFirst(this.state.repo)}</dd>
-                <dt>Matches</dt>
-                <dd>{this.state.matches}</dd>
-                <dt>Progress</dt>
-                <dd>{this.calcProgress(this.state.progress, this.state.total)}%</dd>
-                <dt>Duration</dt>
-                <dd>{duration}</dd>
-              </dl>
+          <div className="search-info panel cell small-12">
+            <h2>Info</h2>
+            <div className="info grid-x grid-margin-x grid-margin-y">
+              <div className="cell small-12 medium-6">
+                <h5>Search Regex</h5>
+                {this.state.input}
+              </div>
+              <div className="cell small-12 medium-6">
+                <h5>Repository</h5>
+                {this.upperCaseFirst(this.state.repo)}
+              </div>
+              <div className="cell small-12 medium-6">
+                <h5>Total Matches</h5>
+                {this.state.matches}
+              </div>
+              <div className="cell small-12 medium-6">
+                <h5>Progress</h5>
+                {this.calcProgress(this.state.progress, this.state.total)}%
+              </div>
+              <div className="cell small-12 medium-6">
+                <h5>Duration</h5>
+                {duration}
+              </div>
             </div>
           </div>
         )
       default:
         return (
-          <div className="search-info panel">
-            <h2>Overview</h2>
-            <div className="info">
-              <dl>
-                <dt>Search Input</dt>
-                <dd>{this.state.input}</dd>
-                <dt>Repository</dt>
-                <dd>{this.upperCaseFirst(this.state.repo)}</dd>
-              </dl>
+          <div className="search-info panel cell small-12">
+            <h2>Info</h2>
+            <div className="info grid-x grid-margin-x grid-margin-y">
+              <div className="cell small-12 medium-6">
+                <h5>Search Input</h5>
+                {this.state.input}
+              </div>
+              <div className="cell small-12 medium-6">
+                <h5>Repository</h5>
+                {this.upperCaseFirst(this.state.repo)}
+              </div>
             </div>
           </div>
         )
@@ -231,14 +242,14 @@ class Search extends Component {
     let searchSummary
     if ( !!this.state.summary.list && this.state.summary.list.length && this.state.summary.list.length > 0 ) {
       searchSummary = (
-        <div className="search-summary panel">
-          <h2>Summary <small> {this.state.summary.total}{ ' matches'}</small></h2>
+        <div className="search-summary panel cell small-12">
+          <h2>Summary <small>({this.state.summary.total}{ ' matches'})</small></h2>
           <Summary repo={this.state.repo} id={this.state.id} items={this.state.summary.list} />
         </div>
       )
     } else {
       searchSummary = (
-        <div className="search-summary panel">
+        <div className="search-summary panel cell small-12">
           <Loadicon />
         </div>
       )
@@ -246,28 +257,30 @@ class Search extends Component {
 
     if ( this.state.isLoading === true ) {
       return (
-        <div className="page page-search">
-          <div className="title panel">
+        <div className="page page-search grid-container">
+          <div className="title panel cell small-12">
             <h1>Search</h1>
           </div>
-          <div className="search-info panel">
+          <div className="search-info panel cell small-12">
             <Loadicon />
           </div>
         </div>
       )
     } else {
       return (
-        <div className="page page-search">
-          <div className="title panel">
-            <h1 style={margin}>Search - {this.getStatus(this.state.status)}</h1>
-            {(() => {
-              if (this.state.status === 1) {
-                return (<ProgressBar progress={this.calcProgress(this.state.progress, this.state.total)} />)
-              }
-            })()}
+        <div className="page page-search grid-container">
+          <div className="grid-x grid-margin-x grid-margin-y">
+            <div className="title panel cell small-12">
+              <h1 style={margin}>Search - {this.getStatus(this.state.status)}</h1>
+              {(() => {
+                if (this.state.status === 1) {
+                  return (<ProgressBar progress={this.calcProgress(this.state.progress, this.state.total)} />)
+                }
+              })()}
+            </div>
+            {this.formatOverview()}
+            {searchSummary}
           </div>
-          {searchSummary}
-          {this.formatOverview()}
         </div>
       )
     }

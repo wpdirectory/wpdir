@@ -1,13 +1,12 @@
 import React, { Component } from 'react'
 import Matches from './Matches.js'
-//import Dashicon from '../Dashicon.js'
 
 class Item extends Component {
 
   constructor(props) {
     super(props)
     this.state = {
-      isActive: false,
+      isActive: this.props.active,
     }
     this.toggleClass = this.toggleClass.bind(this)
   }
@@ -21,10 +20,10 @@ class Item extends Component {
   }
 
   formatClass = () => {
-    if (this.state.isActive === false) {
-      return 'item'
+    if (this.state.isActive === true) {
+      return 'accordion-item is-active'
     } else {
-      return 'item active'
+      return 'accordion-item'
     }
   }
 
@@ -42,19 +41,19 @@ class Item extends Component {
 
     let matches
     if (this.state.isActive === true) {
-      matches = <Matches id={id} slug={item.slug} />
+      matches = <Matches repo={this.props.repo} id={id} slug={item.slug} />
     } else {
       matches = ''
     }
 
     return (
       <li className={this.formatClass()}>
-        <button className="title" onClick={this.toggleClass}>
+        <button className="accordion-title" onClick={this.toggleClass}>
           <span className="name" dangerouslySetInnerHTML={{__html: this.formatName(item)}}></span>
           <span className="installs">{item.installs}</span>
           <span className="matches">{item.matches}</span>
         </button>
-        <div className="content">
+        <div className="accordion-content">
           {matches}
         </div>
       </li>

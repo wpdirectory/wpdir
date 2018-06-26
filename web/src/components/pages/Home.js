@@ -63,12 +63,12 @@ class Home extends Component {
     }
 
     return (
-      <div className="page page-home">
-        <div className="grid-x gutter-x gutter-y small-1 medium-2 large-3">
-          <div className="panel">
+      <div className="page page-home grid-container">
+        <div className="grid-x grid-margin-x grid-margin-y">
+          <div className="panel cell small-12 medium-6 large-4">
             <SearchForm />
           </div>
-          <div className="panel">
+          <div className="panel cell small-12 medium-6 large-4">
             <h3>Search Tips</h3>
             <p>The search input uses <a href="https://github.com/google/re2/wiki/Syntax" target="_blank" rel="noopener noreferrer">RE2</a> regex and may use syntax a little different to what you are used to.</p>
             <p>Here are a few examples to help get you started:</p>
@@ -79,7 +79,7 @@ class Home extends Component {
               <br /><br />TODO: Add more examples.
             </pre>
           </div>
-          <div className="panel">
+          <div className="panel cell small-12 medium-12 large-4">
             <h3>Recent Searches</h3>
             <ul className="search-list">
               {latestSearches}

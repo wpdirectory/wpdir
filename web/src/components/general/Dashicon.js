@@ -1,10 +1,6 @@
 import React, { Component } from 'react'
 
 class Dashicon extends Component {
-    //constructor(props) {
-      //super(props);
-    //}
-  
     render() {
 
         const { icon, className, size = 20 } = this.props;

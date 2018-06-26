@@ -1,10 +1,17 @@
 import React, { Component } from 'react'
 import Dashicon from '../Dashicon.js'
+import Modal from './Modal.js'
+
+const ESCAPE = 27;
 
 class Match extends Component {
-  //constructor(props) {
-    //super(props)
-  //}
+  constructor(props) {
+    super(props)
+    this.state = {
+      modalActive: false,
+    }
+    this.toggleModal = this.toggleModal.bind(this)
+  }
 
   formatFilename = () => {
     let len = this.props.match.slug.length + 1
@@ -17,19 +24,50 @@ class Match extends Component {
     } = this.props
     return match.line_num + '' + match.line_text
   }
+
+  toggleModal = () => {
+    this.setState((prevState) => ({
+      modalActive: !prevState.modalActive,
+    }))
+  }
+
+  escFunction = (event) => {
+    if ( event.keyCode === ESCAPE ) {
+      this.setState({ modalActive: false })
+    }
+  }
+  componentDidMount = () => {
+    document.addEventListener( 'keydown', this.escFunction, false )
+  }
+
+  componentWillUnmount = () => {
+    document.removeEventListener( 'keydown', this.escFunction, false )
+  }
   
   render() {
     const {
       match,
     } = this.props
 
+    let modal
+    if (this.state.modalActive) {
+      modal = (
+        <Modal isOpen={this.state.modalActive} repo={this.props.repo} match={match}>
+          <button className="close-button" onClick={this.toggleModal}>
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </Modal>
+      )
+    }
+
     return (
       <li className="match">
         <span className="num">{match.line_num}</span>
         <span className="text"><code>{match.line_text}</code></span>
-        <button className="view"><Dashicon icon="editor-code" size={ 22 } /></button>
+        <button className="view" onClick={this.toggleModal}><Dashicon icon="editor-code" size={ 22 } /></button>
+        {modal}
       </li>
-	  );
+	  )
   }
 }
 
