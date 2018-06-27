@@ -10,18 +10,13 @@ class SearchForm extends Component {
           target: 'plugins',
           private: false
       }
-  
-      this.updateInput = this.updateInput.bind(this)
-      this.updateTarget = this.updateTarget.bind(this)
-      this.togglePrivate = this.togglePrivate.bind(this)
-      this.handleSubmit = this.handleSubmit.bind(this)
     }
 
-    updateInput(event) {
+    updateInput = (event) => {
       this.setState({input: event.target.value})
     }
 
-    updateTarget(event) {
+    updateTarget = (event) => {
       event.preventDefault();
       this.setState({target: event.target.value})
     }
@@ -32,7 +27,7 @@ class SearchForm extends Component {
       }))
     }
   
-    handleSubmit(event) {
+    handleSubmit = (event) => {
       event.preventDefault();
       console.log(this.state)
       this.postData('https://wpdirectory.net/api/v1/search/new', {input: this.state.input, target: this.state.target, private: this.state.private})

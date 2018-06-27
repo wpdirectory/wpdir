@@ -11,13 +11,12 @@ class Summary extends Component {
       items: this.props.items.sort( (a,b) => b.installs - a.installs ),
       desc: false,
       sorting: 'installs',
+      forceClose: false,
     }
-    this.sortByName = this.sortByName.bind(this)
-    this.sortByInstalls = this.sortByInstalls.bind(this)
-    this.sortByMatches = this.sortByMatches.bind(this)
   }
 
   sortByName = () => {
+    this.setState({ forceClose: true })
     if (this.state.desc === true) {
       this.setState((prevState) => ({
         desc: !prevState.desc,
@@ -50,6 +49,7 @@ class Summary extends Component {
   }
 
   sortByInstalls = () => {
+    this.setState({ forceClose: true })
     if (this.state.desc === true) {
       this.setState((prevState) => ({
         desc: !prevState.desc,
@@ -66,6 +66,7 @@ class Summary extends Component {
   }
 
   sortByMatches = () => {
+    this.setState({ forceClose: true })
     if (this.state.desc === true) {
       this.setState((prevState) => ({
         desc: !prevState.desc,
@@ -96,8 +97,8 @@ class Summary extends Component {
     if ( !!this.state.items && this.state.items.length && this.state.items.length > 0 ) {
       summaryItems = this.state.items.map( (item, key) => {
         return (
-          <Item repo={this.props.repo} id={this.state.id} item={item} key={key} />
-        );
+          <Item repo={this.props.repo} id={this.state.id} item={item} close={this.state.forceClose} key={key} />
+        )
       })
     } else {
       summaryItems = <p>Sorry, no matches found.</p>

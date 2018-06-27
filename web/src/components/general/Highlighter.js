@@ -15,46 +15,11 @@ class Highlighter extends Component {
 
   constructor(props) {
     super(props)
-    this.state = {
-      language: 'meta'
-    }
   }
 
   static defaultProps = {
     className: '',
     prefix: 'cm-',
-    theme: 'default'
-  }
-
-  calculateLanguage = (filename) => {
-    let guess = filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2)
-    switch (guess) {
-      case 'php':
-        this.setState({language: 'php'});
-        break
-      case 'js':
-        this.setState({language: 'javascript'});
-        break
-      case 'css':
-        this.setState({language: 'css'});
-        break
-      case 'sass':
-      case 'scss':
-        this.setState({language: 'sass'});
-        break
-      case 'sql':
-        this.setState({language: 'sql'});
-        break
-      case 'md':
-        this.setState({language: 'markdown'});
-        break
-      case 'htm':
-      case 'html':
-        this.setState({language: 'htmlmixed'});
-        break
-      default:
-        this.setState({language: 'meta'});
-    }
   }
 
   componentWillMount = () => {
@@ -62,9 +27,8 @@ class Highlighter extends Component {
   }
 
   render() {
-    const { value, file, prefix } = this.props
+    const { value, prefix, lang } = this.props
   
-    console.log(this.state.language)
     const elements = []
     let index = 0
     let lastStyle = null
@@ -72,7 +36,7 @@ class Highlighter extends Component {
     const pushElement = (token, style) => {
       elements.push(<span className={style ? prefix + style : ''} key={++index}>{token}</span>)
     }
-    const mode = CodeMirror.findModeByName(this.state.language)
+    const mode = CodeMirror.findModeByName(lang)
     CodeMirror.runMode(value, mode ? mode.mime : 'meta', (token, style) => {
       //console.log(token)
       //console.log(style)
@@ -91,10 +55,8 @@ class Highlighter extends Component {
     pushElement(tokenBuf, lastStyle)
 
     return (
-		  <div className="codemirror">
-        <pre className={'cm-s-default'}>{elements}</pre>
-      </div>
-	  );
+      <pre className={'cm-s-default'}>{elements}</pre>
+	  )
   }
 }
 

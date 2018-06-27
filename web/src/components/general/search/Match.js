@@ -10,7 +10,6 @@ class Match extends Component {
     this.state = {
       modalActive: false,
     }
-    this.toggleModal = this.toggleModal.bind(this)
   }
 
   formatFilename = () => {

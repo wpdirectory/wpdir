@@ -6,9 +6,8 @@ class Item extends Component {
   constructor(props) {
     super(props)
     this.state = {
-      isActive: this.props.active,
+      isActive: false,
     }
-    this.toggleClass = this.toggleClass.bind(this)
   }
 
   formatName = (item) => {
@@ -31,6 +30,12 @@ class Item extends Component {
     this.setState( prevState => ({
       isActive: !prevState.isActive
     }))
+  }
+
+  componentWillReceiveProps = (nextProps) => {
+    if (nextProps.close === true) {
+      this.setState({ isActive: false })
+    }
   }
 
   render() {
