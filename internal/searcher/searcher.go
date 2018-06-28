@@ -44,8 +44,8 @@ func (s *Searcher) SwapIndexes(idx *index.Index) error {
 
 // Dir returns the index dir
 func (s *Searcher) Dir() string {
-	s.Lock.Lock()
-	defer s.Lock.Unlock()
+	s.Lock.RLock()
+	defer s.Lock.RUnlock()
 
 	return s.idx.Ref.Dir()
 }
@@ -55,7 +55,7 @@ func (s *Searcher) Dir() string {
 //
 // TODO(knorton): pat should really just be a part of SearchOptions
 func (s *Searcher) Search(pat, slug string, opt *index.SearchOptions) (*index.SearchResponse, error) {
-	s.Lock.Lock()
-	defer s.Lock.Unlock()
+	s.Lock.RLock()
+	defer s.Lock.RUnlock()
 	return s.idx.Search(pat, slug, opt)
 }

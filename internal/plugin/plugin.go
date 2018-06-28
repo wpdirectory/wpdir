@@ -93,6 +93,9 @@ func New(slug string) *Plugin {
 
 // GetStatus returns the Status as a string
 func (p *Plugin) GetStatus() string {
+	p.RLock()
+	defer p.RUnlock()
+
 	switch p.Status {
 	case disabled:
 		return "Disabled"
@@ -105,15 +108,15 @@ func (p *Plugin) GetStatus() string {
 
 // HasIndex returns the index status
 func (p *Plugin) HasIndex() bool {
-	p.Lock()
-	defer p.Unlock()
+	p.RLock()
+	defer p.RUnlock()
 	return p.indexed
 }
 
 // SetIndexed sets the indexed value
 func (p *Plugin) SetIndexed(idx bool) {
-	p.RLock()
-	defer p.RUnlock()
+	p.Lock()
+	defer p.Unlock()
 	p.indexed = idx
 }
 
@@ -209,8 +212,8 @@ func (p *Plugin) getAPIData() ([]byte, error) {
 
 // Update ...
 func (p *Plugin) Update() error {
-	p.RLock()
-	defer p.RUnlock()
+	p.Lock()
+	defer p.Unlock()
 
 	bytes, err := p.getArchive()
 	if err != nil {
@@ -317,9 +320,10 @@ func (p *Plugin) processArchive(archive []byte) (*index.IndexRef, error) {
 }
 
 // Save ...
+// TODO: Wrap struct to allow lock during Marshal
 func (p *Plugin) Save() error {
-	p.Lock()
-	defer p.Unlock()
+	p.RLock()
+	defer p.RUnlock()
 
 	bytes, err := json.Marshal(p)
 	if err != nil {

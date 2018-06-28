@@ -76,6 +76,9 @@ func New(slug string) *Theme {
 
 // GetStatus returns the Status as a string
 func (t *Theme) GetStatus() string {
+	t.RLock()
+	defer t.RUnlock()
+
 	switch t.Status {
 	case disabled:
 		return "Disabled"
@@ -88,15 +91,15 @@ func (t *Theme) GetStatus() string {
 
 // HasIndex returns the index status
 func (t *Theme) HasIndex() bool {
-	t.Lock()
-	defer t.Unlock()
+	t.RLock()
+	defer t.RUnlock()
 	return t.indexed
 }
 
 // SetIndexed sets the indexed value
 func (t *Theme) SetIndexed(idx bool) {
-	t.RLock()
-	defer t.RUnlock()
+	t.Lock()
+	defer t.Unlock()
 	t.indexed = idx
 }
 
@@ -197,8 +200,8 @@ func (t *Theme) getAPIData() (*APIResponse, error) {
 
 // Update ...
 func (t *Theme) Update() error {
-	t.RLock()
-	defer t.RUnlock()
+	t.Lock()
+	defer t.Unlock()
 
 	bytes, err := t.getArchive()
 	if err != nil {
@@ -300,9 +303,10 @@ func (t *Theme) processArchive(archive []byte) (*index.IndexRef, error) {
 }
 
 // Save ...
+// TODO: Wrap struct to allow locking during Marshal
 func (t *Theme) Save() error {
-	t.Lock()
-	defer t.Unlock()
+	t.RLock()
+	defer t.RUnlock()
 
 	bytes, err := json.Marshal(t)
 	if err != nil {

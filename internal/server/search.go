@@ -94,16 +94,16 @@ type SearchRequest struct {
 
 // Get ...
 func (sm *SearchManager) Get(ID string) *Search {
-	sm.Lock()
-	defer sm.Unlock()
+	sm.RLock()
+	defer sm.RUnlock()
 	s := sm.List[ID]
 	return s
 }
 
 // Set ...
 func (sm *SearchManager) Set(s *Search) {
-	sm.RLock()
-	defer sm.RUnlock()
+	sm.Lock()
+	defer sm.Unlock()
 	_, ok := sm.List[s.ID]
 	if !ok {
 		sm.List[s.ID] = s
@@ -112,8 +112,8 @@ func (sm *SearchManager) Set(s *Search) {
 
 // Exists ...
 func (sm *SearchManager) Exists(ID string) bool {
-	sm.Lock()
-	defer sm.Unlock()
+	sm.RLock()
+	defer sm.RUnlock()
 	_, ok := sm.List[ID]
 	return ok
 }
@@ -162,8 +162,8 @@ func (sm *SearchManager) Empty() int {
 
 // NewSearch ...
 func (sm *SearchManager) NewSearch(sr SearchRequest) string {
-	sm.RLock()
-	defer sm.RUnlock()
+	sm.Lock()
+	defer sm.Unlock()
 
 	ID := ulid.New()
 	sm.List[ID] = &Search{
@@ -199,9 +199,9 @@ func (s *Server) SearchWorker() {
 
 // processSearch ...
 func (s *Server) processSearch(ID string) error {
-	s.Searches.Lock()
+	s.Searches.RLock()
 	srch := s.Searches.List[ID]
-	s.Searches.Unlock()
+	s.Searches.RUnlock()
 
 	var totalMatches int
 	srch.Started = time.Now()
@@ -233,7 +233,7 @@ func (s *Server) processSearch(ID string) error {
 			}
 			limiter <- struct{}{}
 
-			go func(p *plugin.Plugin) {
+			go func(p *plugin.Plugin, srch *Search, totalMatches int, sum *Summary) {
 				resp, err := p.Searcher.Search(srch.Input, p.Slug, opts)
 				if err != nil {
 					<-limiter
@@ -246,7 +246,9 @@ func (s *Server) processSearch(ID string) error {
 				item := &Item{
 					Slug: p.Slug,
 				}
-				srch.Matches.RLock()
+
+				// Add this Search's results to the Search struct.
+				srch.Matches.Lock()
 				for _, result := range resp.Matches {
 					for _, match := range result.Matches {
 						totalMatches++
@@ -258,26 +260,22 @@ func (s *Server) processSearch(ID string) error {
 							LineNum:  match.LineNumber,
 							LineText: match.Line,
 						}
-						// Does this need Locks?
 						srch.Matches.Total++
 						srch.Matches.List[p.Slug] = append(srch.Matches.List[p.Slug], m)
 					}
 				}
-				srch.Matches.RUnlock()
+				srch.Matches.Unlock()
 
-				sum.RLock()
+				sum.Lock()
 				sum.List = append(sum.List, item)
-				sum.RUnlock()
+				sum.Unlock()
 				<-limiter
-			}(p)
-			srch.RLock()
+			}(p, srch, totalMatches, sum)
+
+			srch.Lock()
 			srch.Progress++
-
-			sum.Lock()
 			srch.Summary = sum
-			sum.Unlock()
-
-			srch.RUnlock()
+			srch.Unlock()
 		}
 
 		break
@@ -318,15 +316,15 @@ func (s *Server) processSearch(ID string) error {
 							LineNum:  match.LineNumber,
 							LineText: match.Line,
 						}
-						srch.Matches.RLock()
+						srch.Matches.Lock()
 						srch.Matches.Total++
 						srch.Matches.List[t.Slug] = append(srch.Matches.List[t.Slug], m)
-						srch.Matches.RUnlock()
+						srch.Matches.Unlock()
 					}
 				}
-				sum.RLock()
+				sum.Lock()
 				sum.List = append(sum.List, item)
-				sum.RUnlock()
+				sum.Unlock()
 				<-limiter
 			}(t)
 			srch.Lock()

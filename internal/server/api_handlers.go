@@ -58,6 +58,7 @@ func (s *Server) getSearches() http.HandlerFunc {
 			srch.Lock()
 			// Skip Private Searches
 			if srch.Private == true {
+				srch.Unlock()
 				continue
 			}
 			so := &searchOverview{
@@ -73,6 +74,7 @@ func (s *Server) getSearches() http.HandlerFunc {
 			}
 			resp.Searches = append(resp.Searches, so)
 			if i++; i == limit {
+				srch.Unlock()
 				break
 			}
 			srch.Unlock()

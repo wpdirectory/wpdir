@@ -46,8 +46,8 @@ func (tr *ThemeRepo) Rev() int {
 }
 
 func (tr *ThemeRepo) save() error {
-	tr.Lock()
-	defer tr.Unlock()
+	tr.RLock()
+	defer tr.RUnlock()
 
 	rev := strconv.Itoa(tr.Revision)
 
@@ -55,8 +55,8 @@ func (tr *ThemeRepo) save() error {
 }
 
 func (tr *ThemeRepo) load() error {
-	tr.RLock()
-	defer tr.RUnlock()
+	tr.Lock()
+	defer tr.Unlock()
 	bytes, err := db.GetFromBucket("themes", "repos")
 	if err != nil {
 		return err
@@ -73,42 +73,42 @@ func (tr *ThemeRepo) load() error {
 
 // Exists checks if a Theme exists
 func (tr *ThemeRepo) Exists(slug string) bool {
-	tr.Lock()
+	tr.RLock()
 	_, ok := tr.List[slug]
-	tr.Unlock()
+	tr.RUnlock()
 	return ok
 }
 
 // Get returns a Theme
 func (tr *ThemeRepo) Get(slug string) Extension {
-	tr.Lock()
+	tr.RLock()
 	p := tr.List[slug]
-	tr.Unlock()
+	tr.RUnlock()
 	return p
 }
 
 // Add sets a new Theme
 func (tr *ThemeRepo) Add(slug string) {
-	tr.RLock()
+	tr.Lock()
 	tr.List[slug] = &theme.Theme{
 		Slug: slug,
 	}
-	tr.RUnlock()
+	tr.Unlock()
 	//tr.QueueUpdate(slug)
 }
 
 // Set ...
 func (tr *ThemeRepo) Set(slug string, t *theme.Theme) {
-	tr.RLock()
+	tr.Lock()
 	tr.List[slug] = t
-	tr.RUnlock()
+	tr.Unlock()
 }
 
 // Remove deletes a current Theme
 func (tr *ThemeRepo) Remove(slug string) {
-	tr.RLock()
+	tr.Lock()
 	delete(tr.List, slug)
-	tr.RUnlock()
+	tr.Unlock()
 }
 
 // UpdateIndex ...
@@ -119,8 +119,8 @@ func (tr *ThemeRepo) UpdateIndex(idx *index.Index) error {
 		return errors.New("Index contains empty slug")
 	}
 
-	tr.RLock()
-	defer tr.RUnlock()
+	tr.Lock()
+	defer tr.Unlock()
 
 	if !tr.Exists(slug) {
 		return errors.New("Index does not match an existing theme")
@@ -299,8 +299,8 @@ func (tr *ThemeRepo) loadIndexes() {
 
 // Summary ...
 func (tr *ThemeRepo) Summary() *RepoSummary {
-	tr.Lock()
-	defer tr.Unlock()
+	tr.RLock()
+	defer tr.RUnlock()
 
 	rs := &RepoSummary{
 		Revision: tr.Revision,

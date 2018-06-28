@@ -46,8 +46,8 @@ func (pr *PluginRepo) Rev() int {
 }
 
 func (pr *PluginRepo) save() error {
-	pr.Lock()
-	defer pr.Unlock()
+	pr.RLock()
+	defer pr.RUnlock()
 
 	rev := strconv.Itoa(pr.Revision)
 
@@ -55,8 +55,8 @@ func (pr *PluginRepo) save() error {
 }
 
 func (pr *PluginRepo) load() error {
-	pr.RLock()
-	defer pr.RUnlock()
+	pr.Lock()
+	defer pr.Unlock()
 	bytes, err := db.GetFromBucket("plugins", "repos")
 	if err != nil {
 		return err
@@ -73,24 +73,24 @@ func (pr *PluginRepo) load() error {
 
 // Exists ...
 func (pr *PluginRepo) Exists(slug string) bool {
-	pr.Lock()
-	defer pr.Unlock()
+	pr.RLock()
+	defer pr.RUnlock()
 	_, ok := pr.List[slug]
 	return ok
 }
 
 // Get ...
 func (pr *PluginRepo) Get(slug string) Extension {
-	pr.Lock()
-	defer pr.Unlock()
+	pr.RLock()
+	defer pr.RUnlock()
 	p := pr.List[slug]
 	return p
 }
 
 // Add ...
 func (pr *PluginRepo) Add(slug string) {
-	pr.RLock()
-	defer pr.RUnlock()
+	pr.Lock()
+	defer pr.Unlock()
 	pr.List[slug] = &plugin.Plugin{
 		Slug: slug,
 	}
@@ -99,15 +99,15 @@ func (pr *PluginRepo) Add(slug string) {
 
 // Set ...
 func (pr *PluginRepo) Set(slug string, p *plugin.Plugin) {
-	pr.RLock()
-	defer pr.RUnlock()
+	pr.Lock()
+	defer pr.Unlock()
 	pr.List[slug] = p
 }
 
 // Remove ...
 func (pr *PluginRepo) Remove(slug string) {
-	pr.RLock()
-	defer pr.RUnlock()
+	pr.Lock()
+	defer pr.Unlock()
 	delete(pr.List, slug)
 }
 
@@ -297,8 +297,8 @@ func (pr *PluginRepo) loadIndexes() {
 
 // Summary ...
 func (pr *PluginRepo) Summary() *RepoSummary {
-	pr.Lock()
-	defer pr.Unlock()
+	pr.RLock()
+	defer pr.RUnlock()
 
 	rs := &RepoSummary{
 		Revision: pr.Revision,
@@ -307,11 +307,11 @@ func (pr *PluginRepo) Summary() *RepoSummary {
 	}
 
 	for _, p := range pr.List {
-		p.Lock()
+		p.RLock()
 		if p.Status == 1 {
 			rs.Closed++
 		}
-		p.Unlock()
+		p.RUnlock()
 	}
 
 	return rs
