@@ -23,13 +23,14 @@ const (
 	matchLimit               = 1000
 	manifestFilename         = "metadata.gob"
 	excludedFileJSONFilename = "excluded_files.json"
-	filePeekSize             = 2048
+	filePeekSize             = 512
 )
 
 const (
 	reasonDotFile     = "Dot files are excluded."
 	reasonInvalidMode = "Invalid file mode."
 	reasonNotText     = "Not a text file."
+	reasonBinary      = "Binary files are excluded."
 )
 
 type Index struct {
@@ -232,6 +233,68 @@ func (n *Index) Search(pat, slug string, opt *SearchOptions) (*SearchResponse, e
 	}, nil
 }
 
+func isBinaryFile(filename string) (bool, error) {
+	buf := make([]byte, filePeekSize)
+	r, err := os.Open(filename)
+	if err != nil {
+		return false, err
+	}
+	defer r.Close()
+
+	n, err := io.ReadFull(r, buf)
+	if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
+		return false, err
+	}
+
+	buf = buf[:n]
+
+	if detectBinary(buf) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// Adapted from The Platinum Searcher's detectEncoding() func.
+// https://github.com/monochromegane/the_platinum_searcher/
+func detectBinary(bs []byte) bool {
+	var suspiciousBytes = 0
+
+	length := len(bs)
+
+	if length == 0 {
+		return false
+	}
+
+	if length >= 3 && bs[0] == 0xEF && bs[1] == 0xBB && bs[2] == 0xBF {
+		// UTF-8 BOM. This isn't binary.
+		return false
+	}
+
+	if length >= 5 && bs[0] == 0x25 && bs[1] == 0x50 && bs[2] == 0x44 && bs[3] == 0x46 && bs[4] == 0x2D {
+		/*  %PDF-. This is binary. */
+		return true
+	}
+
+	for i := 0; i < length; i++ {
+		if bs[i] == 0x00 {
+			/* NULL char. It's binary */
+			return true
+		} else if (bs[i] < 7 || bs[i] > 14) && (bs[i] < 32 || bs[i] > 127) {
+			suspiciousBytes++
+			if i >= 32 && (suspiciousBytes*100)/length > 10 {
+				return true
+			}
+		}
+	}
+
+	if (suspiciousBytes*100)/length > 10 {
+		return true
+	}
+
+	return false
+}
+
 func isTextFile(filename string) (bool, error) {
 	buf := make([]byte, filePeekSize)
 	r, err := os.Open(filename)
@@ -396,12 +459,12 @@ func indexAllFiles(opt *IndexOptions, dst, src string) error {
 			return nil
 		}
 
-		txt, err := isTextFile(path)
+		binary, err := isBinaryFile(path)
 		if err != nil {
 			return err
 		}
 
-		if !txt {
+		if binary {
 			excluded = append(excluded, &ExcludedFile{
 				rel,
 				reasonNotText,
