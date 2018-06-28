@@ -176,6 +176,7 @@ func (sm *SearchManager) NewSearch(sr SearchRequest) string {
 			List:  make(map[string][]*Match),
 			Total: 0,
 		},
+		Summary: &Summary{},
 		Status: queued,
 	}
 
