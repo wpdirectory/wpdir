@@ -202,13 +202,13 @@ func (pr *PluginRepo) UpdateList() error {
 func (pr *PluginRepo) Worker() error {
 	updateAPIData := time.NewTicker(time.Hour * 24).C
 
-	checkSVN := time.NewTicker(time.Minute * 5).C
+	checkSVN := time.NewTicker(time.Minute * 15).C
 
 	for {
 		select {
 		case <-updateAPIData:
 			// Update Plugins API Data
-			log.Println("Update Pluins API Data.")
+			log.Println("Update Plugins API Data.")
 		case <-checkSVN:
 			// Check SVN for Plugin Updates
 			log.Println("Check SVN for Plugin updates.")
@@ -242,7 +242,7 @@ func (pr *PluginRepo) loadDBData() {
 		p.Status = 1
 		p.Searcher = &searcher.Searcher{}
 		if p.Name == "" {
-			pr.QueueUpdate(p.Slug)
+			//pr.QueueUpdate(p.Slug)
 		}
 
 		pr.Set(slug, &p)

@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 	"unicode/utf8"
@@ -14,6 +15,7 @@ import (
 	"github.com/wpdirectory/wpdir/internal/config"
 	"github.com/wpdirectory/wpdir/internal/db"
 	"github.com/wpdirectory/wpdir/internal/index"
+	"github.com/wpdirectory/wpdir/internal/searcher"
 	"github.com/wpdirectory/wpdir/internal/svn"
 	"github.com/wpdirectory/wpdir/internal/theme"
 )
@@ -26,10 +28,11 @@ const (
 type ThemeRepo struct {
 	Config *config.Config
 	List   map[string]*theme.Theme
-	sync.RWMutex
+
 	Revision    int
 	Updated     time.Time
 	UpdateQueue chan string
+	sync.RWMutex
 }
 
 // Len returns the number of Themes
@@ -40,6 +43,32 @@ func (tr *ThemeRepo) Len() int {
 // Rev returns the current Revision
 func (tr *ThemeRepo) Rev() int {
 	return tr.Revision
+}
+
+func (tr *ThemeRepo) save() error {
+	tr.Lock()
+	defer tr.Unlock()
+
+	rev := strconv.Itoa(tr.Revision)
+
+	return db.PutToBucket("themes", []byte(rev), "repos")
+}
+
+func (tr *ThemeRepo) load() error {
+	tr.RLock()
+	defer tr.RUnlock()
+	bytes, err := db.GetFromBucket("themes", "repos")
+	if err != nil {
+		return err
+	}
+
+	rev, err := strconv.Atoi(string(bytes))
+	if err != nil || rev != 0 {
+		return err
+	}
+	tr.Revision = rev
+
+	return nil
 }
 
 // Exists checks if a Theme exists
@@ -89,20 +118,23 @@ func (tr *ThemeRepo) UpdateIndex(idx *index.Index) error {
 		// bad index, perhaps delete?
 		return errors.New("Index contains empty slug")
 	}
+
 	tr.RLock()
 	defer tr.RUnlock()
 
 	if !tr.Exists(slug) {
-		return errors.New("Index does not many an existing theme")
+		return errors.New("Index does not match an existing theme")
 	}
 
 	err := tr.List[slug].Searcher.SwapIndexes(idx)
 	if err != nil {
 		tr.List[slug].SetIndexed(false)
+		tr.List[slug].Status = 1
 		return err
 	}
 
 	tr.List[slug].SetIndexed(true)
+	tr.List[slug].Status = 0
 
 	return nil
 }
@@ -118,26 +150,32 @@ func (tr *ThemeRepo) UpdateWorker() {
 		slug := <-tr.UpdateQueue
 		err := tr.ProcessUpdate(slug)
 		if err != nil {
-			tr.UpdateQueue <- slug
+			log.Printf("Theme (%s) Update Failed: %s\n", slug, err)
+			//tr.UpdateQueue <- slug
 		}
 	}
 }
 
-// ProcessUpdate updates Theme data and indexes
+// ProcessUpdate ...
 func (tr *ThemeRepo) ProcessUpdate(slug string) error {
 	t := tr.Get(slug).(*theme.Theme)
 	err := t.LoadAPIData()
 	if err != nil {
+		t.Status = 1
 		return err
 	}
+	t.Status = 0
 
 	err = t.Update()
 	if err != nil {
+		t.Status = 1
 		t.SetIndexed(false)
 		return err
 	}
-
+	t.Status = 0
 	t.SetIndexed(true)
+
+	t.Save()
 
 	return nil
 }
@@ -163,6 +201,24 @@ func (tr *ThemeRepo) UpdateList() error {
 	return nil
 }
 
+// Worker ...
+func (tr *ThemeRepo) Worker() error {
+	updateAPIData := time.NewTicker(time.Hour * 24).C
+
+	checkSVN := time.NewTicker(time.Minute * 15).C
+
+	for {
+		select {
+		case <-updateAPIData:
+			// Update Plugins API Data
+			log.Println("Update Themes API Data.")
+		case <-checkSVN:
+			// Check SVN for Plugin Updates
+			log.Println("Check SVN for Theme updates.")
+		}
+	}
+}
+
 // LoadExisting ...
 func (tr *ThemeRepo) LoadExisting() {
 
@@ -186,6 +242,11 @@ func (tr *ThemeRepo) loadDBData() {
 		if err != nil {
 			continue
 		}
+		t.Status = 1
+		t.Searcher = &searcher.Searcher{}
+		if t.Name == "" {
+			//pr.QueueUpdate(p.Slug)
+		}
 
 		tr.Set(slug, &t)
 	}
@@ -201,6 +262,8 @@ func (tr *ThemeRepo) loadIndexes() {
 	}
 
 	log.Printf("Found %d existing Theme indexes.\n", len(dirs))
+
+	var loaded int
 
 	for _, dir := range dirs {
 		// If not Directory discard.
@@ -229,7 +292,9 @@ func (tr *ThemeRepo) loadIndexes() {
 			os.RemoveAll(path)
 			continue
 		}
+		loaded++
 	}
+	log.Printf("Loaded %d Theme indexes", loaded)
 }
 
 // Summary ...
