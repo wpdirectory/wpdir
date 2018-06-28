@@ -45,9 +45,9 @@ func (s *Server) getFilePath(repo, slug, file string) (string, error) {
 			return "", errors.New("Theme has no indexed files")
 		}
 
-		t.Searcher.Lock()
+		t.Searcher.Lock.Lock()
 		dir := t.Searcher.Dir()
-		t.Searcher.Unlock()
+		t.Searcher.Lock.Unlock()
 
 		path := filepath.Join(dir, "raw", file)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
