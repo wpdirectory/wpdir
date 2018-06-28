@@ -71,7 +71,7 @@ class SearchForm extends Component {
                 <Dashicon icon="admin-plugins" size={ 16 } />
                 Plugins
               </button>
-              <button className={this.state.target === 'themes' ? 'button' : 'button secondary'} value="themes" onClick={this.updateTarget}>
+              <button className={this.state.target === 'themes' ? 'button' : 'button secondary'} value="themes" onClick={this.updateTarget} disabled={true}>
                 <Dashicon icon="admin-appearance" size={ 16 } />
                 Themes
               </button>
