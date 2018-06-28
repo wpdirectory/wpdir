@@ -69,17 +69,36 @@ section.content {
 
 .page-searches {
     .searches-table {
+        border-collapse: collapse;
+        thead {
+            border: 1px solid #dedede;
+            background-color: #e6e6e6;
+            th {
+                padding: rem-calc(20) rem-calc(16);
+            }
+        }
         tbody {
-            td {
+            border: 1px solid #dedede;
+            border-top: none;
+            tr {
+                border-bottom: 1px solid #dedede;
+                td:nth-of-type(3n) {
+                    text-align: right;
+                }
+            }
+            td:first-of-type {
                 text-overflow: ellipsis;
                 overflow: hidden; 
                 white-space: nowrap;
+                max-width: 1px;
+                width: 100%;
             }
             a {
-                display: block;
+                display: inline-block;
                 text-overflow: ellipsis;
-                overflow: hidden; 
+                overflow: hidden;
                 white-space: nowrap;
+                vertical-align: middle;
             }
         }
     }
@@ -118,7 +137,7 @@ section.content {
                         position: absolute;
                         left: 50%;
                         margin-top: rem-calc(15);
-                        color: #c4c4c4;
+                        fill: #c4c4c4;
                     }
                 }
                 .name {
@@ -257,14 +276,25 @@ section.content {
             }
         }
     }
-    .reveal {
+    .reveal-overlay {
         overflow: hidden;
+    }
+    .reveal {
+        padding: rem-calc(30);
         .reveal-content {
-            overflow: hidden;
-            border: 1px solid #dedede;
-            padding: rem-calc(10);
-            overflow-y: scroll;
-            max-height: 90vh;
+            .cm-s-default {
+                height: 300px;
+                @include breakpoint(medium) {
+                    height: 400px;
+                }
+    
+                @include breakpoint(large) {
+                    height: 500px;
+                }
+                .CodeMirror-code .active {
+                    background: #efefef;
+                }
+            }
         }
     }
 }
