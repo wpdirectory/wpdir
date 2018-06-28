@@ -7,8 +7,8 @@ import (
 )
 
 type Searcher struct {
-	idx *index.Index
-	sync.RWMutex
+	idx  *index.Index
+	Lock sync.RWMutex
 }
 
 // New ...
@@ -29,8 +29,8 @@ func New(ref *index.IndexRef) (*Searcher, error) {
 // SwapIndexes performs atomic swap of index in the searcher so that the new
 // index is made "live".
 func (s *Searcher) SwapIndexes(idx *index.Index) error {
-	s.Lock()
-	defer s.Unlock()
+	s.Lock.Lock()
+	defer s.Lock.Unlock()
 
 	oldIdx := s.idx
 	s.idx = idx
@@ -44,8 +44,8 @@ func (s *Searcher) SwapIndexes(idx *index.Index) error {
 
 // Dir returns the index dir
 func (s *Searcher) Dir() string {
-	s.Lock()
-	defer s.Unlock()
+	s.Lock.Lock()
+	defer s.Lock.Unlock()
 
 	return s.idx.Ref.Dir()
 }
@@ -55,7 +55,7 @@ func (s *Searcher) Dir() string {
 //
 // TODO(knorton): pat should really just be a part of SearchOptions
 func (s *Searcher) Search(pat, slug string, opt *index.SearchOptions) (*index.SearchResponse, error) {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock.Lock()
+	defer s.Lock.Unlock()
 	return s.idx.Search(pat, slug, opt)
 }
