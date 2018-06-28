@@ -177,7 +177,7 @@ func (sm *SearchManager) NewSearch(sr SearchRequest) string {
 			Total: 0,
 		},
 		Summary: &Summary{},
-		Status: queued,
+		Status:  queued,
 	}
 
 	sm.Queue <- ID
@@ -231,6 +231,9 @@ func (s *Server) processSearch(ID string) error {
 		for _, p := range pr.List {
 			if !p.HasIndex() || p.Status != 0 {
 				continue
+			}
+			if totalMatches >= 10000 {
+				break
 			}
 			limiter <- struct{}{}
 
