@@ -22,11 +22,14 @@ type SearchManager struct {
 	sync.RWMutex
 }
 
+// JsonSearch is a type alias to avoid recursive json.Marshal bug
+type JsonSearch Search
+
 type Search struct {
 	ID        string    `json:"id"`
 	Input     string    `json:"input"`
 	Repo      string    `json:"repo"`
-	Matches   Matches   `json:"matches"`
+	Matches   *Matches  `json:"matches"`
 	Started   time.Time `json:"started"`
 	Completed time.Time `json:"completed,omitempty"`
 	Progress  int       `json:"progress"`
@@ -34,7 +37,7 @@ type Search struct {
 	Status    status    `json:"status"`
 	Opts      Options   `json:"options"`
 	Summary   *Summary  `json:"summary,omitempty"`
-	Public    bool      `json:"-"`
+	Private   bool      `json:"-"`
 	sync.RWMutex
 }
 
@@ -48,7 +51,7 @@ const (
 
 type Matches struct {
 	List  map[string][]*Match `json:"list"`
-	Total int                 `json:"total"`
+	Total int                 `json:"total,omitempty"`
 	sync.RWMutex
 }
 
@@ -82,11 +85,11 @@ type Item struct {
 }
 
 type SearchRequest struct {
-	Input  string
-	Repo   string
-	Public bool
-	Time   time.Time
-	Opts   Options
+	Input   string
+	Repo    string
+	Private bool
+	Time    time.Time
+	Opts    Options
 }
 
 // Get ...
@@ -164,10 +167,15 @@ func (sm *SearchManager) NewSearch(sr SearchRequest) string {
 
 	ID := ulid.New()
 	sm.List[ID] = &Search{
-		ID:     ID,
-		Input:  sr.Input,
-		Repo:   sr.Repo,
-		Opts:   sr.Opts,
+		ID:      ID,
+		Input:   sr.Input,
+		Repo:    sr.Repo,
+		Private: sr.Private,
+		Opts:    sr.Opts,
+		Matches: &Matches{
+			List:  make(map[string][]*Match),
+			Total: 0,
+		},
 		Status: queued,
 	}
 
@@ -193,7 +201,6 @@ func (s *Server) SearchWorker() {
 func (s *Server) processSearch(ID string) error {
 	s.Searches.Lock()
 	srch := s.Searches.List[ID]
-	srch.Matches.List = make(map[string][]*Match)
 	s.Searches.Unlock()
 
 	var totalMatches int
@@ -221,7 +228,6 @@ func (s *Server) processSearch(ID string) error {
 		srch.Total = pr.Len()
 
 		for _, p := range pr.List {
-			srch.Progress++
 			if !p.HasIndex() || p.Status != 0 {
 				continue
 			}
@@ -237,10 +243,10 @@ func (s *Server) processSearch(ID string) error {
 					<-limiter
 					return
 				}
-
 				item := &Item{
 					Slug: p.Slug,
 				}
+				srch.Matches.RLock()
 				for _, result := range resp.Matches {
 					for _, match := range result.Matches {
 						totalMatches++
@@ -252,20 +258,26 @@ func (s *Server) processSearch(ID string) error {
 							LineNum:  match.LineNumber,
 							LineText: match.Line,
 						}
-						srch.Matches.RLock()
+						// Does this need Locks?
 						srch.Matches.Total++
 						srch.Matches.List[p.Slug] = append(srch.Matches.List[p.Slug], m)
-						srch.Matches.RUnlock()
 					}
 				}
+				srch.Matches.RUnlock()
+
 				sum.RLock()
 				sum.List = append(sum.List, item)
 				sum.RUnlock()
 				<-limiter
 			}(p)
-			srch.Lock()
+			srch.RLock()
+			srch.Progress++
+
+			sum.Lock()
 			srch.Summary = sum
-			srch.Unlock()
+			sum.Unlock()
+
+			srch.RUnlock()
 		}
 
 		break
@@ -331,9 +343,6 @@ func (s *Server) processSearch(ID string) error {
 	srch.Completed = time.Now()
 	srch.Status = completed
 
-	srch.Lock()
-	defer srch.Unlock()
-
 	bytes, err := json.Marshal(srch)
 	if err != nil {
 		return err
@@ -345,4 +354,12 @@ func (s *Server) processSearch(ID string) error {
 	}
 
 	return nil
+}
+
+// MarshalJSON handles locking Search during json.Marshal
+func (srch *Search) MarshalJSON() ([]byte, error) {
+	srch.RLock()
+	defer srch.RUnlock()
+
+	return json.Marshal(JsonSearch(*srch))
 }
