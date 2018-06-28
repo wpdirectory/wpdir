@@ -55,6 +55,11 @@ func (s *Server) getSearches() http.HandlerFunc {
 
 		i := 1
 		for _, srch := range s.Searches.List {
+			srch.Lock()
+			// Skip Private Searches
+			if srch.Private == true {
+				continue
+			}
 			so := &searchOverview{
 				ID:        srch.ID,
 				Input:     srch.Input,
@@ -70,6 +75,7 @@ func (s *Server) getSearches() http.HandlerFunc {
 			if i++; i == limit {
 				break
 			}
+			srch.Unlock()
 		}
 
 		writeResp(w, resp)
@@ -115,13 +121,17 @@ func (s *Server) getSearch() http.HandlerFunc {
 			resp.ID = srch.ID
 			resp.Input = srch.Input
 			resp.Repo = srch.Repo
+
+			srch.Matches.Lock()
 			resp.Matches = srch.Matches.Total
+			srch.Matches.Unlock()
 			if !srch.Started.IsZero() {
 				resp.Started = srch.Started
 			}
 			// If the search is complete add extra data
 			if !srch.Completed.IsZero() {
 				resp.Completed = srch.Completed
+				srch.Summary.Lock()
 				resp.Summary = summaryResponse{
 					Total: srch.Summary.Total,
 				}
@@ -140,6 +150,7 @@ func (s *Server) getSearch() http.HandlerFunc {
 					p.Unlock()
 					resp.Summary.List = append(resp.Summary.List, item)
 				}
+				srch.Summary.Unlock()
 			}
 			resp.Progress = srch.Progress
 			resp.Total = srch.Total
@@ -196,7 +207,6 @@ func (s *Server) getSearchMatches() http.HandlerFunc {
 			resp.Total = len(matches)
 
 			writeResp(w, resp)
-
 		} else {
 			var resp errResponse
 			resp.Err = "You must specify a valid Search ID and Item Slug."
@@ -273,8 +283,9 @@ func (s *Server) getMatchFile() http.HandlerFunc {
 // createSearch ...
 func (s *Server) createSearch() http.HandlerFunc {
 	type createSearchRequest struct {
-		Input  string `json:"input"`
-		Target string `json:"target"`
+		Input   string `json:"input"`
+		Target  string `json:"target"`
+		Private bool   `json:"private"`
 	}
 
 	type createSearchResponse struct {
@@ -293,13 +304,31 @@ func (s *Server) createSearch() http.HandlerFunc {
 			panic(err)
 		}
 
+		// Ensure regex is not blank
+		if data.Input == "" {
+			var resp errResponse
+			resp.Err = "Please provide non-blank search input."
+			writeResp(w, resp)
+			return
+		}
+
+		// Check Target
+		switch data.Target {
+		case "plugins":
+			break
+		case "themes":
+			break
+		default:
+			var resp errResponse
+			resp.Err = "Please provide a valid target"
+			writeResp(w, resp)
+			return
+		}
+
 		var sr SearchRequest
 		sr.Input = data.Input
 		sr.Repo = data.Target
-
-		s.Searches.Lock()
-		//s.Searches[id] = empty
-		s.Searches.Unlock()
+		sr.Private = data.Private
 
 		// Perform non-blocking Search...
 		id := s.Searches.NewSearch(sr)
