@@ -6,6 +6,7 @@ import (
 	"log"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/wpdirectory/wpdir/internal/db"
@@ -204,9 +205,11 @@ func (s *Server) processSearch(ID string) error {
 	srch := s.Searches.List[ID]
 	s.Searches.RUnlock()
 
-	var totalMatches int
+	var totalMatches uint64
+	srch.Lock()
 	srch.Started = time.Now()
 	srch.Status = started
+	srch.Unlock()
 
 	sum := &Summary{
 		List:  []*Item{},
@@ -232,12 +235,18 @@ func (s *Server) processSearch(ID string) error {
 			if !p.HasIndex() || p.Status != 0 {
 				continue
 			}
+			// Stop if we hit maximum search limit.
+			srch.Matches.RLock()
 			if totalMatches >= 10000 {
+				srch.Matches.RUnlock()
 				break
 			}
+			srch.Matches.RUnlock()
+
 			limiter <- struct{}{}
 
-			go func(p *plugin.Plugin, srch *Search, totalMatches int, sum *Summary) {
+			p.RLock()
+			go func(p *plugin.Plugin, srch *Search, totalMatches *uint64, sum *Summary) {
 				resp, err := p.Searcher.Search(srch.Input, p.Slug, opts)
 				if err != nil {
 					<-limiter
@@ -255,7 +264,7 @@ func (s *Server) processSearch(ID string) error {
 				srch.Matches.Lock()
 				for _, result := range resp.Matches {
 					for _, match := range result.Matches {
-						totalMatches++
+						atomic.AddUint64(totalMatches, 1)
 						sum.Total++
 						item.Matches++
 						m := &Match{
@@ -274,7 +283,8 @@ func (s *Server) processSearch(ID string) error {
 				sum.List = append(sum.List, item)
 				sum.Unlock()
 				<-limiter
-			}(p, srch, totalMatches, sum)
+			}(p, srch, &totalMatches, sum)
+			p.RUnlock()
 
 			srch.Lock()
 			srch.Progress++
@@ -342,8 +352,10 @@ func (s *Server) processSearch(ID string) error {
 		return errors.New("Not a valid respository name")
 	}
 
+	srch.Lock()
 	srch.Completed = time.Now()
 	srch.Status = completed
+	srch.Unlock()
 
 	bytes, err := json.Marshal(srch)
 	if err != nil {
