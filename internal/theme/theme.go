@@ -7,18 +7,20 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
+	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
 	retry "github.com/giantswarm/retry-go"
 	"github.com/wpdirectory/wpdir/internal/client"
 	"github.com/wpdirectory/wpdir/internal/db"
+	"github.com/wpdirectory/wpdir/internal/files"
 	"github.com/wpdirectory/wpdir/internal/index"
 	"github.com/wpdirectory/wpdir/internal/searcher"
+	"github.com/wpdirectory/wpdir/internal/ulid"
 	"github.com/wpdirectory/wpdir/internal/utils"
+	"github.com/wpdirectory/wporg"
 )
 
 const (
@@ -35,6 +37,7 @@ type Theme struct {
 	Installs      int
 	Status        status
 	Searcher      *searcher.Searcher
+	Stats         *files.Stats `json:"stats,omitempty"`
 	indexed       bool
 	sync.RWMutex
 }
@@ -105,97 +108,37 @@ func (t *Theme) SetIndexed(idx bool) {
 
 // LoadAPIData updates the Plugin struct with data from an HTTP API
 func (t *Theme) LoadAPIData() error {
-
-	var resp *APIResponse
+	var data []byte
 	var err error
 
 	fetch := func() error {
-		resp, err = t.getAPIData()
+		data, err = t.getAPIData()
 		return err
-	}
-
-	if resp == nil {
-		t.Status = closed
-		return nil
 	}
 
 	err = retry.Do(fetch, retry.Timeout(15*time.Second), retry.MaxTries(3), retry.Sleep(5*time.Second))
-	if err != nil {
-		t.Status = disabled
+	if err != nil || data == nil {
+		t.Status = closed
 		return err
 	}
 
-	// Update from API data
-	t.Name = resp.Name
-	t.Version = resp.Version
-	t.Author = resp.Author
-	t.AuthorProfile = resp.AuthorProfile
-	t.Installs = resp.Installs
-	t.Status = open
+	err = json.Unmarshal(data, &t)
+	if err != nil {
+		return err
+	}
 
 	return nil
-
 }
 
 // getAPIData ...
-func (t *Theme) getAPIData() (*APIResponse, error) {
+func (t *Theme) getAPIData() ([]byte, error) {
+	var data []byte
+	var err error
 
-	var result *APIResponse
+	api := wporg.NewClient()
+	data, err = api.GetInfo("themes", t.Slug)
 
-	// Main URL Components
-	// https://api.wordpress.org/plugins/info/1.1/
-	u := &url.URL{
-		Scheme: "https",
-		Host:   "api.wordpress.org",
-		Path:   "plugins/info/1.1/",
-	}
-
-	// Query Values
-	values := []string{
-		"action=plugin_information",
-		"request[slug]=" + t.Slug,
-		"request[fields][sections]=0",
-		"request[fields][description]=0",
-		"request[fields][short_description]=1",
-		"request[fields][tested]=1",
-		"request[fields][requires]=1",
-		"request[fields][rating]=1",
-		"request[fields][ratings]=1",
-		"request[fields][downloaded]=1",
-		"request[fields][active_installs]=1",
-		"request[fields][last_updated]=1",
-		"request[fields][homepage]=1",
-		"request[fields][tags]=1",
-		"request[fields][donate_link]=0",
-		"request[fields][contributors]=0",
-		"request[fields][compatibility]=1",
-		"request[fields][versions]=0",
-		"request[fields][version]=1",
-		"request[fields][screenshots]=1",
-		"request[fields][stable_tag]=1",
-		"request[fields][download_link]=1",
-	}
-
-	// Add Query Params to URL and return it as a string
-	u.RawQuery = strings.Join(values, "&")
-	URL := u.String()
-
-	// Make the HTTP request
-	response, err := http.Get(URL)
-	if err != nil {
-		return result, err
-	}
-
-	defer response.Body.Close()
-	bodyByte, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return result, err
-	}
-
-	json.Unmarshal([]byte(bodyByte), &result)
-
-	return result, nil
-
+	return data, err
 }
 
 // Update ...
@@ -213,10 +156,13 @@ func (t *Theme) Update() error {
 		return errors.New("No zip file available, Theme is closed")
 	}
 
-	ref, err := t.processArchive(bytes)
+	ref, stats, err := t.processArchive(bytes)
 	if err != nil {
 		return err
 	}
+
+	// Store File Stats
+	t.Stats = stats
 
 	if t.Searcher == nil {
 		// New Searcher
@@ -288,18 +234,23 @@ func (t *Theme) getArchive() ([]byte, error) {
 }
 
 // processArchive ...
-func (t *Theme) processArchive(archive []byte) (*index.IndexRef, error) {
-	dst := filepath.Join()
+func (t *Theme) processArchive(archive []byte) (*index.IndexRef, *files.Stats, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, nil, err
+	}
+	id := ulid.New()
+	dst := filepath.Join(wd, "data", "index", "themes", id)
 	opts := &index.IndexOptions{
 		ExcludeDotFiles: true,
 	}
 
-	ref, err := index.BuildFromZip(opts, archive, dst, t.Slug)
+	ref, stats, err := index.BuildFromZip(opts, archive, dst, t.Slug)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return ref, nil
+	return ref, stats, nil
 }
 
 // Save ...

@@ -6,20 +6,20 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
 	retry "github.com/giantswarm/retry-go"
 	"github.com/wpdirectory/wpdir/internal/client"
 	"github.com/wpdirectory/wpdir/internal/db"
+	"github.com/wpdirectory/wpdir/internal/files"
 	"github.com/wpdirectory/wpdir/internal/index"
 	"github.com/wpdirectory/wpdir/internal/searcher"
 	"github.com/wpdirectory/wpdir/internal/ulid"
 	"github.com/wpdirectory/wpdir/internal/utils"
+	"github.com/wpdirectory/wporg"
 )
 
 const (
@@ -47,6 +47,7 @@ type Plugin struct {
 	StableTag              string             `json:"stable_tag,omitempty"`
 	Status                 status             `json:"status"`
 	Searcher               *searcher.Searcher `json:"-"`
+	Stats                  *files.Stats       `json:"stats,omitempty"`
 	indexed                bool
 	sync.RWMutex
 }
@@ -147,73 +148,18 @@ func (p *Plugin) LoadAPIData() error {
 // GetAPIData ...
 func (p *Plugin) getAPIData() ([]byte, error) {
 	var data []byte
+	var err error
 
-	// Main URL Components
-	// https://api.wordpress.org/plugins/info/1.1/
-	u := &url.URL{
-		Scheme: "https",
-		Host:   "api.wordpress.org",
-		Path:   "plugins/info/1.1/",
-	}
+	api := wporg.NewClient()
+	data, err = api.GetInfo("plugins", p.Slug)
 
-	// Query Values
-	values := []string{
-		"action=plugin_information",
-		"request[slug]=" + p.Slug,
-		"request[fields][sections]=0",
-		"request[fields][description]=0",
-		"request[fields][short_description]=1",
-		"request[fields][tested]=1",
-		"request[fields][requires]=0",
-		"request[fields][rating]=1",
-		"request[fields][ratings]=0",
-		"request[fields][downloaded]=1",
-		"request[fields][active_installs]=1",
-		"request[fields][last_updated]=1",
-		"request[fields][homepage]=1",
-		"request[fields][tags]=0",
-		"request[fields][donate_link]=0",
-		"request[fields][contributors]=0",
-		"request[fields][compatibility]=0",
-		"request[fields][versions]=0",
-		"request[fields][version]=1",
-		"request[fields][screenshots]=1",
-		"request[fields][stable_tag]=1",
-		"request[fields][download_link]=1",
-	}
-
-	// Add Query Params to URL and return it as a string
-	u.RawQuery = strings.Join(values, "&")
-	URL := u.String()
-
-	client := client.GetAPI()
-
-	req, err := http.NewRequest("GET", URL, nil)
-	if err != nil {
-		return data, err
-	}
-
-	// Set User-Agent
-	req.Header.Set("User-Agent", "wpdirectory/0.1.0")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return data, err
-	}
-	defer resp.Body.Close()
-
-	data, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return data, err
-	}
-
-	return data, nil
+	return data, err
 }
 
 // Update ...
 func (p *Plugin) Update() error {
-	p.Lock()
-	defer p.Unlock()
+	p.RLock()
+	defer p.RUnlock()
 
 	bytes, err := p.getArchive()
 	if err != nil {
@@ -225,10 +171,13 @@ func (p *Plugin) Update() error {
 		return nil
 	}
 
-	ref, err := p.processArchive(bytes)
+	ref, stats, err := p.processArchive(bytes)
 	if err != nil {
 		return err
 	}
+
+	// Store File Stats
+	p.Stats = stats
 
 	if p.Searcher == nil {
 		// New Searcher
@@ -300,10 +249,10 @@ func (p *Plugin) getArchive() ([]byte, error) {
 }
 
 // processArchive ...
-func (p *Plugin) processArchive(archive []byte) (*index.IndexRef, error) {
+func (p *Plugin) processArchive(archive []byte) (*index.IndexRef, *files.Stats, error) {
 	wd, err := os.Getwd()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	id := ulid.New()
 	dst := filepath.Join(wd, "data", "index", "plugins", id)
@@ -311,12 +260,12 @@ func (p *Plugin) processArchive(archive []byte) (*index.IndexRef, error) {
 		ExcludeDotFiles: true,
 	}
 
-	ref, err := index.BuildFromZip(opts, archive, dst, p.Slug)
+	ref, stats, err := index.BuildFromZip(opts, archive, dst, p.Slug)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return ref, nil
+	return ref, stats, nil
 }
 
 // Save ...
