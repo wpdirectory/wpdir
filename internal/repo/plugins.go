@@ -17,7 +17,7 @@ import (
 	"github.com/wpdirectory/wpdir/internal/index"
 	"github.com/wpdirectory/wpdir/internal/plugin"
 	"github.com/wpdirectory/wpdir/internal/searcher"
-	"github.com/wpdirectory/wpdir/internal/svn"
+	"github.com/wpdirectory/wporg"
 )
 
 const (
@@ -32,6 +32,7 @@ type PluginRepo struct {
 	Revision    int
 	Updated     time.Time
 	UpdateQueue chan string
+	api         *wporg.Client
 	sync.RWMutex
 }
 
@@ -179,19 +180,18 @@ func (pr *PluginRepo) ProcessUpdate(slug string) error {
 
 // UpdateList updates our Plugin list.
 func (pr *PluginRepo) UpdateList() error {
-	// Fetch list from SVN
-	// https://plugins.svn.wordpress.org/
-	list, err := svn.GetList("plugins", "")
+	// Fetch list from WPOrg API
+	list, err := pr.api.GetList("plugins")
 	if err != nil {
 		return err
 	}
 
-	for _, item := range list {
-		if !utf8.Valid([]byte(item.Name)) {
+	for _, plugin := range list {
+		if !utf8.Valid([]byte(plugin)) {
 			return errors.New("Plugin slug is not valid utf8")
 		}
-		if !pr.Exists(item.Name) {
-			pr.Add(item.Name)
+		if !pr.Exists(plugin) {
+			pr.Add(plugin)
 		}
 	}
 
@@ -296,11 +296,11 @@ func (pr *PluginRepo) loadIndexes() {
 }
 
 // Summary ...
-func (pr *PluginRepo) Summary() *RepoSummary {
+func (pr *PluginRepo) Summary() *Summary {
 	pr.RLock()
 	defer pr.RUnlock()
 
-	rs := &RepoSummary{
+	rs := &Summary{
 		Revision: pr.Revision,
 		Total:    len(pr.List),
 		Queue:    len(pr.UpdateQueue),

@@ -25,7 +25,7 @@ type Repo interface {
 	UpdateWorker()
 	ProcessUpdate(slug string) error
 
-	Summary() *RepoSummary
+	Summary() *Summary
 }
 
 // New returns a new Repo
@@ -50,8 +50,8 @@ func New(t string, c *config.Config) Repo {
 	return repo
 }
 
-// RepoSummary ...
-type RepoSummary struct {
+// Summary ...
+type Summary struct {
 	Revision int `json:"revision"`
 	Total    int `json:"total"`
 	Closed   int `json:"closed"`

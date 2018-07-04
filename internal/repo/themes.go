@@ -16,8 +16,8 @@ import (
 	"github.com/wpdirectory/wpdir/internal/db"
 	"github.com/wpdirectory/wpdir/internal/index"
 	"github.com/wpdirectory/wpdir/internal/searcher"
-	"github.com/wpdirectory/wpdir/internal/svn"
 	"github.com/wpdirectory/wpdir/internal/theme"
+	"github.com/wpdirectory/wporg"
 )
 
 const (
@@ -32,6 +32,7 @@ type ThemeRepo struct {
 	Revision    int
 	Updated     time.Time
 	UpdateQueue chan string
+	api         *wporg.Client
 	sync.RWMutex
 }
 
@@ -162,6 +163,7 @@ func (tr *ThemeRepo) ProcessUpdate(slug string) error {
 	err := t.LoadAPIData()
 	if err != nil {
 		t.Status = 1
+		t.SetIndexed(false)
 		return err
 	}
 	t.Status = 0
@@ -182,19 +184,18 @@ func (tr *ThemeRepo) ProcessUpdate(slug string) error {
 
 // UpdateList updates our list of themes.
 func (tr *ThemeRepo) UpdateList() error {
-	// Fetch list from SVN
-	// https://themes.svn.wordpress.org/
-	list, err := svn.GetList("themes", "")
+	// Fetch list from WPOrg API
+	list, err := tr.api.GetList("themes")
 	if err != nil {
 		return err
 	}
 
-	for _, item := range list {
-		if !utf8.Valid([]byte(item.Name)) {
+	for _, theme := range list {
+		if !utf8.Valid([]byte(theme)) {
 			return errors.New("Theme slug is not valid utf8")
 		}
-		if !tr.Exists(item.Name) {
-			tr.Add(item.Name)
+		if !tr.Exists(theme) {
+			tr.Add(theme)
 		}
 	}
 
@@ -298,11 +299,11 @@ func (tr *ThemeRepo) loadIndexes() {
 }
 
 // Summary ...
-func (tr *ThemeRepo) Summary() *RepoSummary {
+func (tr *ThemeRepo) Summary() *Summary {
 	tr.RLock()
 	defer tr.RUnlock()
 
-	rs := &RepoSummary{
+	rs := &Summary{
 		Revision: tr.Revision,
 		Total:    len(tr.List),
 		Queue:    len(tr.UpdateQueue),
