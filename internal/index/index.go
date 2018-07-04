@@ -410,6 +410,10 @@ func indexAllFiles(opt *IndexOptions, dst, src string) error {
 	ix := index.Create(filepath.Join(dst, "tri"))
 	defer ix.Close()
 
+	// Prevent output for normal activity
+	ix.LogSkip = false
+	ix.Verbose = false
+
 	excluded := []*ExcludedFile{}
 
 	// Make a file to store the excluded files for this repo
