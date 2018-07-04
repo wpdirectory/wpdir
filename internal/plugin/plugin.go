@@ -28,28 +28,55 @@ const (
 
 // Plugin ...
 type Plugin struct {
-	Slug                   string             `json:"slug"`
-	Name                   string             `json:"name,omitempty"`
-	Version                string             `json:"version,omitempty"`
-	Author                 string             `json:"author,omitempty"`
-	AuthorProfile          string             `json:"author_profile,omitempty"`
-	Rating                 int                `json:"rating,omitempty"`
-	NumRatings             int                `json:"num_ratings,omitempty"`
-	SupportThreads         int                `json:"support_threads,omitempty"`
-	SupportThreadsResolved int                `json:"support_threads_resolved,omitempty"`
-	ActiveInstalls         int                `json:"active_installs,omitempty"`
-	Downloaded             int                `json:"downloaded,omitempty"`
-	LastUpdated            string             `json:"last_updated,omitempty"`
-	Added                  string             `json:"added,omitempty"`
-	Homepage               string             `json:"homepage,omitempty"`
-	ShortDescription       string             `json:"short_description,omitempty"`
-	DownloadLink           string             `json:"download_link,omitempty"`
-	StableTag              string             `json:"stable_tag,omitempty"`
-	Status                 status             `json:"status"`
-	Searcher               *searcher.Searcher `json:"-"`
-	Stats                  *files.Stats       `json:"stats,omitempty"`
-	indexed                bool
+	Slug                   string     `json:"slug"`
+	Name                   string     `json:"name,omitempty"`
+	Version                string     `json:"version,omitempty"`
+	Author                 string     `json:"author,omitempty"`
+	AuthorProfile          string     `json:"author_profile,omitempty"`
+	Contributors           [][]string `json:"contributors,omitempty"`
+	Requires               string     `json:"requires,omitempty"`
+	Tested                 string     `json:"tested,omitempty"`
+	RequiresPHP            string     `json:"requires_php,omitempty"`
+	Rating                 int        `json:"rating,omitempty"`
+	Ratings                []Rating   `json:"ratings,omitempty"`
+	NumRatings             int        `json:"num_ratings,omitempty"`
+	SupportThreads         int        `json:"support_threads,omitempty"`
+	SupportThreadsResolved int        `json:"support_threads_resolved,omitempty"`
+	ActiveInstalls         int        `json:"active_installs,omitempty"`
+	Downloaded             int        `json:"downloaded,omitempty"`
+	LastUpdated            string     `json:"last_updated,omitempty"`
+	Added                  string     `json:"added,omitempty"`
+	Homepage               string     `json:"homepage,omitempty"`
+	Sections               struct {
+		Description string `json:"description,omitempty"`
+		Faq         string `json:"faq,omitempty"`
+		Changelog   string `json:"changelog,omitempty"`
+		Screenshots string `json:"screenshots,omitempty"`
+	} `json:"sections,omitempty"`
+	ShortDescription string             `json:"short_description,omitempty"`
+	DownloadLink     string             `json:"download_link,omitempty"`
+	Screenshots      []Screenshot       `json:"screenshots,omitempty"`
+	Tags             [][]string         `json:"tags,omitempty"`
+	StableTag        string             `json:"stable_tag,omitempty"`
+	Versions         [][]string         `json:"versions,omitempty"`
+	DonateLink       string             `json:"donate_link,omitempty"`
+	Status           status             `json:"status,omitempty"`
+	Searcher         *searcher.Searcher `json:"-"`
+	Stats            *files.Stats       `json:"stats,omitempty"`
+	indexed          bool
 	sync.RWMutex
+}
+
+// Rating contains information about ratings of a specific star level (0-5)
+type Rating struct {
+	Stars  string `json:"stars"`
+	Number int    `json:"number"`
+}
+
+// Screenshot contains the source and caption of a screenshot
+type Screenshot struct {
+	Src     string `json:"src"`
+	Caption string `json:"caption"`
 }
 
 type status int
@@ -59,27 +86,6 @@ const (
 	disabled
 	closed
 )
-
-// APIResponse ...
-type APIResponse struct {
-	Name                   string `json:"name"`
-	Slug                   string `json:"slug"`
-	Version                string `json:"version"`
-	Author                 string `json:"author"`
-	AuthorProfile          string `json:"author_profile"`
-	Rating                 int    `json:"rating"`
-	NumRatings             int    `json:"num_ratings"`
-	SupportThreads         int    `json:"support_threads"`
-	SupportThreadsResolved int    `json:"support_threads_resolved"`
-	ActiveInstalls         int    `json:"active_installs"`
-	Downloaded             int    `json:"downloaded"`
-	LastUpdated            string `json:"last_updated"`
-	Added                  string `json:"added"`
-	Homepage               string `json:"homepage"`
-	ShortDescription       string `json:"short_description"`
-	DownloadLink           string `json:"download_link"`
-	StableTag              string `json:"stable_tag"`
-}
 
 // New returns a new plugin struct.
 func New(slug string) *Plugin {
