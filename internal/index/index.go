@@ -17,6 +17,7 @@ import (
 
 	"github.com/wpdirectory/wpdir/internal/codesearch/index"
 	"github.com/wpdirectory/wpdir/internal/codesearch/regexp"
+	"github.com/wpdirectory/wpdir/internal/files"
 )
 
 const (
@@ -561,23 +562,24 @@ func Build(opt *IndexOptions, dst, src, slug, rev string) (*IndexRef, error) {
 }
 
 // BuildFromZip ...
-func BuildFromZip(opt *IndexOptions, archive []byte, dst, slug string) (*IndexRef, error) {
+func BuildFromZip(opt *IndexOptions, archive []byte, dst, slug string) (*IndexRef, *files.Stats, error) {
 
 	zr, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := os.Mkdir(dst, os.ModePerm); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := os.Mkdir(filepath.Join(dst, "raw"), os.ModePerm); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if err := indexAllZipFiles(opt, dst, zr.File); err != nil {
-		return nil, err
+	stats, err := indexAllZipFiles(opt, dst, zr.File)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	r := &IndexRef{
@@ -587,13 +589,13 @@ func BuildFromZip(opt *IndexOptions, archive []byte, dst, slug string) (*IndexRe
 	}
 
 	if err := r.writeManifest(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return r, nil
+	return r, stats, nil
 }
 
-func indexAllZipFiles(opt *IndexOptions, dst string, files []*zip.File) error {
+func indexAllZipFiles(opt *IndexOptions, dst string, zfiles []*zip.File) (*files.Stats, error) {
 	ix := index.Create(filepath.Join(dst, "tri"))
 	defer ix.Close()
 
@@ -602,7 +604,7 @@ func indexAllZipFiles(opt *IndexOptions, dst string, files []*zip.File) error {
 	// Make a file to store the excluded files for this repo
 	fileHandle, err := os.Create(filepath.Join(dst, "excluded_files.json"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer fileHandle.Close()
 
@@ -667,19 +669,22 @@ func indexAllZipFiles(opt *IndexOptions, dst string, files []*zip.File) error {
 		return nil
 	}
 
-	for _, file := range files {
+	stats := files.New()
+	for _, file := range zfiles {
 		if err = processFile(file.Name, file); err != nil {
-			return err
+			return nil, err
 		}
+		stats.AddFile(file)
 	}
+	stats.GenerateSummary()
 
 	if err := writeExcludedFilesJSON(filepath.Join(dst, excludedFileJSONFilename), excluded); err != nil {
-		return err
+		return nil, err
 	}
 
 	ix.Flush()
 
-	return nil
+	return stats, nil
 }
 
 func addZipFileToIndex(ix *index.IndexWriter, dst, src, path string, file *zip.File) (string, error) {
