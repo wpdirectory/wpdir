@@ -82,9 +82,10 @@ type Screenshot struct {
 type status int
 
 const (
-	open status = iota
-	disabled
-	closed
+	// Open shows we have files and API info stored
+	Open status = iota
+	// Closed shows we cannot get data
+	Closed
 )
 
 // New returns a new plugin struct.
@@ -92,8 +93,7 @@ func New(slug string) *Plugin {
 
 	return &Plugin{
 		Slug:   slug,
-		Status: closed,
-		//Searcher: &searcher.Searcher{},
+		Status: Closed,
 	}
 
 }
@@ -104,12 +104,12 @@ func (p *Plugin) GetStatus() string {
 	defer p.RUnlock()
 
 	switch p.Status {
-	case disabled:
-		return "Disabled"
-	case closed:
+	case Open:
+		return "Open"
+	case Closed:
 		return "Closed"
 	default:
-		return "Open"
+		return "Invalid Status"
 	}
 }
 
@@ -139,7 +139,7 @@ func (p *Plugin) LoadAPIData() error {
 
 	err = retry.Do(fetch, retry.Timeout(15*time.Second), retry.MaxTries(3), retry.Sleep(5*time.Second))
 	if err != nil || data == nil {
-		p.Status = closed
+		p.Status = Closed
 		return err
 	}
 
@@ -173,7 +173,7 @@ func (p *Plugin) Update() error {
 	}
 
 	if len(bytes) == 0 {
-		p.Status = closed
+		p.Status = Closed
 		return nil
 	}
 

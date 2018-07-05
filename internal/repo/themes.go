@@ -21,19 +21,22 @@ import (
 )
 
 const (
+	// TODO: Check if this is used like the Plugins Repo.
 	themeManagementUser = "theme-master"
 )
 
-// ThemeRepo ...
+// ThemeRepo holds data about the Themes SVN Repo.
 type ThemeRepo struct {
-	Config *config.Config
-	List   map[string]*theme.Theme
-
 	Revision    int
 	Updated     time.Time
 	UpdateQueue chan string
-	api         *wporg.Client
+
 	sync.RWMutex
+	List map[string]*theme.Theme
+
+	log *log.Logger
+	cfg *config.Config
+	api *wporg.Client
 }
 
 // Len returns the number of Themes
@@ -130,12 +133,12 @@ func (tr *ThemeRepo) UpdateIndex(idx *index.Index) error {
 	err := tr.List[slug].Searcher.SwapIndexes(idx)
 	if err != nil {
 		tr.List[slug].SetIndexed(false)
-		tr.List[slug].Status = 1
+		tr.List[slug].Status = theme.Closed
 		return err
 	}
 
 	tr.List[slug].SetIndexed(true)
-	tr.List[slug].Status = 0
+	tr.List[slug].Status = theme.Open
 
 	return nil
 }
@@ -151,7 +154,7 @@ func (tr *ThemeRepo) UpdateWorker() {
 		slug := <-tr.UpdateQueue
 		err := tr.ProcessUpdate(slug)
 		if err != nil {
-			log.Printf("Theme (%s) Update Failed: %s\n", slug, err)
+			tr.log.Printf("Theme (%s) Update Failed: %s\n", slug, err)
 			//tr.UpdateQueue <- slug
 		}
 	}
@@ -162,19 +165,18 @@ func (tr *ThemeRepo) ProcessUpdate(slug string) error {
 	t := tr.Get(slug).(*theme.Theme)
 	err := t.LoadAPIData()
 	if err != nil {
-		t.Status = 1
+		t.Status = theme.Closed
 		t.SetIndexed(false)
 		return err
 	}
-	t.Status = 0
 
 	err = t.Update()
 	if err != nil {
-		t.Status = 1
+		t.Status = theme.Closed
 		t.SetIndexed(false)
 		return err
 	}
-	t.Status = 0
+	t.Status = theme.Open
 	t.SetIndexed(true)
 
 	t.Save()
@@ -192,7 +194,7 @@ func (tr *ThemeRepo) UpdateList() error {
 
 	for _, theme := range list {
 		if !utf8.Valid([]byte(theme)) {
-			return errors.New("Theme slug is not valid utf8")
+			return errors.New("Theme slug is not valid UTF8")
 		}
 		if !tr.Exists(theme) {
 			tr.Add(theme)
@@ -202,30 +204,66 @@ func (tr *ThemeRepo) UpdateList() error {
 	return nil
 }
 
-// Worker ...
-func (tr *ThemeRepo) Worker() error {
-	updateAPIData := time.NewTicker(time.Hour * 24).C
+// StartWorkers starts up Goroutines to process updates
+// Every 15 mins Theme Repos check the changelog for updates
+// Every 24 hours all Themes refresh API data
+func (tr *ThemeRepo) StartWorkers() {
+	// Setup Tickers
+	checkChangelog := time.NewTicker(time.Minute * 15).C
+	checkAPI := time.NewTicker(time.Hour * 24).C
 
-	checkSVN := time.NewTicker(time.Minute * 15).C
-
-	for {
-		select {
-		case <-updateAPIData:
-			// Update Plugins API Data
-			log.Println("Update Themes API Data.")
-		case <-checkSVN:
-			// Check SVN for Plugin Updates
-			log.Println("Check SVN for Theme updates.")
+	go func(ticker <-chan time.Time) {
+		for {
+			select {
+			// Check Changlog
+			case <-ticker:
+				latest, err := tr.api.GetRevision("themes")
+				if err != nil {
+					tr.log.Printf("Failed getting Themes Repo revision: %s\n", err)
+				}
+				tr.RLock()
+				list, err := tr.api.GetChangeLog("themes", tr.Revision, latest)
+				if err != nil {
+					tr.RUnlock()
+					tr.log.Fatalf("Failed getting Themes Changelog: %s\n", err)
+				}
+				tr.RUnlock()
+				for _, slug := range list {
+					tr.QueueUpdate(slug)
+				}
+			}
 		}
-	}
+	}(checkChangelog)
+
+	go func(ticker <-chan time.Time) {
+		for {
+			select {
+			// Refresh API Data
+			case <-ticker:
+				themes, err := tr.api.GetList("themes")
+				if err != nil {
+					tr.log.Printf("Failed getting Themes list: %s\n", err)
+				}
+				for _, slug := range themes {
+					t := tr.Get(slug).(*theme.Theme)
+					t.RLock()
+					err := t.LoadAPIData()
+					if err != nil {
+						t.Status = theme.Closed
+						t.RUnlock()
+					}
+					t.Status = theme.Closed
+					t.RUnlock()
+				}
+			}
+		}
+	}(checkAPI)
 }
 
 // LoadExisting ...
 func (tr *ThemeRepo) LoadExisting() {
-
 	tr.loadDBData()
 	tr.loadIndexes()
-
 }
 
 // loadDBData loads all existing Theme data from the DB.
@@ -235,7 +273,7 @@ func (tr *ThemeRepo) loadDBData() {
 		return
 	}
 
-	log.Printf("Found %d Theme(s) in DB.\n", len(themes))
+	tr.log.Printf("Found %d Theme(s) in DB.\n", len(themes))
 
 	for slug, bytes := range themes {
 		var t theme.Theme
@@ -243,10 +281,10 @@ func (tr *ThemeRepo) loadDBData() {
 		if err != nil {
 			continue
 		}
-		t.Status = 1
+		t.Status = theme.Closed
 		t.Searcher = &searcher.Searcher{}
 		if t.Name == "" {
-			//pr.QueueUpdate(p.Slug)
+			tr.QueueUpdate(t.Slug)
 		}
 
 		tr.Set(slug, &t)
@@ -255,14 +293,14 @@ func (tr *ThemeRepo) loadDBData() {
 
 // loadIndexes reads all existing Indexes and attempts to match them to a Theme.
 func (tr *ThemeRepo) loadIndexes() {
-	indexDir := filepath.Join(tr.Config.WD, "data", "index", "themes")
+	indexDir := filepath.Join(tr.cfg.WD, "data", "index", "themes")
 
 	dirs, err := ioutil.ReadDir(indexDir)
 	if err != nil {
-		log.Printf("Failed to read Theme index dir: %s\n", err)
+		tr.log.Printf("Failed to read Theme index dir: %s\n", err)
 	}
 
-	log.Printf("Found %d existing Theme indexes.\n", len(dirs))
+	tr.log.Printf("Found %d existing Theme indexes.\n", len(dirs))
 
 	var loaded int
 
@@ -295,7 +333,7 @@ func (tr *ThemeRepo) loadIndexes() {
 		}
 		loaded++
 	}
-	log.Printf("Loaded %d Theme indexes", loaded)
+	tr.log.Printf("Loaded %d Theme indexes", loaded)
 }
 
 // Summary ...

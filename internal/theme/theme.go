@@ -83,9 +83,10 @@ type Screenshot struct {
 type status int
 
 const (
-	open status = iota
-	disabled
-	closed
+	// Open shows we have files and API info stored
+	Open status = iota
+	// Closed shows we cannot get data
+	Closed
 )
 
 // New returns a new plugin struct.
@@ -103,12 +104,12 @@ func (t *Theme) GetStatus() string {
 	defer t.RUnlock()
 
 	switch t.Status {
-	case disabled:
-		return "Disabled"
-	case closed:
+	case Open:
+		return "Open"
+	case Closed:
 		return "Closed"
 	default:
-		return "Open"
+		return "Invalid Status"
 	}
 }
 
@@ -138,7 +139,7 @@ func (t *Theme) LoadAPIData() error {
 
 	err = retry.Do(fetch, retry.Timeout(15*time.Second), retry.MaxTries(3), retry.Sleep(5*time.Second))
 	if err != nil || data == nil {
-		t.Status = closed
+		t.Status = Closed
 		return err
 	}
 
@@ -172,7 +173,7 @@ func (t *Theme) Update() error {
 	}
 
 	if len(bytes) == 0 {
-		t.Status = closed
+		t.Status = Closed
 		return errors.New("No zip file available, Theme is closed")
 	}
 

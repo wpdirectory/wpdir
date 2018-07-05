@@ -21,19 +21,24 @@ import (
 )
 
 const (
+	// This is the user which administrates the Plugins Repo
+	// Adds the initial folder structure for approved plugins
+	// TODO: We might be able to use this to avoid needless updates
 	pluginManagementUser = "plugin-master"
 )
 
-// PluginRepo ...
+// PluginRepo holds data about the Plugins SVN Repo.
 type PluginRepo struct {
-	Config *config.Config
-	List   map[string]*plugin.Plugin
-
 	Revision    int
 	Updated     time.Time
 	UpdateQueue chan string
-	api         *wporg.Client
+
 	sync.RWMutex
+	List map[string]*plugin.Plugin
+
+	log *log.Logger
+	cfg *config.Config
+	api *wporg.Client
 }
 
 // Len ...
@@ -127,12 +132,12 @@ func (pr *PluginRepo) UpdateIndex(idx *index.Index) error {
 	err := pr.List[slug].Searcher.SwapIndexes(idx)
 	if err != nil {
 		pr.List[slug].SetIndexed(false)
-		pr.List[slug].Status = 1
+		pr.List[slug].Status = plugin.Closed
 		return err
 	}
 
 	pr.List[slug].SetIndexed(true)
-	pr.List[slug].Status = 0
+	pr.List[slug].Status = plugin.Open
 
 	return nil
 }
@@ -148,7 +153,7 @@ func (pr *PluginRepo) UpdateWorker() {
 		slug := <-pr.UpdateQueue
 		err := pr.ProcessUpdate(slug)
 		if err != nil {
-			log.Printf("Plugin (%s) Update Failed: %s\n", slug, err)
+			pr.log.Printf("Plugin (%s) Update Failed: %s\n", slug, err)
 			//pr.UpdateQueue <- slug
 		}
 	}
@@ -157,20 +162,23 @@ func (pr *PluginRepo) UpdateWorker() {
 // ProcessUpdate ...
 func (pr *PluginRepo) ProcessUpdate(slug string) error {
 	p := pr.Get(slug).(*plugin.Plugin)
+	p.Lock()
 	err := p.LoadAPIData()
 	if err != nil {
-		p.Status = 1
+		p.Status = plugin.Closed
+		p.Unlock()
 		return err
 	}
-	p.Status = 0
 
 	err = p.Update()
 	if err != nil {
-		p.Status = 1
+		p.Status = plugin.Closed
+		p.Unlock()
 		p.SetIndexed(false)
 		return err
 	}
-	p.Status = 0
+	p.Status = plugin.Open
+	p.Unlock()
 	p.SetIndexed(true)
 
 	p.Save()
@@ -188,7 +196,7 @@ func (pr *PluginRepo) UpdateList() error {
 
 	for _, plugin := range list {
 		if !utf8.Valid([]byte(plugin)) {
-			return errors.New("Plugin slug is not valid utf8")
+			return errors.New("Plugin slug is not valid UTF8")
 		}
 		if !pr.Exists(plugin) {
 			pr.Add(plugin)
@@ -198,40 +206,76 @@ func (pr *PluginRepo) UpdateList() error {
 	return nil
 }
 
-// Worker ...
-func (pr *PluginRepo) Worker() error {
-	updateAPIData := time.NewTicker(time.Hour * 24).C
+// StartWorkers starts up Goroutines to process updates
+// Every 15 mins Plugin Repos check the changelog for updates
+// Every 24 hours all Plugins refresh API data
+func (pr *PluginRepo) StartWorkers() {
+	// Setup Tickers
+	checkChangelog := time.NewTicker(time.Minute * 15).C
+	checkAPI := time.NewTicker(time.Hour * 24).C
 
-	checkSVN := time.NewTicker(time.Minute * 15).C
-
-	for {
-		select {
-		case <-updateAPIData:
-			// Update Plugins API Data
-			log.Println("Update Plugins API Data.")
-		case <-checkSVN:
-			// Check SVN for Plugin Updates
-			log.Println("Check SVN for Plugin updates.")
+	go func(ticker <-chan time.Time) {
+		for {
+			select {
+			// Check Changlog
+			case <-ticker:
+				latest, err := pr.api.GetRevision("plugins")
+				if err != nil {
+					pr.log.Printf("Failed getting Plugins Repo revision: %s\n", err)
+				}
+				pr.RLock()
+				list, err := pr.api.GetChangeLog("plugins", pr.Revision, latest)
+				if err != nil {
+					pr.RUnlock()
+					pr.log.Fatalf("Failed getting Plugins Changelog: %s\n", err)
+				}
+				pr.RUnlock()
+				for _, slug := range list {
+					pr.QueueUpdate(slug)
+				}
+			}
 		}
-	}
+	}(checkChangelog)
+
+	go func(ticker <-chan time.Time) {
+		for {
+			select {
+			// Refresh API Data
+			case <-ticker:
+				plugins, err := pr.api.GetList("plugins")
+				if err != nil {
+					pr.log.Printf("Failed getting Plugins list: %s\n", err)
+				}
+				for _, slug := range plugins {
+					p := pr.Get(slug).(*plugin.Plugin)
+					p.RLock()
+					err := p.LoadAPIData()
+					if err != nil {
+						p.Status = plugin.Closed
+						p.RUnlock()
+					}
+					p.Status = plugin.Closed
+					p.RUnlock()
+				}
+			}
+		}
+	}(checkAPI)
 }
 
-// LoadExisting ...
+// LoadExisting loading data from DB and then Indexes
 func (pr *PluginRepo) LoadExisting() {
-
 	pr.loadDBData()
 	pr.loadIndexes()
-
 }
 
-// loadDBData loads all existing Plugin data from the DB.
+// loadDBData loads all existing Plugin data from the DB
 func (pr *PluginRepo) loadDBData() {
 	plugins, err := db.GetAllFromBucket("plugins")
 	if err != nil {
 		return
 	}
 
-	log.Printf("Found %d Plugin(s) in DB.\n", len(plugins))
+	pr.log.Printf("Found %d Plugin(s) in DB.\n", len(plugins))
 
 	for slug, bytes := range plugins {
 		var p plugin.Plugin
@@ -239,10 +283,10 @@ func (pr *PluginRepo) loadDBData() {
 		if err != nil {
 			continue
 		}
-		p.Status = 1
+		p.Status = plugin.Closed
 		p.Searcher = &searcher.Searcher{}
 		if p.Name == "" {
-			//pr.QueueUpdate(p.Slug)
+			pr.QueueUpdate(p.Slug)
 		}
 
 		pr.Set(slug, &p)
@@ -251,15 +295,15 @@ func (pr *PluginRepo) loadDBData() {
 
 // loadIndexes reads all existing Indexes and attempts to match them to a Plugin.
 func (pr *PluginRepo) loadIndexes() {
-	indexDir := filepath.Join(pr.Config.WD, "data", "index", "plugins")
+	indexDir := filepath.Join(pr.cfg.WD, "data", "index", "plugins")
 
 	dirs, err := ioutil.ReadDir(indexDir)
 	if err != nil {
-		log.Printf("Failed to read Plugin index dir: %s\n", err)
+		pr.log.Printf("Failed to read Plugin index dir: %s\n", err)
 		return
 	}
 
-	log.Printf("Found %d existing Plugin indexes.\n", len(dirs))
+	pr.log.Printf("Found %d existing Plugin indexes.\n", len(dirs))
 
 	var loaded int
 
@@ -292,7 +336,7 @@ func (pr *PluginRepo) loadIndexes() {
 		}
 		loaded++
 	}
-	log.Printf("Loaded %d Plugin indexes", loaded)
+	pr.log.Printf("Loaded %d Plugin indexes", loaded)
 }
 
 // Summary ...
