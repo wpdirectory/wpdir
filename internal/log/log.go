@@ -8,6 +8,6 @@ import (
 // New returns a new logger
 func New() *log.Logger {
 
-	return log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)
+	return log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
 }
