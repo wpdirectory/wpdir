@@ -57,6 +57,9 @@ func (s *Stats) AddFile(zf *zip.File) {
 
 // GenerateSummary creates a Summary using data from the Files field
 func (s *Stats) GenerateSummary() {
+	if len(s.Files) == 0 {
+		return
+	}
 	s.RLock()
 	defer s.RUnlock()
 	var php, js, css, total int64
@@ -75,6 +78,9 @@ func (s *Stats) GenerateSummary() {
 			total += file.Size
 			break
 		}
+	}
+	if total == 0 {
+		return
 	}
 	s.Summary = Summary{
 		PHP: uint8((php / total) * 100),
