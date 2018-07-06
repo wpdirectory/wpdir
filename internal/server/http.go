@@ -50,7 +50,7 @@ func (s *Server) startHTTP() {
 
 	s.routes()
 
-	srvHTTP := &http.Server{
+	s.http = &http.Server{
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
 		IdleTimeout:  10 * time.Second,
@@ -61,9 +61,9 @@ func (s *Server) startHTTP() {
 		}),
 		Addr: ":" + s.Config.Ports.HTTP,
 	}
-	go func() { log.Fatal(srvHTTP.ListenAndServe()) }()
+	go func() { log.Fatal(s.http.ListenAndServe()) }()
 
-	srvHTTPS := &http.Server{
+	s.https = &http.Server{
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
@@ -75,7 +75,7 @@ func (s *Server) startHTTP() {
 	cert := filepath.Join(s.Config.WD, "certs", "wpdirectory.net.crt")
 	key := filepath.Join(s.Config.WD, "certs", "wpdirectory.net.key")
 
-	log.Fatal(srvHTTPS.ListenAndServeTLS(cert, key))
+	go func() { log.Fatal(s.https.ListenAndServeTLS(cert, key)) }()
 
 }
 

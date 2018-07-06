@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"time"
 
 	"github.com/wpdirectory/wpdir/internal/config"
 	"github.com/wpdirectory/wpdir/internal/db"
@@ -40,8 +43,18 @@ func main() {
 	// Setup server struct to hold all App data
 	s := server.New(l, c)
 
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+
 	// Setup HTTP server.
 	s.Setup()
+
+	<-stop
+
+	l.Printf("Shutting down WPdir...\n")
+
+	ctx, _ := context.WithTimeout(context.Background(), 15*time.Second)
+	s.Shutdown(ctx)
 
 }
 

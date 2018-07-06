@@ -1,7 +1,9 @@
 package server
 
 import (
+	"context"
 	"log"
+	"net/http"
 
 	"github.com/go-chi/chi"
 	"github.com/wpdirectory/wpdir/internal/config"
@@ -16,14 +18,16 @@ type Server struct {
 	Plugins  repo.Repo
 	Themes   repo.Repo
 	Searches *SearchManager
+	http     *http.Server
+	https    *http.Server
 }
 
 // New returns a pointer to the main server struct
 func New(log *log.Logger, config *config.Config) *Server {
 
 	// Init Repos
-	pr := repo.New("plugins", config)
-	tr := repo.New("themes", config)
+	pr := repo.New("plugins", config, log)
+	tr := repo.New("themes", config, log)
 
 	// Load Existing from DB
 	pr.LoadExisting()
@@ -32,16 +36,12 @@ func New(log *log.Logger, config *config.Config) *Server {
 	// Initial List
 	err := pr.UpdateList()
 	if err != nil {
-		log.Fatalf("Could not get initial plugin list.")
+		log.Fatalf("Could not get initial plugin list")
 	}
 	err = tr.UpdateList()
 	if err != nil {
-		log.Fatalf("Could not get initial theme list.")
+		log.Fatalf("Could not get initial theme list")
 	}
-
-	// Start Workers
-	go pr.UpdateWorker()
-	go tr.UpdateWorker()
 
 	sm := &SearchManager{
 		Queue: make(chan string, 200),
@@ -64,6 +64,10 @@ func New(log *log.Logger, config *config.Config) *Server {
 		Themes:   tr.(*repo.ThemeRepo),
 		Searches: sm,
 	}
+
+	// Start Workers
+	go pr.UpdateWorker()
+	go tr.UpdateWorker()
 
 	// Start Worker to Process Searches
 	go s.SearchWorker()
@@ -88,7 +92,7 @@ func (s *Server) Close() {
 }
 
 // Shutdown will release resources and stop the server.
-func (s *Server) Shutdown() {
+func (s *Server) Shutdown(ctx context.Context) {
 	//s.DB.Close()
 	s.Logger.Println("Server Shutdown")
 }
