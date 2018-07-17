@@ -19,10 +19,10 @@ func (s *Server) getFilePath(repo, slug, file string) (string, error) {
 
 	switch repo {
 	case "plugins":
-		if !s.Plugins.Exists(slug) {
+		if !s.Manager.Plugins.Exists(slug) {
 			return "", errors.New("No matching plugin")
 		}
-		p := s.Plugins.Get(slug).(*plugin.Plugin)
+		p := s.Manager.Plugins.Get(slug).(*plugin.Plugin)
 		if !p.HasIndex() {
 			return "", errors.New("Plugin has no indexed files")
 		}
@@ -36,11 +36,11 @@ func (s *Server) getFilePath(repo, slug, file string) (string, error) {
 		return path, nil
 
 	case "themes":
-		if !s.Themes.Exists(slug) {
+		if !s.Manager.Themes.Exists(slug) {
 			return "", errors.New("No matching theme")
 		}
 
-		t := s.Themes.Get(slug).(*theme.Theme)
+		t := s.Manager.Themes.Get(slug).(*theme.Theme)
 		if !t.HasIndex() {
 			return "", errors.New("Theme has no indexed files")
 		}

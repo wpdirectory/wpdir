@@ -109,6 +109,8 @@ func (s *Server) apiRoutes() chi.Router {
 	r.Get("/searches/{limit}", s.getSearches())
 	r.Get("/search/matches/{id}/{slug}", s.getSearchMatches())
 
+	r.Get("/search/summary/{id}", s.getSearchSummary())
+
 	r.Post("/file", s.getMatchFile())
 
 	r.Get("/repo/{name}", s.getRepo())

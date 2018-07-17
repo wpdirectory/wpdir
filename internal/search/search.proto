@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package search;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.gostring_all) = false;
+option (gogoproto.equal_all) = false;
+option (gogoproto.verbose_equal_all) = false;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.goproto_getters_all) = false;
+option (gogoproto.testgen_all) = true;
+//option (gogoproto.benchgen_all) = true;
+
+message Search {
+    string id = 1 [(gogoproto.customname) = "ID"];
+    string input = 2;
+    string repo = 3;
+    string started = 4;
+    string completed = 5;
+    uint32 progress = 6;
+    bool private = 7;
+    enum Status {
+        Queued = 0;
+        Started = 1;
+        Completed = 2;
+    }
+    Status status = 8;
+    Options options = 9;
+    uint32 matches = 10 [(gogoproto.jsontag) = "matches"];
+}
+
+message Options {
+    bool ignore_case = 1;
+    uint32 lines_of_context = 2;
+    string file_regexp = 3;
+    bool ignore_comments = 4;
+    uint32 offset = 5;
+    uint32 limit = 6;
+}
+
+message Summary {
+    uint64 total = 1;
+    map<string, Result> list = 2;
+}
+
+message Result {
+    string slug = 1;
+    string name = 2;
+    string version = 3;
+    string homepage = 4;
+    uint32 active_installs = 5 [(gogoproto.jsontag) = "active_installs"];
+    uint32 matches = 6 [(gogoproto.jsontag) = "matches"];
+}
+
+message Matches {
+    repeated Match list = 1;
+}
+
+message Match {
+    string slug = 1;
+    string file = 2;
+    uint32 line_num = 3;
+    string line_text = 4;
+}

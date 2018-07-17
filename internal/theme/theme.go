@@ -93,7 +93,9 @@ const (
 func New(slug string) *Theme {
 
 	return &Theme{
-		Slug: slug,
+		Slug:    slug,
+		Status:  Closed,
+		indexed: false,
 	}
 
 }
@@ -233,7 +235,6 @@ func (t *Theme) getArchive() ([]byte, error) {
 	defer utils.CheckClose(resp.Body, &err)
 
 	if resp.StatusCode != 200 {
-
 		// Code 404 is acceptable, it means the plugin/theme is no longer available.
 		if resp.StatusCode == 404 {
 			return content, nil
@@ -242,7 +243,6 @@ func (t *Theme) getArchive() ([]byte, error) {
 		log.Printf("Downloading the extension '%s' failed. Response code: %d\n", t.Name, resp.StatusCode)
 
 		return content, err
-
 	}
 
 	content, err = ioutil.ReadAll(resp.Body)

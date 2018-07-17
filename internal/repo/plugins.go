@@ -42,8 +42,8 @@ type PluginRepo struct {
 }
 
 // Len ...
-func (pr *PluginRepo) Len() int {
-	return len(pr.List)
+func (pr *PluginRepo) Len() uint64 {
+	return uint64(len(pr.List))
 }
 
 // Rev ...
@@ -61,8 +61,9 @@ func (pr *PluginRepo) save() error {
 }
 
 func (pr *PluginRepo) load() error {
-	pr.Lock()
-	defer pr.Unlock()
+	//pr.Lock()
+	//defer pr.Unlock()
+
 	bytes, err := db.GetFromBucket("plugins", "repos")
 	if err != nil {
 		return err
@@ -96,11 +97,11 @@ func (pr *PluginRepo) Get(slug string) Extension {
 // Add ...
 func (pr *PluginRepo) Add(slug string) {
 	pr.Lock()
-	defer pr.Unlock()
 	pr.List[slug] = &plugin.Plugin{
-		Slug: slug,
+		Slug:   slug,
+		Status: plugin.Closed,
 	}
-	pr.QueueUpdate(slug)
+	pr.Unlock()
 }
 
 // Set ...
@@ -162,23 +163,20 @@ func (pr *PluginRepo) UpdateWorker() {
 // ProcessUpdate ...
 func (pr *PluginRepo) ProcessUpdate(slug string) error {
 	p := pr.Get(slug).(*plugin.Plugin)
-	p.Lock()
 	err := p.LoadAPIData()
 	if err != nil {
 		p.Status = plugin.Closed
-		p.Unlock()
+
 		return err
 	}
 
 	err = p.Update()
 	if err != nil {
 		p.Status = plugin.Closed
-		p.Unlock()
 		p.SetIndexed(false)
 		return err
 	}
 	p.Status = plugin.Open
-	p.Unlock()
 	p.SetIndexed(true)
 
 	p.Save()
@@ -193,6 +191,7 @@ func (pr *PluginRepo) UpdateList() error {
 	if err != nil {
 		return err
 	}
+	pr.log.Printf("Found %d Plugins\n", len(list))
 
 	for _, plugin := range list {
 		if !utf8.Valid([]byte(plugin)) {
@@ -224,15 +223,16 @@ func (pr *PluginRepo) StartWorkers() {
 					pr.log.Printf("Failed getting Plugins Repo revision: %s\n", err)
 				}
 				pr.RLock()
+				defer pr.RUnlock()
 				list, err := pr.api.GetChangeLog("plugins", pr.Revision, latest)
 				if err != nil {
-					pr.RUnlock()
-					pr.log.Fatalf("Failed getting Plugins Changelog: %s\n", err)
+					pr.log.Printf("Failed getting Plugins Changelog: %s\n", err)
 				}
-				pr.RUnlock()
 				for _, slug := range list {
 					pr.QueueUpdate(slug)
 				}
+				err = pr.save()
+				pr.log.Printf("Failed saving Plugins Repo: %s\n", err)
 			}
 		}
 	}(checkChangelog)
@@ -249,13 +249,12 @@ func (pr *PluginRepo) StartWorkers() {
 				for _, slug := range plugins {
 					p := pr.Get(slug).(*plugin.Plugin)
 					p.RLock()
+					defer p.RUnlock()
 					err := p.LoadAPIData()
 					if err != nil {
 						p.Status = plugin.Closed
-						p.RUnlock()
 					}
 					p.Status = plugin.Closed
-					p.RUnlock()
 				}
 			}
 		}
@@ -275,7 +274,7 @@ func (pr *PluginRepo) loadDBData() {
 		return
 	}
 
-	pr.log.Printf("Found %d Plugin(s) in DB.\n", len(plugins))
+	pr.log.Printf("Found %d Plugin(s) in DB\n", len(plugins))
 
 	for slug, bytes := range plugins {
 		var p plugin.Plugin
@@ -285,9 +284,6 @@ func (pr *PluginRepo) loadDBData() {
 		}
 		p.Status = plugin.Closed
 		p.Searcher = &searcher.Searcher{}
-		if p.Name == "" {
-			pr.QueueUpdate(p.Slug)
-		}
 
 		pr.Set(slug, &p)
 	}
@@ -303,7 +299,7 @@ func (pr *PluginRepo) loadIndexes() {
 		return
 	}
 
-	pr.log.Printf("Found %d existing Plugin indexes.\n", len(dirs))
+	pr.log.Printf("Found %d existing Plugin indexes\n", len(dirs))
 
 	var loaded int
 

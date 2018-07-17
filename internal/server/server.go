@@ -8,18 +8,17 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/wpdirectory/wpdir/internal/config"
 	"github.com/wpdirectory/wpdir/internal/repo"
+	"github.com/wpdirectory/wpdir/internal/search"
 )
 
 // Server holds all the data the App needs
 type Server struct {
-	Logger   *log.Logger
-	Config   *config.Config
-	Router   *chi.Mux
-	Plugins  repo.Repo
-	Themes   repo.Repo
-	Searches *SearchManager
-	http     *http.Server
-	https    *http.Server
+	Logger  *log.Logger
+	Config  *config.Config
+	Router  *chi.Mux
+	Manager *search.Manager
+	http    *http.Server
+	https   *http.Server
 }
 
 // New returns a pointer to the main server struct
@@ -43,26 +42,18 @@ func New(log *log.Logger, config *config.Config) *Server {
 		log.Fatalf("Could not get initial theme list")
 	}
 
-	sm := &SearchManager{
-		Queue: make(chan string, 200),
-		List:  make(map[string]*Search),
-	}
+	sm := search.NewManager()
+	sm.Plugins = pr.(*repo.PluginRepo)
+	sm.Themes = tr.(*repo.ThemeRepo)
 
 	// Debug Delete Searches
 	// Need to reset after break code changes
-	//del := sm.Empty()
-	//log.Printf("Deleted %d searches.", del)
-
-	// Load Existing Searches
-	count := sm.Load()
-	log.Printf("Loaded %d searches.", count)
+	//sm.Empty()
 
 	s := &Server{
-		Config:   config,
-		Logger:   log,
-		Plugins:  pr.(*repo.PluginRepo),
-		Themes:   tr.(*repo.ThemeRepo),
-		Searches: sm,
+		Config:  config,
+		Logger:  log,
+		Manager: sm,
 	}
 
 	// Start Workers
@@ -70,7 +61,7 @@ func New(log *log.Logger, config *config.Config) *Server {
 	go tr.UpdateWorker()
 
 	// Start Worker to Process Searches
-	go s.SearchWorker()
+	go sm.Worker()
 
 	return s
 }

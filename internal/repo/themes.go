@@ -40,8 +40,8 @@ type ThemeRepo struct {
 }
 
 // Len returns the number of Themes
-func (tr *ThemeRepo) Len() int {
-	return len(tr.List)
+func (tr *ThemeRepo) Len() uint64 {
+	return uint64(len(tr.List))
 }
 
 // Rev returns the current Revision
@@ -59,8 +59,9 @@ func (tr *ThemeRepo) save() error {
 }
 
 func (tr *ThemeRepo) load() error {
-	tr.Lock()
-	defer tr.Unlock()
+	//tr.Lock()
+	//defer tr.Unlock()
+
 	bytes, err := db.GetFromBucket("themes", "repos")
 	if err != nil {
 		return err
@@ -95,10 +96,10 @@ func (tr *ThemeRepo) Get(slug string) Extension {
 func (tr *ThemeRepo) Add(slug string) {
 	tr.Lock()
 	tr.List[slug] = &theme.Theme{
-		Slug: slug,
+		Slug:   slug,
+		Status: theme.Closed,
 	}
 	tr.Unlock()
-	//tr.QueueUpdate(slug)
 }
 
 // Set ...
@@ -122,9 +123,6 @@ func (tr *ThemeRepo) UpdateIndex(idx *index.Index) error {
 		// bad index, perhaps delete?
 		return errors.New("Index contains empty slug")
 	}
-
-	tr.Lock()
-	defer tr.Unlock()
 
 	if !tr.Exists(slug) {
 		return errors.New("Index does not match an existing theme")
@@ -191,6 +189,7 @@ func (tr *ThemeRepo) UpdateList() error {
 	if err != nil {
 		return err
 	}
+	tr.log.Printf("Found %d Themes\n", len(list))
 
 	for _, theme := range list {
 		if !utf8.Valid([]byte(theme)) {
@@ -222,15 +221,16 @@ func (tr *ThemeRepo) StartWorkers() {
 					tr.log.Printf("Failed getting Themes Repo revision: %s\n", err)
 				}
 				tr.RLock()
+				defer tr.RUnlock()
 				list, err := tr.api.GetChangeLog("themes", tr.Revision, latest)
 				if err != nil {
-					tr.RUnlock()
-					tr.log.Fatalf("Failed getting Themes Changelog: %s\n", err)
+					tr.log.Printf("Failed getting Themes Changelog: %s\n", err)
 				}
-				tr.RUnlock()
 				for _, slug := range list {
 					tr.QueueUpdate(slug)
 				}
+				err = tr.save()
+				tr.log.Printf("Failed saving Themes Repo: %s\n", err)
 			}
 		}
 	}(checkChangelog)
@@ -246,14 +246,13 @@ func (tr *ThemeRepo) StartWorkers() {
 				}
 				for _, slug := range themes {
 					t := tr.Get(slug).(*theme.Theme)
-					t.RLock()
+					t.Lock()
+					defer t.Unlock()
 					err := t.LoadAPIData()
 					if err != nil {
 						t.Status = theme.Closed
-						t.RUnlock()
 					}
 					t.Status = theme.Closed
-					t.RUnlock()
 				}
 			}
 		}
@@ -273,7 +272,7 @@ func (tr *ThemeRepo) loadDBData() {
 		return
 	}
 
-	tr.log.Printf("Found %d Theme(s) in DB.\n", len(themes))
+	tr.log.Printf("Found %d Theme(s) in DB\n", len(themes))
 
 	for slug, bytes := range themes {
 		var t theme.Theme
@@ -283,9 +282,6 @@ func (tr *ThemeRepo) loadDBData() {
 		}
 		t.Status = theme.Closed
 		t.Searcher = &searcher.Searcher{}
-		if t.Name == "" {
-			tr.QueueUpdate(t.Slug)
-		}
 
 		tr.Set(slug, &t)
 	}
@@ -298,9 +294,10 @@ func (tr *ThemeRepo) loadIndexes() {
 	dirs, err := ioutil.ReadDir(indexDir)
 	if err != nil {
 		tr.log.Printf("Failed to read Theme index dir: %s\n", err)
+		return
 	}
 
-	tr.log.Printf("Found %d existing Theme indexes.\n", len(dirs))
+	tr.log.Printf("Found %d existing Theme indexes\n", len(dirs))
 
 	var loaded int
 

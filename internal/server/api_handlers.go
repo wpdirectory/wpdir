@@ -11,8 +11,10 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/wpdirectory/wpdir/internal/db"
 	"github.com/wpdirectory/wpdir/internal/plugin"
 	"github.com/wpdirectory/wpdir/internal/repo"
+	"github.com/wpdirectory/wpdir/internal/search"
 	"github.com/wpdirectory/wpdir/internal/theme"
 )
 
@@ -24,25 +26,22 @@ type errResponse struct {
 // getSearches ...
 func (s *Server) getSearches() http.HandlerFunc {
 	type searchOverview struct {
-		ID        string    `json:"id"`
-		Input     string    `json:"input"`
-		Repo      string    `json:"repo"`
-		Matches   int       `json:"matches"`
-		Started   time.Time `json:"started,omitempty"`
-		Completed time.Time `json:"completed,omitempty"`
-		Progress  int       `json:"progress"`
-		Total     int       `json:"total"`
-		Status    status    `json:"status"`
+		ID        string               `json:"id"`
+		Input     string               `json:"input"`
+		Repo      string               `json:"repo"`
+		Matches   int                  `json:"matches"`
+		Started   time.Time            `json:"started,omitempty"`
+		Completed time.Time            `json:"completed,omitempty"`
+		Progress  uint32               `json:"progress"`
+		Status    search.Search_Status `json:"status"`
 	}
 
 	type getSearchesResponse struct {
-		Searches []*searchOverview `json:"searches,omitempty"`
+		Searches []search.Search `json:"searches,omitempty"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		var resp getSearchesResponse
-		s.Searches.Lock()
-		defer s.Searches.Unlock()
 
 		searchLimit := chi.URLParam(r, "limit")
 		limit, err := strconv.Atoi(searchLimit)
@@ -53,31 +52,19 @@ func (s *Server) getSearches() http.HandlerFunc {
 			return
 		}
 
-		i := 1
-		for _, srch := range s.Searches.List {
-			srch.Lock()
-			// Skip Private Searches
-			if srch.Private == true {
-				srch.Unlock()
+		list := db.GetLatestPublicSearchList(limit)
+
+		for _, id := range list {
+			var srch search.Search
+			bytes, err := db.GetSearch(id)
+			if err != nil {
 				continue
 			}
-			so := &searchOverview{
-				ID:        srch.ID,
-				Input:     srch.Input,
-				Repo:      srch.Repo,
-				Matches:   srch.Matches.Total,
-				Started:   srch.Started,
-				Completed: srch.Completed,
-				Progress:  srch.Progress,
-				Total:     srch.Total,
-				Status:    srch.Status,
+			err = srch.Unmarshal(bytes)
+			if err != nil {
+				continue
 			}
-			resp.Searches = append(resp.Searches, so)
-			if i++; i == limit {
-				srch.Unlock()
-				break
-			}
-			srch.Unlock()
+			resp.Searches = append(resp.Searches, srch)
 		}
 
 		writeResp(w, resp)
@@ -86,81 +73,86 @@ func (s *Server) getSearches() http.HandlerFunc {
 
 // getSearch ...
 func (s *Server) getSearch() http.HandlerFunc {
-	type summaryResponse struct {
-		List  []*Item `json:"list"`
-		Total int     `json:"total"`
-	}
 	type getSearchResponse struct {
-		ID        string          `json:"id"`
-		Input     string          `json:"input"`
-		Repo      string          `json:"repo"`
-		Matches   int             `json:"matches"`
-		Started   time.Time       `json:"started,omitempty"`
-		Completed time.Time       `json:"completed,omitempty"`
-		Progress  int             `json:"progress"`
-		Total     int             `json:"total"`
-		Status    status          `json:"status"`
-		Summary   summaryResponse `json:"summary"`
-		Opts      Options         `json:"options"`
+		ID        string               `json:"id"`
+		Input     string               `json:"input"`
+		Repo      string               `json:"repo"`
+		Matches   int                  `json:"matches"`
+		Started   string               `json:"started,omitempty"`
+		Completed string               `json:"completed,omitempty"`
+		Progress  uint32               `json:"progress"`
+		Status    search.Search_Status `json:"status"`
+		Opts      search.Options       `json:"options"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		if searchID := chi.URLParam(r, "id"); searchID != "" {
+			if s.Manager.Exists(searchID) {
+				srch := s.Manager.Get(searchID)
+				writeResp(w, srch)
+				return
+			}
 
-			var resp getSearchResponse
-			s.Searches.Lock()
-			defer s.Searches.Unlock()
-			srch, ok := s.Searches.List[searchID]
-			if !ok {
+			bytes, err := db.GetSearch(searchID)
+			if err != nil || bytes == nil {
 				var resp errResponse
-				resp.Err = fmt.Sprintf("Search %s not found.", searchID)
+				resp.Err = fmt.Sprintf("Search %s not found", searchID)
 				writeResp(w, resp)
 				return
 			}
-			srch.Lock()
-			defer srch.Unlock()
-			resp.ID = srch.ID
-			resp.Input = srch.Input
-			resp.Repo = srch.Repo
 
-			srch.Matches.Lock()
-			resp.Matches = srch.Matches.Total
-			srch.Matches.Unlock()
-			if !srch.Started.IsZero() {
-				resp.Started = srch.Started
+			var srch search.Search
+
+			err = srch.Unmarshal(bytes)
+			if err != nil {
+				var resp errResponse
+				resp.Err = fmt.Sprintf("Could not Unmarshal Search data for: %s\n", searchID)
+				writeResp(w, resp)
+				return
 			}
-			// If the search is complete add extra data
-			if !srch.Completed.IsZero() {
-				resp.Completed = srch.Completed
-				srch.Summary.Lock()
-				resp.Summary = summaryResponse{
-					Total: srch.Summary.Total,
-				}
-				// For each plugin with matches, add extra data
-				for _, v := range srch.Summary.List {
-					item := &Item{Slug: v.Slug}
-					p := s.Plugins.Get(v.Slug).(*plugin.Plugin)
-					p.Lock()
-					item.Name = p.Name
-					item.Version = p.Version
-					item.Homepage = p.Homepage
-					if item.ActiveInstalls = p.ActiveInstalls; item.ActiveInstalls == 0 {
-						item.ActiveInstalls = 0
-					}
-					item.Matches = v.Matches
-					p.Unlock()
-					resp.Summary.List = append(resp.Summary.List, item)
-				}
-				srch.Summary.Unlock()
+
+			writeResp(w, srch)
+		} else {
+			var resp errResponse
+			resp.Err = "You must specify a valid Search ID."
+			writeResp(w, resp)
+		}
+	}
+}
+
+// getSearchSummary ...
+func (s *Server) getSearchSummary() http.HandlerFunc {
+	type getSearchSummaryResponse struct {
+		Results []*search.Result `json:"results"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		searchID := chi.URLParam(r, "id")
+
+		if searchID != "" {
+			var resp getSearchSummaryResponse
+			bytes, err := db.GetSummary(searchID)
+			if err != nil || bytes == nil {
+				var resp errResponse
+				resp.Err = fmt.Sprintf("Summary not found for Search %s\n", searchID)
+				writeResp(w, resp)
+				return
 			}
-			resp.Progress = srch.Progress
-			resp.Total = srch.Total
-			resp.Status = srch.Status
-			resp.Opts = srch.Opts
+
+			var summary search.Summary
+
+			err = summary.Unmarshal(bytes)
+			if err != nil {
+				var resp errResponse
+				resp.Err = fmt.Sprintf("Could not Unmarshal Summary data for Search %s\n", searchID)
+				writeResp(w, resp)
+				return
+			}
+
+			for _, result := range summary.List {
+				resp.Results = append(resp.Results, result)
+			}
 
 			writeResp(w, resp)
-
 		} else {
 			var resp errResponse
 			resp.Err = "You must specify a valid Search ID."
@@ -171,44 +163,30 @@ func (s *Server) getSearch() http.HandlerFunc {
 
 // getSearchMatches ...
 func (s *Server) getSearchMatches() http.HandlerFunc {
-	type getMatchesResponse struct {
-		List  []*Match `json:"matches"`
-		Total int      `json:"total"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		searchID := chi.URLParam(r, "id")
-		itemSlug := chi.URLParam(r, "slug")
+		slug := chi.URLParam(r, "slug")
 
-		if searchID != "" && itemSlug != "" {
-
-			var resp getMatchesResponse
-			s.Searches.Lock()
-			defer s.Searches.Unlock()
-
-			srch, ok := s.Searches.List[searchID]
-			if !ok {
+		if searchID != "" && slug != "" {
+			bytes, err := db.GetMatches(searchID, slug)
+			if err != nil || bytes == nil {
 				var resp errResponse
-				resp.Err = fmt.Sprintf("Search (%s) not found.", searchID)
+				resp.Err = fmt.Sprintf("Matches not found for Search %s and Slug %s\n", searchID, slug)
 				writeResp(w, resp)
 				return
 			}
 
-			srch.Matches.Lock()
-			defer srch.Matches.Unlock()
-			matches, ok := srch.Matches.List[itemSlug]
-			if !ok {
+			var matches search.Matches
+
+			err = matches.Unmarshal(bytes)
+			if err != nil {
 				var resp errResponse
-				resp.Err = fmt.Sprintf("Item (%s) has no matches for search (%s).", itemSlug, searchID)
+				resp.Err = fmt.Sprintf("Could not Unmarshal Matches data for Search %s and Slug %s\n", searchID, slug)
 				writeResp(w, resp)
 				return
 			}
 
-			resp.List = matches
-			resp.Total = len(matches)
-
-			writeResp(w, resp)
+			writeResp(w, matches)
 		} else {
 			var resp errResponse
 			resp.Err = "You must specify a valid Search ID and Item Slug."
@@ -327,13 +305,13 @@ func (s *Server) createSearch() http.HandlerFunc {
 			return
 		}
 
-		var sr SearchRequest
+		var sr search.Request
 		sr.Input = data.Input
 		sr.Repo = data.Target
 		sr.Private = data.Private
 
 		// Perform non-blocking Search...
-		id := s.Searches.NewSearch(sr)
+		id := s.Manager.NewSearch(sr)
 
 		resp.ID = id
 		writeResp(w, resp)
@@ -358,14 +336,14 @@ func (s *Server) getRepo() http.HandlerFunc {
 			switch repoName {
 			case "plugins":
 				resp.Name = repoName
-				resp.Total = s.Plugins.Len()
-				resp.PendingUpdates = len(s.Plugins.(*repo.PluginRepo).UpdateQueue)
-				resp.CurrentRevision = s.Plugins.Rev()
+				resp.Total = int(s.Manager.Plugins.Len())
+				resp.PendingUpdates = len(s.Manager.Plugins.UpdateQueue)
+				resp.CurrentRevision = s.Manager.Plugins.Rev()
 			case "themes":
 				resp.Name = repoName
-				resp.Total = s.Themes.Len()
-				resp.PendingUpdates = len(s.Themes.(*repo.ThemeRepo).UpdateQueue)
-				resp.CurrentRevision = s.Themes.Rev()
+				resp.Total = int(s.Manager.Themes.Len())
+				resp.PendingUpdates = len(s.Manager.Themes.UpdateQueue)
+				resp.CurrentRevision = s.Manager.Themes.Rev()
 			default:
 				resp.Err = "Repository Not Found."
 			}
@@ -380,15 +358,15 @@ func (s *Server) getRepo() http.HandlerFunc {
 // getRepoOverview ...
 func (s *Server) getRepoOverview() http.HandlerFunc {
 	type getRepoOverviewResponse struct {
-		Plugins *repo.RepoSummary `json:"plugins,omitempty"`
-		Themes  *repo.RepoSummary `json:"themes,omitempty"`
+		Plugins *repo.Summary `json:"plugins,omitempty"`
+		Themes  *repo.Summary `json:"themes,omitempty"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		var resp getRepoOverviewResponse
 
-		resp.Plugins = s.Plugins.Summary()
-		resp.Themes = s.Themes.Summary()
+		resp.Plugins = s.Manager.Plugins.Summary()
+		resp.Themes = s.Manager.Themes.Summary()
 
 		writeResp(w, resp)
 	}
@@ -422,7 +400,7 @@ func (s *Server) getPlugin() http.HandlerFunc {
 		var resp getPluginResponse
 
 		if slug := chi.URLParam(r, "slug"); slug != "" {
-			p := s.Plugins.Get(slug).(*plugin.Plugin)
+			p := s.Manager.Plugins.Get(slug).(*plugin.Plugin)
 			resp.Slug = p.Slug
 			resp.Name = p.Name
 			resp.Version = p.Version
@@ -461,7 +439,7 @@ func (s *Server) getTheme() http.HandlerFunc {
 		var resp getThemeResponse
 
 		if slug := chi.URLParam(r, "slug"); slug != "" {
-			t := s.Themes.Get(slug).(*theme.Theme)
+			t := s.Manager.Themes.Get(slug).(*theme.Theme)
 			resp.Slug = t.Slug
 			resp.Name = t.Name
 			resp.Version = t.Version

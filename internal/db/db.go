@@ -13,9 +13,14 @@ var (
 	db      *bolt.DB
 	buckets = []string{
 		"repos",
-		"searches",
 		"plugins",
 		"themes",
+		"searches",
+	}
+	searchBuckets = []string{
+		"search_data",
+		"all_dates",
+		"public_dates",
 	}
 )
 
@@ -30,7 +35,6 @@ func Close() {
 
 // Setup opens a new bolt db and ensures default buckets exist.
 func Setup(dir string) {
-
 	path := filepath.Join(dir, "data", "db", "wpdir.db")
 	options := &bolt.Options{
 		Timeout: 1 * time.Second,
@@ -44,20 +48,25 @@ func Setup(dir string) {
 
 	// Ensure main Buckets exist
 	err = db.Update(func(tx *bolt.Tx) error {
-
 		for _, name := range buckets {
-			_, err := tx.CreateBucketIfNotExists([]byte(name))
+			b, err := tx.CreateBucketIfNotExists([]byte(name))
 			if err != nil {
 				return err
 			}
+			if name == "searches" {
+				for _, name := range searchBuckets {
+					_, err := b.CreateBucketIfNotExists([]byte(name))
+					if err != nil {
+						return err
+					}
+				}
+			}
 		}
-
 		return nil
 	})
 	if err != nil {
 		log.Fatalln("Cannot create default buckets: ", err)
 	}
-
 }
 
 // PutToBucket adds an iem to bucket
@@ -73,7 +82,7 @@ func PutToBucket(key string, content []byte, bucket string) error {
 func GetFromBucket(key string, bucket string) ([]byte, error) {
 	var data []byte
 	var err error
-	err = db.Update(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		data = b.Get([]byte(key))
 		return nil
@@ -107,4 +116,176 @@ func GetAllFromBucket(bucket string) (map[string][]byte, error) {
 	})
 
 	return items, err
+}
+
+// GetLatestFromBucket ...
+func GetLatestFromBucket(bucket string, limit int) []string {
+	var list []string
+	db.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte(bucket)).Cursor()
+		i := 0
+		for k, v := c.Last(); k != nil; k, v = c.Prev() {
+			list = append(list, string(v))
+			i++
+			if i == limit {
+				break
+			}
+		}
+		return nil
+	})
+	return list
+}
+
+// GetLatestPublicSearchList ...
+func GetLatestPublicSearchList(limit int) []string {
+	var list []string
+	db.View(func(tx *bolt.Tx) error {
+		s := tx.Bucket([]byte("searches"))
+		// Get Relevant Internal Buckets
+		dates := s.Bucket([]byte("public_dates")).Cursor()
+		i := 0
+		for k, v := dates.Last(); k != nil; k, v = dates.Prev() {
+			list = append(list, string(v))
+			i++
+			if i == limit {
+				break
+			}
+		}
+		return nil
+	})
+	return list
+}
+
+// DeleteSearches saves the Search Data to DB
+func DeleteSearches() error {
+	// Start the transaction.
+	tx, err := db.Begin(true)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if err := tx.DeleteBucket([]byte("searches")); err != nil {
+		return err
+	}
+
+	// Commit the transaction.
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SaveSearch saves the Search Data to DB
+func SaveSearch(searchID string, created string, private bool, bytes []byte) error {
+	// Start the transaction.
+	tx, err := db.Begin(true)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Get root Searches bucket
+	s := tx.Bucket([]byte("searches"))
+
+	// Get Relevant Internal Buckets
+	data := s.Bucket([]byte("search_data"))
+	allDates := s.Bucket([]byte("all_dates"))
+	publicDates := s.Bucket([]byte("public_dates"))
+
+	if err = data.Put([]byte(searchID), bytes); err != nil {
+		return err
+	}
+
+	if err = allDates.Put([]byte(created), []byte(searchID)); err != nil {
+		return err
+	}
+
+	if !private {
+		if err = publicDates.Put([]byte(created), []byte(searchID)); err != nil {
+			return err
+		}
+	}
+
+	// Commit the transaction.
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetSearch get Search data by ID
+func GetSearch(searchID string) ([]byte, error) {
+	var data []byte
+	var err error
+	err = db.View(func(tx *bolt.Tx) error {
+		s := tx.Bucket([]byte("searches"))
+		sd := s.Bucket([]byte("search_data"))
+		data = sd.Get([]byte(searchID))
+		return nil
+	})
+	if len(data) == 0 {
+		err = errors.New("No data found")
+	}
+	return data, err
+}
+
+// SaveSummary saves the Search Summary to DB
+func SaveSummary(searchID string, bytes []byte) error {
+	err := db.Update(func(tx *bolt.Tx) error {
+		// Get root Searches bucket
+		s := tx.Bucket([]byte("searches"))
+		// Get Search Data Bucket
+		data := s.Bucket([]byte("search_data"))
+
+		return data.Put([]byte(searchID+"_summary"), bytes)
+	})
+	return err
+}
+
+// GetSummary get Search data by ID
+func GetSummary(searchID string) ([]byte, error) {
+	var data []byte
+	var err error
+	err = db.Update(func(tx *bolt.Tx) error {
+		s := tx.Bucket([]byte("searches"))
+		sd := s.Bucket([]byte("search_data"))
+		data = sd.Get([]byte(searchID + "_summary"))
+		return nil
+	})
+	if len(data) == 0 {
+		err = errors.New("No data found")
+	}
+	return data, err
+}
+
+// SaveMatches saves the Search Matches to DB
+func SaveMatches(searchID string, slug string, bytes []byte) error {
+	err := db.Update(func(tx *bolt.Tx) error {
+		// Get root Searches bucket
+		s := tx.Bucket([]byte("searches"))
+		// Get Search Data Bucket
+		data := s.Bucket([]byte("search_data"))
+
+		return data.Put([]byte(searchID+"_matches_"+slug), bytes)
+	})
+	return err
+}
+
+// GetMatches get Search data by ID
+func GetMatches(searchID string, slug string) ([]byte, error) {
+	var data []byte
+	var err error
+	err = db.Update(func(tx *bolt.Tx) error {
+		s := tx.Bucket([]byte("searches"))
+		sd := s.Bucket([]byte("search_data"))
+		data = sd.Get([]byte(searchID + "_matches_" + slug))
+		return nil
+	})
+	if len(data) == 0 {
+		err = errors.New("No data found")
+	}
+	return data, err
 }

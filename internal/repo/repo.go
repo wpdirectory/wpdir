@@ -20,7 +20,7 @@ var (
 
 // Repo ...
 type Repo interface {
-	Len() int
+	Len() uint64
 	Rev() int
 
 	Exists(slug string) bool
@@ -56,7 +56,7 @@ func New(t string, c *config.Config, l *log.Logger) Repo {
 			log:         l,
 			api:         api,
 			List:        make(map[string]*plugin.Plugin),
-			Revision:    0,
+			Revision:    1904883,
 			UpdateQueue: make(chan string, 100000),
 		}
 	case "themes":
@@ -65,14 +65,14 @@ func New(t string, c *config.Config, l *log.Logger) Repo {
 			log:         l,
 			api:         api,
 			List:        make(map[string]*theme.Theme),
-			Revision:    0,
-			UpdateQueue: make(chan string, 100000),
+			Revision:    96064,
+			UpdateQueue: make(chan string, 75000),
 		}
 	}
 	// Load Existing Data
 	err := repo.load()
 	if err != nil {
-		l.Printf("Repo (%s) has no existing data\n", t)
+		l.Printf("Repo (%s) could not load data: %s\n", t, err)
 	}
 
 	return repo

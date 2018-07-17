@@ -92,8 +92,9 @@ const (
 func New(slug string) *Plugin {
 
 	return &Plugin{
-		Slug:   slug,
-		Status: Closed,
+		Slug:    slug,
+		Status:  Closed,
+		indexed: false,
 	}
 
 }
@@ -204,6 +205,7 @@ func (p *Plugin) Update() error {
 			return err
 		}
 	}
+	p.Status = Open
 
 	return nil
 }

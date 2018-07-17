@@ -49,6 +49,7 @@ type SearchOptions struct {
 	IgnoreCase     bool
 	LinesOfContext uint
 	FileRegexp     string
+	IgnoreComments bool
 	Offset         int
 	Limit          int
 }
