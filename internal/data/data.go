@@ -10,4 +10,4 @@ import (
 )
 
 // Assets contains project assets.
-var Assets http.FileSystem = http.Dir(filepath.Join("D:/projects/go/src/github.com/wpdirectory/wpdir", "web", "build"))
+var Assets http.FileSystem = http.Dir(filepath.Join("web", "build"))
