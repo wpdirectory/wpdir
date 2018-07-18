@@ -9,14 +9,12 @@ import (
 
 // Config contains useful App data.
 type Config struct {
-	Version  string
-	Name     string
-	Commit   string
-	Date     string
-	DataDir  string
-	IndexDir string
-	WD       string
-	Ports    struct {
+	Version string
+	Name    string
+	Commit  string
+	Date    string
+	WD      string
+	Ports   struct {
 		HTTP  string
 		HTTPS string
 	}
@@ -29,10 +27,8 @@ func Setup() *Config {
 	viper.SetDefault("name", "WP Directory")
 	viper.SetDefault("commit", "")
 	viper.SetDefault("date", "")
-	viper.SetDefault("ports.http", "9077")
-	viper.SetDefault("ports.https", "9078")
-	viper.SetDefault("datadir", "F:\\wpdir\\data")
-	viper.SetDefault("indexdir", "F:\\wpdir\\index")
+	viper.SetDefault("ports.http", "80")
+	viper.SetDefault("ports.https", "443")
 
 	viper.AddConfigPath("/etc/wpdir/")
 	viper.AddConfigPath(".")
@@ -50,13 +46,11 @@ func Setup() *Config {
 	}
 
 	config := &Config{
-		Version:  viper.GetString("version"),
-		Name:     viper.GetString("name"),
-		Commit:   viper.GetString("commit"),
-		Date:     viper.GetString("date"),
-		DataDir:  viper.GetString("datadir"),
-		IndexDir: viper.GetString("indexdir"),
-		WD:       wd,
+		Version: viper.GetString("version"),
+		Name:    viper.GetString("name"),
+		Commit:  viper.GetString("commit"),
+		Date:    viper.GetString("date"),
+		WD:      wd,
 	}
 
 	config.Ports.HTTP = viper.GetString("ports.http")
