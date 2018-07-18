@@ -44,7 +44,7 @@ func (s *Server) startHTTP() {
 	})
 	s.Router.Use(cors.Handler)
 
-	FileServer(s.Router, "/static")
+	FileServer(s.Router, "/assets")
 
 	s.routes()
 
@@ -129,7 +129,8 @@ func FileServer(r chi.Router, path string) {
 		panic("FileServer does not permit URL parameters.")
 	}
 
-	fs := http.StripPrefix(path, http.FileServer(data.Assets))
+	//fs := http.StripPrefix(path, http.FileServer(data.Assets))
+	fs := http.FileServer(data.Assets)
 
 	if path != "/" && path[len(path)-1] != '/' {
 		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
