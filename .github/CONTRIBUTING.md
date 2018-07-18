@@ -1,5 +1,4 @@
-Contributing to WPDir
-=====================
+# Contributing to WPDir
 
 Welcome! Thank you for choosing to be a part of our community.
 
