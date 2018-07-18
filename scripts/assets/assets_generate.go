@@ -10,6 +10,7 @@ import (
 
 func main() {
 	err := vfsgen.Generate(data.Assets, vfsgen.Options{
+		Filename:     "../../internal/data/vfsdata.go",
 		PackageName:  "data",
 		BuildTags:    "!dev",
 		VariableName: "Assets",
