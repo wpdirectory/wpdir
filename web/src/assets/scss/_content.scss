@@ -4,15 +4,22 @@
 
 section.content {
     padding: rem-calc(20 0);
-    overflow-y: scroll;
+    @include breakpoint(medium) {
+        overflow-y: scroll;
+    }
     .page {
         width: 100%;
-        .panel {
-            border: 1px solid #dedede;
-            background-color: #ffffff;
-            padding: rem-calc(22 32);
-        }
     }
+}
+
+/*--------------------------------------------------------------
+# Panel
+--------------------------------------------------------------*/
+
+.panel {
+    border: 1px solid #dedede;
+    background-color: #ffffff;
+    padding: rem-calc(22 32);
 }
 
 /*--------------------------------------------------------------
@@ -110,6 +117,9 @@ section.content {
 
 .page-search {
     .search-summary {
+        h1 {
+            margin: 0;
+        }
         .summary {
             background: #fefefe;
             list-style-type: none;
@@ -368,5 +378,87 @@ section.content {
         height: 30px;
         background-color: get-color(primary);
         transition: width 1s ease-in-out;
+    }
+}
+
+/*--------------------------------------------------------------
+# Progress Block
+--------------------------------------------------------------*/
+
+$progress-block-height: 100px;
+.panel.progress {
+    padding: 0;
+    border: none;
+    .progress-block {
+        position: relative;
+        overflow: hidden;
+        width: 100%;
+        background-color: #c4c4c4;
+
+        .progress-block-background {
+            height: $progress-block-height;
+            background-color: #c4c4c4;
+            border: 2px solid smart-scale( #c4c4c4, 15% );
+        }
+        .progress-block-bar {
+            position: absolute;
+            overflow: hidden;
+            height: 100%;
+            top: 0;
+            left: 0;
+            width: 1%;
+            height: $progress-block-height;
+            background-color: get-color(primary);
+            border: 2px solid smart-scale( get-color(primary), 15% );
+            transition: width 1s ease-in-out;
+        }
+        .progress-block-title {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            line-height: $progress-block-height;
+            text-align: center;
+            color: #ffffff;
+        }
+        .progress-block-message {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+        .cog {
+            position: absolute;
+            fill: rgba(0, 0, 0, 0.17);
+            svg {
+                animation: rotating 4s linear infinite;
+            }
+            @keyframes rotating {
+                from { transform: rotate(0deg) }
+                to { transform: rotate(360deg) }
+            }
+            &.one {
+                top: -44px;
+                left: 12%;
+            }
+            &.two {
+                top: -27px;
+                left: 43%;
+            }
+            &.three {
+                bottom: -60px;
+                left: 77%;
+            }
+            &.four {
+                top: 22px;
+                left: 68%;
+            }
+            &.five {
+                bottom: -33px;
+                left: 3%;
+            }
+        }
     }
 }

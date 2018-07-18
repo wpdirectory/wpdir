@@ -55,7 +55,7 @@ class Item extends Component {
       <li className={this.formatClass()}>
         <button className="accordion-title" onClick={this.toggleClass}>
           <span className="name" dangerouslySetInnerHTML={{__html: this.formatName(item)}}></span>
-          <span className="installs">{item.installs}</span>
+          <span className="installs">{item.active_installs}</span>
           <span className="matches">{item.matches}</span>
         </button>
         <div className="accordion-content">

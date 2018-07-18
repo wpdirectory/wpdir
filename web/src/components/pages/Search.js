@@ -1,10 +1,9 @@
 import React, { Component } from 'react'
 import Loadicon from '../general/Loadicon.js'
-import ProgressBar from '../general/ProgressBar.js'
+import ProgressBlock from '../general/ProgressBlock.js'
 import Summary from '../general/search/Summary.js'
 
 class Search extends Component {
-
   constructor(props) {
     super(props);
     this.state = {
@@ -23,7 +22,7 @@ class Search extends Component {
         list: [],
         total: 0,
       },
-    };
+    }
   }
 
   componentWillMount = () => {
@@ -44,12 +43,8 @@ class Search extends Component {
         this.setState({ completed: Date.parse(data.completed) })
       }
       this.setState({ progress: data.progress })
-      this.setState({ total: data.total })
       this.setState({ status: data.status })
       this.setState({ matches: data.matches })
-      if (data.summary) {
-        this.setState({ summary: data.summary })
-      }
       this.setState({ isLoading: false })
     })
 
@@ -72,12 +67,8 @@ class Search extends Component {
         this.setState({ completed: Date.parse(data.completed) })
       }
       this.setState({ progress: data.progress })
-      this.setState({ total: data.total })
       this.setState({ status: data.status })
       this.setState({ matches: data.matches })
-      if (data.summary) {
-        this.setState({ summary: data.summary })
-      }
       this.setState({ isLoading: false })
     })
   }
@@ -129,25 +120,23 @@ class Search extends Component {
     }
   }
 
-  calcProgress = (current, total) => {
-    if (current === 0) {
-      return 0
-    } else {
-      return (( current / total ) * 100).toFixed(0)
-    }
-  }
-
   componentDidMount = () => {
     document.title = 'Search ' + this.state.id + ' - WPdirectory'
-    this.interval = setInterval(() => {
+    this.queueInterval = setInterval(() => {
+      if ( this.state.status === 0 ) {
+        this.refreshData()
+      }
+    }, 5000)
+    this.updateInterval = setInterval(() => {
       if ( this.state.status === 1 ) {
         this.refreshData()
       }
-    }, 2000);
+    }, 2000)
   }
 
   componentWillUnmount = () => {
-    clearInterval(this.interval);
+    clearInterval(this.updateInterval)
+    clearInterval(this.queueInterval)
   }
 
   formatOverview = () => {
@@ -162,19 +151,24 @@ class Search extends Component {
             <h2>Overview</h2>
             <div className="info">
               <div className="info grid-x grid-margin-x grid-margin-y">
-                <div className="cell small-12 medium-6">
+                <div className="cell small-12">
                   <h5>Search Regex</h5>
-                  {this.state.input}
+                  <pre>{this.state.input}</pre>
                 </div>
-                <div className="cell small-12 medium-6">
+                <div className="cell small-12 medium-4">
                   <h5>Repository</h5>
                   {this.upperCaseFirst(this.state.repo)}
                 </div>
-                <div className="cell small-12 medium-6">
+                <div className="cell small-12 medium-4">
                   <h5>Total Matches</h5>
                   {this.state.matches}
+                  {(() => {
+                    if (this.state.matches > 10000) {
+                      return (<label className="is-invalid-label">Search aborted after hitting match limit (10,000).</label>)
+                    }
+                  })()}
                 </div>
-                <div className="cell small-12 medium-6">
+                <div className="cell small-12 medium-4">
                   <h5>Time Taken</h5>
                   {duration}
                 </div>
@@ -187,25 +181,17 @@ class Search extends Component {
           <div className="search-info panel cell small-12">
             <h2>Info</h2>
             <div className="info grid-x grid-margin-x grid-margin-y">
-              <div className="cell small-12 medium-6">
+              <div className="cell small-12">
                 <h5>Search Regex</h5>
-                {this.state.input}
+                <pre>{this.state.input}</pre>
               </div>
-              <div className="cell small-12 medium-6">
+              <div className="cell small-12 medium-4">
                 <h5>Repository</h5>
                 {this.upperCaseFirst(this.state.repo)}
               </div>
-              <div className="cell small-12 medium-6">
+              <div className="cell small-12 medium-4">
                 <h5>Total Matches</h5>
                 {this.state.matches}
-              </div>
-              <div className="cell small-12 medium-6">
-                <h5>Progress</h5>
-                {this.calcProgress(this.state.progress, this.state.total)}%
-              </div>
-              <div className="cell small-12 medium-6">
-                <h5>Duration</h5>
-                {duration}
               </div>
             </div>
           </div>
@@ -215,11 +201,11 @@ class Search extends Component {
           <div className="search-info panel cell small-12">
             <h2>Info</h2>
             <div className="info grid-x grid-margin-x grid-margin-y">
-              <div className="cell small-12 medium-6">
+              <div className="cell small-12">
                 <h5>Search Input</h5>
-                {this.state.input}
+                <pre>{this.state.input}</pre>
               </div>
-              <div className="cell small-12 medium-6">
+              <div className="cell small-12 medium-4">
                 <h5>Repository</h5>
                 {this.upperCaseFirst(this.state.repo)}
               </div>
@@ -230,21 +216,12 @@ class Search extends Component {
   }
 
   render() {
-    let margin
-    if (this.state.status === 2) {
-      margin = {
-        margin: '0 0 0 0',
-      }
-    } else {
-      margin = {}
-    }
-
     let searchSummary
-    if ( !!this.state.summary.list && this.state.summary.list.length && this.state.summary.list.length > 0 ) {
+    if ( this.state.status === 2 ) {
       searchSummary = (
         <div className="search-summary panel cell small-12">
-          <h2>Summary <small>({this.state.summary.total}{ ' matches'})</small></h2>
-          <Summary repo={this.state.repo} id={this.state.id} items={this.state.summary.list} />
+          <h2>Summary <small>({this.state.matches}{ ' matches'})</small></h2>
+          <Summary repo={this.state.repo} id={this.state.id} matches={this.state.matches} />
         </div>
       )
     } else {
@@ -258,11 +235,13 @@ class Search extends Component {
     if ( this.state.isLoading === true ) {
       return (
         <div className="page page-search grid-container">
-          <div className="title panel cell small-12">
-            <h1>Search</h1>
-          </div>
-          <div className="search-info panel cell small-12">
-            <Loadicon />
+          <div className="grid-x grid-margin-x grid-margin-y">
+            <div className="title panel cell small-12">
+              <h1>Search</h1>
+            </div>
+            <div className="search-info panel cell small-12">
+              <Loadicon />
+            </div>
           </div>
         </div>
       )
@@ -271,15 +250,19 @@ class Search extends Component {
         <div className="page page-search grid-container">
           <div className="grid-x grid-margin-x grid-margin-y">
             <div className="title panel cell small-12">
-              <h1 style={margin}>Search - {this.getStatus(this.state.status)}</h1>
-              {(() => {
-                if (this.state.status === 1) {
-                  return (<ProgressBar progress={this.calcProgress(this.state.progress, this.state.total)} />)
-                }
-              })()}
+              <h1>Search - {this.getStatus(this.state.status)}</h1>
             </div>
+            {(() => {
+              if (this.state.status === 1) {
+                return (<ProgressBlock progress={this.state.progress} status={this.getStatus(this.state.status)} />)
+              }
+            })()}
             {this.formatOverview()}
-            {searchSummary}
+            {(() => {
+              if (this.state.status === 2 && this.state.matches > 0) {
+                return searchSummary
+              }
+            })()}
           </div>
         </div>
       )

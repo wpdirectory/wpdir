@@ -8,11 +8,24 @@ class Summary extends Component {
     super(props)
     this.state = {
       id: this.props.id,
-      items: this.props.items.sort( (a,b) => b.installs - a.installs ),
-      desc: false,
+      matches: this.props.matches,
+      items: [],
       sorting: 'installs',
-      forceClose: false,
+      desc: true,
+      isLoading: true,
     }
+  }
+
+  componentWillMount = () => {
+    fetch('https://wpdirectory.net/api/v1/search/summary/' + this.props.id)
+    .then( response => {
+      return response.json()
+    })
+    .then( data => {
+      this.setState({ items: data.results })
+      this.setState({ isLoading: false })
+      this.sortByInstalls()
+    })
   }
 
   sortByName = () => {
@@ -54,13 +67,13 @@ class Summary extends Component {
       this.setState((prevState) => ({
         desc: !prevState.desc,
         sorting: 'installs',
-        items: prevState.items.sort( (a,b) => b.installs - a.installs )
+        items: prevState.items.sort( (a,b) => b.active_installs - a.active_installs )
       }))
     } else {
       this.setState((prevState) => ({
         desc: !prevState.desc,
         sorting: 'installs',
-        items: prevState.items.sort( (a,b) => a.installs - b.installs )
+        items: prevState.items.sort( (a,b) => a.active_installs - b.active_installs )
       }))
     }
   }

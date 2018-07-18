@@ -41,11 +41,11 @@ class Home extends Component {
   }
 
   render() {
-
+    console.log(this.state.searches)
     let latestSearches
 
     if ( this.state.searches.length && this.state.searches.length > 0 ) {
-      let searches = this.state.searches.sort( (a,b) => Date.parse(a.started) < Date.parse(b.started) );
+      let searches = this.state.searches.sort( (a,b) => Date.parse(a.started) < Date.parse(b.started) )
       latestSearches = searches.map( (search, idx) => {
         return (
           <li key={idx}>

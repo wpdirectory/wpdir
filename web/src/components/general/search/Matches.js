@@ -18,9 +18,8 @@ class Matches extends Component {
       
     })
     .then( data => {
-      if (data.matches) {
-        this.setState({ matches: data.matches })
-      }
+      this.setState({ matches: data.list })
+      this.setState({ isLoading: false })
     })
   }
 
