@@ -12,7 +12,7 @@ RUN cd /go/src/github.com/wpdirectory/wpdir && go get -d -v
 # Embed Static Files Into Go
 COPY --from=node-env /web /go/src/github.com/wpdirectory/wpdir
 WORKDIR /go/src/github.com/wpdirectory/wpdir/scripts/assets/
-RUN go get -d -v && go build assets_generate.go
+RUN go get -d -v && go run -tags=dev assets_generate.go
 
 # Compile Binary
 WORKDIR /go/src/github.com/wpdirectory/wpdir
