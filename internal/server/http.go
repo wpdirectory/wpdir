@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
+	"github.com/wpdirectory/wpdir/internal/data"
 )
 
 // startHTTP starts the HTTP server.
@@ -43,10 +44,7 @@ func (s *Server) startHTTP() {
 	})
 	s.Router.Use(cors.Handler)
 
-	// TODO: Automated build process to package static assets internally
-	// Update this to use internally bundled assets
-	filesDir := filepath.Join("D:/projects/go/src/github.com/wpdirectory/wpdir", "web", "build")
-	FileServer(s.Router, "/static", http.Dir(filesDir))
+	FileServer(s.Router, "/static")
 
 	s.routes()
 
@@ -126,19 +124,18 @@ func (s *Server) apiRoutes() chi.Router {
 
 // FileServer conveniently sets up a http.FileServer handler to serve
 // static files from a http.FileSystem.
-func FileServer(r chi.Router, path string, root http.FileSystem) {
+func FileServer(r chi.Router, path string) {
 	if strings.ContainsAny(path, "{}*") {
 		panic("FileServer does not permit URL parameters.")
 	}
 
-	fs := http.StripPrefix(path, http.FileServer(root))
+	fs := http.StripPrefix(path, http.FileServer(data.Assets))
 
 	if path != "/" && path[len(path)-1] != '/' {
 		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
 		path += "/"
 	}
 	path += "*"
-
 	r.Get(path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Vary", "Accept-Encoding")
 		w.Header().Set("Cache-Control", "public, max-age=7776000")

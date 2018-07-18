@@ -1,11 +1,10 @@
 package server
 
 import (
+	"io"
 	"net/http"
-)
 
-var (
-	html = []byte(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name="theme-color" content="#000000"><meta property="og:locale" content="en_US"/><meta property="og:type" content="website"/><meta property="og:title" content="WordPress Directory Searcher - WPDirectory"/><meta property="og:url" content="https://wpdirectory.net/"/><meta property="og:site_name" content="WPDirectory"/><meta name="description" content="Lightning fast regex searching of code in the WordPress Plugin and Theme Directories. Start searching now!"/><meta name="keywords" content="search, regex, wordpress, plugins, themes"/><meta name="author" content="Peter Booker"/><meta name="contact" content="mail@peterbooker.com"/><link rel="manifest" href="/static/assets/manifest.json"><link rel="shortcut icon" href="/static/assets/favicon.ico"><title>WordPress Directory Searcher - WPDirectory</title><link href="/static/assets/css/main.40ec9d91.css" rel="stylesheet"></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div><script type="text/javascript" src="/static/assets/js/main.821b61d4.js"></script></body></html>`)
+	"github.com/wpdirectory/wpdir/internal/data"
 )
 
 func (s *Server) static() http.HandlerFunc {
@@ -13,7 +12,26 @@ func (s *Server) static() http.HandlerFunc {
 		w.Header().Set("Content-Type", "text/html")
 		w.Header().Set("Vary", "Accept-Encoding")
 
-		w.Write(html)
+		file, err := data.Assets.Open("/index.html")
+		if err != nil {
+			s.Logger.Fatalf("Failed to open index.html: %s\n", err)
+		}
+		defer file.Close()
+
+		fileinfo, err := file.Stat()
+		if err != nil {
+			s.Logger.Fatalf("Failed to get file info index.html: %s\n", err)
+		}
+
+		filesize := fileinfo.Size()
+		buffer := make([]byte, filesize)
+
+		_, err = file.Read(buffer)
+		if err != nil && err != io.EOF {
+			s.Logger.Fatalf("Failed to read index.html: %s\n", err)
+		}
+
+		w.Write(buffer)
 	}
 }
 
@@ -23,6 +41,25 @@ func (s *Server) notFound() http.HandlerFunc {
 		w.Header().Set("Vary", "Accept-Encoding")
 		w.WriteHeader(http.StatusNotFound)
 
-		w.Write(html)
+		file, err := data.Assets.Open("/index.html")
+		if err != nil {
+			s.Logger.Fatalf("Failed to open index.html: %s\n", err)
+		}
+		defer file.Close()
+
+		fileinfo, err := file.Stat()
+		if err != nil {
+			s.Logger.Fatalf("Failed to get file info index.html: %s\n", err)
+		}
+
+		filesize := fileinfo.Size()
+		buffer := make([]byte, filesize)
+
+		_, err = file.Read(buffer)
+		if err != nil && err != io.EOF {
+			s.Logger.Fatalf("Failed to read index.html: %s\n", err)
+		}
+
+		w.Write(buffer)
 	}
 }
