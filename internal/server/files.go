@@ -26,7 +26,10 @@ func (s *Server) getFilePath(repo, slug, file string) (string, error) {
 		if !p.HasIndex() {
 			return "", errors.New("Plugin has no indexed files")
 		}
+
+		p.Searcher.Lock.RLock()
 		dir := p.Searcher.Dir()
+		p.Searcher.Lock.RUnlock()
 
 		path := filepath.Join(dir, "raw", file)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -45,9 +48,9 @@ func (s *Server) getFilePath(repo, slug, file string) (string, error) {
 			return "", errors.New("Theme has no indexed files")
 		}
 
-		t.Searcher.Lock.Lock()
+		t.Searcher.Lock.RLock()
 		dir := t.Searcher.Dir()
-		t.Searcher.Lock.Unlock()
+		t.Searcher.Lock.RUnlock()
 
 		path := filepath.Join(dir, "raw", file)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
