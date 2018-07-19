@@ -397,57 +397,27 @@ func (s *Server) getPlugin() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		var resp getPluginResponse
-
 		if slug := chi.URLParam(r, "slug"); slug != "" {
 			p := s.Manager.Plugins.Get(slug).(*plugin.Plugin)
-			resp.Slug = p.Slug
-			resp.Name = p.Name
-			resp.Version = p.Version
-			resp.Author = p.Author
-			resp.AuthorProfile = p.AuthorProfile
-			resp.Rating = p.Rating
-			resp.NumRatings = p.NumRatings
-			resp.SupportThreads = p.SupportThreads
-			resp.ActiveInstalls = p.ActiveInstalls
-			resp.Downloaded = p.Downloaded
-			resp.LastUpdated = p.LastUpdated
-			resp.Added = p.Added
-			resp.Homepage = p.Homepage
-			resp.ShortDescription = p.ShortDescription
-			resp.DownloadLink = p.DownloadLink
-			resp.StableTag = p.StableTag
-			resp.Status = p.GetStatus()
+			writeResp(w, p)
 		} else {
-			resp.Err = "You must specify a valid Plugin Name."
+			var resp errResponse
+			resp.Err = "You must specify a valid Plugin Name"
+			writeResp(w, resp)
 		}
-		writeResp(w, resp)
 	}
 }
 
 // getTheme ...
 func (s *Server) getTheme() http.HandlerFunc {
-	type getThemeResponse struct {
-		Slug    string `json:"slug"`
-		Name    string `json:"name,omitempty"`
-		Version string `json:"version,omitempty"`
-		Status  string `json:"status"`
-		Err     string `json:"error,omitempty"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
-		var resp getThemeResponse
-
 		if slug := chi.URLParam(r, "slug"); slug != "" {
 			t := s.Manager.Themes.Get(slug).(*theme.Theme)
-			resp.Slug = t.Slug
-			resp.Name = t.Name
-			resp.Version = t.Version
-			resp.Status = t.GetStatus()
+			writeResp(w, t)
 		} else {
-			resp.Err = "You must specify a valid Theme Name."
+			var resp errResponse
+			resp.Err = "You must specify a valid Theme Name"
+			writeResp(w, resp)
 		}
-
-		writeResp(w, resp)
 	}
 }
