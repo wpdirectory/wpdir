@@ -99,12 +99,14 @@ func (sm *Manager) Worker() {
 
 }
 
+// SummaryList ...
 type SummaryList struct {
 	List  map[string]*Result
 	Total uint64
 	sync.RWMutex
 }
 
+// MatchList ...
 type MatchList struct {
 	List map[string]*Matches
 	sync.RWMutex
@@ -170,7 +172,7 @@ func (sm *Manager) processSearch(ID string) error {
 			srch.Progress = uint32(math.Round((float64(current) / float64(total)) * 100.00))
 			srch.Matches = uint32(totalMatches)
 			sm.Unlock()
-			if !p.HasIndex() || p.Status != 0 {
+			if p.HasIndex() == false || p.Status != plugin.Open {
 				continue
 			}
 			wg.Add(1)
@@ -232,7 +234,7 @@ func (sm *Manager) processSearch(ID string) error {
 			srch.Progress = uint32(math.Round((float64(current) / float64(total)) * 100.00))
 			srch.Matches = uint32(totalMatches)
 			sm.Unlock()
-			if !t.HasIndex() || t.Status != 0 {
+			if t.HasIndex() == false || t.Status != theme.Open {
 				continue
 			}
 			wg.Add(1)
