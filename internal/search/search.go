@@ -291,12 +291,6 @@ func (sm *Manager) processSearch(ID string) error {
 
 	wg.Wait()
 
-	sm.Lock()
-	srch.Completed = time.Now().Format(time.RFC3339)
-	srch.Status = Completed
-	srch.Matches = uint32(totalMatches)
-	sm.Unlock()
-
 	summary := &Summary{
 		List:  make(map[string]*Result),
 		Total: sum.Total,
@@ -338,6 +332,12 @@ func (sm *Manager) processSearch(ID string) error {
 			return errors.New("Failed Saving Summary to DB")
 		}
 	}
+
+	sm.Lock()
+	srch.Completed = time.Now().Format(time.RFC3339)
+	srch.Status = Completed
+	srch.Matches = uint32(totalMatches)
+	sm.Unlock()
 
 	runtime.GC()
 
