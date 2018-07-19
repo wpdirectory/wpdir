@@ -59,9 +59,6 @@ func (pr *PluginRepo) save() error {
 }
 
 func (pr *PluginRepo) load() error {
-	//pr.Lock()
-	//defer pr.Unlock()
-
 	bytes, err := db.GetFromBucket("plugins", "repos")
 	if err != nil {
 		return err
@@ -95,10 +92,7 @@ func (pr *PluginRepo) Get(slug string) Extension {
 // Add ...
 func (pr *PluginRepo) Add(slug string) {
 	pr.Lock()
-	pr.List[slug] = &plugin.Plugin{
-		Slug:   slug,
-		Status: plugin.Closed,
-	}
+	pr.List[slug] = plugin.New(slug)
 	pr.Unlock()
 }
 

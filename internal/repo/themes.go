@@ -59,9 +59,6 @@ func (tr *ThemeRepo) save() error {
 }
 
 func (tr *ThemeRepo) load() error {
-	//tr.Lock()
-	//defer tr.Unlock()
-
 	bytes, err := db.GetFromBucket("themes", "repos")
 	if err != nil {
 		return err
@@ -95,10 +92,7 @@ func (tr *ThemeRepo) Get(slug string) Extension {
 // Add sets a new Theme
 func (tr *ThemeRepo) Add(slug string) {
 	tr.Lock()
-	tr.List[slug] = &theme.Theme{
-		Slug:   slug,
-		Status: theme.Closed,
-	}
+	tr.List[slug] = theme.New(slug)
 	tr.Unlock()
 }
 
