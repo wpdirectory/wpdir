@@ -224,16 +224,27 @@ func (pr *PluginRepo) StartWorkers() {
 					pr.log.Printf("Failed getting Plugins Repo revision: %s\n", err)
 				}
 				pr.RLock()
-				defer pr.RUnlock()
 				list, err := pr.api.GetChangeLog("plugins", pr.Revision, latest)
 				if err != nil {
 					pr.log.Printf("Failed getting Plugins Changelog: %s\n", err)
+					pr.RUnlock()
+					continue
 				}
+				pr.RUnlock()
+
 				for _, slug := range list {
 					pr.QueueUpdate(slug)
 				}
+
+				pr.Lock()
+				pr.Revision = latest
+				pr.Unlock()
+
 				err = pr.save()
-				pr.log.Printf("Failed saving Plugins Repo: %s\n", err)
+				if err != nil {
+					pr.log.Printf("Failed saving Plugins Repo: %s\n", err)
+					continue
+				}
 			}
 		}
 	}(pr, checkChangelog)

@@ -224,16 +224,27 @@ func (tr *ThemeRepo) StartWorkers() {
 					tr.log.Printf("Failed getting Themes Repo revision: %s\n", err)
 				}
 				tr.RLock()
-				defer tr.RUnlock()
 				list, err := tr.api.GetChangeLog("themes", tr.Revision, latest)
 				if err != nil {
 					tr.log.Printf("Failed getting Themes Changelog: %s\n", err)
+					tr.RUnlock()
+					continue
 				}
+				tr.RUnlock()
+
 				for _, slug := range list {
 					tr.QueueUpdate(slug)
 				}
+
+				tr.Lock()
+				tr.Revision = latest
+				tr.Unlock()
+
 				err = tr.save()
-				tr.log.Printf("Failed saving Themes Repo: %s\n", err)
+				if err != nil {
+					tr.log.Printf("Failed saving Themes Repo: %s\n", err)
+					continue
+				}
 			}
 		}
 	}(tr, checkChangelog)
