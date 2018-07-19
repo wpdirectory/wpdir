@@ -18,6 +18,22 @@ class Item extends Component {
     }
   }
 
+  formatInstalls = (item) => {
+    if (!item.active_installs) {
+      return 'n/a';
+    }
+    let installs = item.active_installs.toString()
+    console.log(installs.length)
+    if (installs.length > 6) {
+      console.log('Over 6 Length')
+      return installs.slice(0, installs.length - 6) + ',' + installs.slice(installs.length - 6, installs.length - 3) + ',' + installs.slice(installs.length - 3)
+    }
+    if (installs.length > 3) {
+      return installs.slice(0, installs.length - 3) + ',' + installs.slice(installs.length - 3)
+    }
+    return installs
+  }
+
   formatClass = () => {
     if (this.state.isActive === true) {
       return 'accordion-item is-active'
@@ -55,7 +71,7 @@ class Item extends Component {
       <li className={this.formatClass()}>
         <button className="accordion-title" onClick={this.toggleClass}>
           <span className="name" dangerouslySetInnerHTML={{__html: this.formatName(item)}}></span>
-          <span className="installs">{item.active_installs}</span>
+          <span className="installs" dangerouslySetInnerHTML={{__html: this.formatInstalls(item)}}></span>
           <span className="matches">{item.matches}</span>
         </button>
         <div className="accordion-content">
