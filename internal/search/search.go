@@ -299,7 +299,6 @@ func (sm *Manager) processSearch(ID string) error {
 		summary.List[key] = result
 	}
 
-	// TODO: Store Search, Summary and MatchList in DB.
 	sm.RLock()
 	// Copy Search so we can close the lock earlier
 	s := *srch
