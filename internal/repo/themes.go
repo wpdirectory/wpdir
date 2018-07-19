@@ -160,6 +160,9 @@ func (tr *ThemeRepo) UpdateWorker() {
 
 // ProcessUpdate ...
 func (tr *ThemeRepo) ProcessUpdate(slug string) error {
+	if !tr.Exists(slug) {
+		tr.Add(slug)
+	}
 	t := tr.Get(slug).(*theme.Theme)
 	err := t.LoadAPIData()
 	if err != nil {
@@ -209,9 +212,9 @@ func (tr *ThemeRepo) UpdateList() error {
 func (tr *ThemeRepo) StartWorkers() {
 	// Setup Tickers
 	checkChangelog := time.NewTicker(time.Minute * 15).C
-	checkAPI := time.NewTicker(time.Hour * 24).C
+	checkAPI := time.NewTicker(time.Hour * 48).C
 
-	go func(ticker <-chan time.Time) {
+	go func(tr *ThemeRepo, ticker <-chan time.Time) {
 		for {
 			select {
 			// Check Changlog
@@ -233,9 +236,9 @@ func (tr *ThemeRepo) StartWorkers() {
 				tr.log.Printf("Failed saving Themes Repo: %s\n", err)
 			}
 		}
-	}(checkChangelog)
+	}(tr, checkChangelog)
 
-	go func(ticker <-chan time.Time) {
+	go func(tr *ThemeRepo, ticker <-chan time.Time) {
 		for {
 			select {
 			// Refresh API Data
@@ -245,18 +248,20 @@ func (tr *ThemeRepo) StartWorkers() {
 					tr.log.Printf("Failed getting Themes list: %s\n", err)
 				}
 				for _, slug := range themes {
+					if !tr.Exists(slug) {
+						tr.Add(slug)
+					}
 					t := tr.Get(slug).(*theme.Theme)
 					t.Lock()
-					defer t.Unlock()
 					err := t.LoadAPIData()
 					if err != nil {
 						t.Status = theme.Closed
 					}
-					t.Status = theme.Closed
+					t.Unlock()
 				}
 			}
 		}
-	}(checkAPI)
+	}(tr, checkAPI)
 }
 
 // LoadExisting ...

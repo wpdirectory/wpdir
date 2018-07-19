@@ -21,8 +21,6 @@ import (
 )
 
 const (
-	// This is the user which administrates the Plugins Repo
-	// Adds the initial folder structure for approved plugins
 	// TODO: We might be able to use this to avoid needless updates
 	pluginManagementUser = "plugin-master"
 )
@@ -162,6 +160,9 @@ func (pr *PluginRepo) UpdateWorker() {
 
 // ProcessUpdate ...
 func (pr *PluginRepo) ProcessUpdate(slug string) error {
+	if !pr.Exists(slug) {
+		pr.Add(slug)
+	}
 	p := pr.Get(slug).(*plugin.Plugin)
 	err := p.LoadAPIData()
 	if err != nil {
@@ -211,9 +212,9 @@ func (pr *PluginRepo) UpdateList() error {
 func (pr *PluginRepo) StartWorkers() {
 	// Setup Tickers
 	checkChangelog := time.NewTicker(time.Minute * 15).C
-	checkAPI := time.NewTicker(time.Hour * 24).C
+	checkAPI := time.NewTicker(time.Hour * 48).C
 
-	go func(ticker <-chan time.Time) {
+	go func(pr *PluginRepo, ticker <-chan time.Time) {
 		for {
 			select {
 			// Check Changlog
@@ -235,9 +236,9 @@ func (pr *PluginRepo) StartWorkers() {
 				pr.log.Printf("Failed saving Plugins Repo: %s\n", err)
 			}
 		}
-	}(checkChangelog)
+	}(pr, checkChangelog)
 
-	go func(ticker <-chan time.Time) {
+	go func(pr *PluginRepo, ticker <-chan time.Time) {
 		for {
 			select {
 			// Refresh API Data
@@ -247,18 +248,20 @@ func (pr *PluginRepo) StartWorkers() {
 					pr.log.Printf("Failed getting Plugins list: %s\n", err)
 				}
 				for _, slug := range plugins {
+					if !pr.Exists(slug) {
+						pr.Add(slug)
+					}
 					p := pr.Get(slug).(*plugin.Plugin)
-					p.RLock()
-					defer p.RUnlock()
+					p.Lock()
 					err := p.LoadAPIData()
 					if err != nil {
 						p.Status = plugin.Closed
 					}
-					p.Status = plugin.Closed
+					p.Unlock()
 				}
 			}
 		}
-	}(checkAPI)
+	}(pr, checkAPI)
 }
 
 // LoadExisting loading data from DB and then Indexes

@@ -36,6 +36,7 @@ type Repo interface {
 
 	QueueUpdate(slug string)
 	UpdateWorker()
+	StartWorkers()
 	ProcessUpdate(slug string) error
 
 	Summary() *Summary
