@@ -161,7 +161,6 @@ func (tr *ThemeRepo) ProcessUpdate(slug string) error {
 	err := t.LoadAPIData()
 	if err != nil {
 		t.Status = theme.Closed
-		t.SetIndexed(false)
 		return err
 	}
 
@@ -171,6 +170,7 @@ func (tr *ThemeRepo) ProcessUpdate(slug string) error {
 		t.SetIndexed(false)
 		return err
 	}
+
 	t.Status = theme.Open
 	t.SetIndexed(true)
 

@@ -161,7 +161,6 @@ func (pr *PluginRepo) ProcessUpdate(slug string) error {
 	err := p.LoadAPIData()
 	if err != nil {
 		p.Status = plugin.Closed
-
 		return err
 	}
 
@@ -171,6 +170,7 @@ func (pr *PluginRepo) ProcessUpdate(slug string) error {
 		p.SetIndexed(false)
 		return err
 	}
+
 	p.Status = plugin.Open
 	p.SetIndexed(true)
 
