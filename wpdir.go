@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"time"
 
 	"github.com/wpdirectory/wpdir/internal/config"
@@ -35,6 +36,12 @@ func main() {
 
 	// Create Config
 	c := config.Setup()
+
+	// Ensure Directory Structure Exists
+	mkdir(c.WD)
+
+	//err := certs.Get(c.DNS.Email, c.DNS.APIKey)
+	//panic(err)
 
 	// Setup BoltDB
 	db.Setup(c.WD)
@@ -72,3 +79,16 @@ Flags:
 Config:
   WPDirectory requires a config file, located at /etc/wpdir/ or in the working directory, to successfully run. See the example-config.yml.`
 )
+
+func mkdir(wd string) {
+
+	db := filepath.Join(wd, "data", "db")
+	os.MkdirAll(db, os.ModePerm)
+
+	plugins := filepath.Join(wd, "data", "index", "plugins")
+	os.MkdirAll(plugins, os.ModePerm)
+
+	themes := filepath.Join(wd, "data", "index", "themes")
+	os.MkdirAll(themes, os.ModePerm)
+
+}
