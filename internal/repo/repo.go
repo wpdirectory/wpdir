@@ -1,82 +1,46 @@
 package repo
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
-	"runtime"
+	"os"
+	"path/filepath"
+	"strconv"
+	"sync"
 	"time"
+	"unicode/utf8"
 
+	"github.com/wpdirectory/wpdir/internal/client"
 	"github.com/wpdirectory/wpdir/internal/config"
+	"github.com/wpdirectory/wpdir/internal/db"
+	"github.com/wpdirectory/wpdir/internal/filestats"
 	"github.com/wpdirectory/wpdir/internal/index"
-	"github.com/wpdirectory/wpdir/internal/plugin"
-	"github.com/wpdirectory/wpdir/internal/theme"
+	"github.com/wpdirectory/wpdir/internal/ulid"
+	"github.com/wpdirectory/wpdir/internal/utils"
 	"github.com/wpdirectory/wporg"
 )
 
 var (
-	httpClient *http.Client
+	archiveURL = "http://downloads.wordpress.org/%s/%s.latest-stable.zip?nostats=1"
 )
 
-// Repo ...
-type Repo interface {
-	Len() uint64
-	Rev() int
+// Repo holds data about the Plugins SVN Repo.
+type Repo struct {
+	ExtType     string
+	Revision    int
+	Updated     time.Time
+	UpdateQueue chan string
 
-	Exists(slug string) bool
-	Get(slug string) Extension
-	Add(slug string)
-	Remove(slug string)
-	UpdateIndex(idx *index.Index) error
-	UpdateList() error
+	sync.RWMutex
+	List map[string]*Extension
 
-	load() error
-	save() error
-	LoadExisting()
-
-	QueueUpdate(slug string)
-	UpdateWorker()
-	StartWorkers()
-	ProcessUpdate(slug string) error
-
-	Summary() *Summary
-}
-
-// New returns a new Repo
-func New(t string, c *config.Config, l *log.Logger) Repo {
-	// Setup HTTP Client
-	opt := func(c *wporg.Client) {
-		c.HTTPClient = httpClient
-	}
-	api := wporg.NewClient(opt)
-	var repo Repo
-	switch t {
-	case "plugins":
-		repo = &PluginRepo{
-			cfg:         c,
-			log:         l,
-			api:         api,
-			List:        make(map[string]*plugin.Plugin),
-			Revision:    1904883,
-			UpdateQueue: make(chan string, 100000),
-		}
-	case "themes":
-		repo = &ThemeRepo{
-			cfg:         c,
-			log:         l,
-			api:         api,
-			List:        make(map[string]*theme.Theme),
-			Revision:    96064,
-			UpdateQueue: make(chan string, 75000),
-		}
-	}
-	// Load Existing Data
-	err := repo.load()
-	if err != nil {
-		l.Printf("Repo (%s) could not load data: %s\n", t, err)
-	}
-
-	return repo
+	log *log.Logger
+	cfg *config.Config
+	api *wporg.Client
 }
 
 // Summary ...
@@ -87,33 +51,476 @@ type Summary struct {
 	Queue    int `json:"queue"`
 }
 
-// Extension ...
-type Extension interface {
-	GetStatus() string
-	HasIndex() bool
-	SetIndexed(idx bool)
-	LoadAPIData() error
-	Update() error
-	Save() error
+// New returns a new Repo
+func New(c *config.Config, l *log.Logger, t string, rev int) *Repo {
+	// Setup HTTP Client
+	opt := func(c *wporg.Client) {
+		c.HTTPClient = httpClient
+	}
+	api := wporg.NewClient(opt)
+
+	repo := &Repo{
+		cfg:         c,
+		log:         l,
+		api:         api,
+		ExtType:     t,
+		Revision:    rev,
+		List:        make(map[string]*Extension),
+		UpdateQueue: make(chan string, 100000),
+	}
+
+	// Load Existing Data
+	err := repo.load()
+	if err != nil {
+		l.Printf("Repo (%s) could not load data: %s\n", t, err)
+	}
+
+	return repo
 }
 
-func init() {
-	var netTransport = &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-			DualStack: true,
-		}).DialContext,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		MaxIdleConnsPerHost:   runtime.GOMAXPROCS(0) + 1,
+// Len ...
+func (r *Repo) Len() uint64 {
+	return uint64(len(r.List))
+}
+
+// Rev ...
+func (r *Repo) Rev() int {
+	return r.Revision
+}
+
+func (r *Repo) save() error {
+	r.RLock()
+	defer r.RUnlock()
+
+	rev := strconv.Itoa(r.Revision)
+
+	return db.PutToBucket(r.ExtType, []byte(rev), "repos")
+}
+
+func (r *Repo) load() error {
+	bytes, err := db.GetFromBucket(r.ExtType, "repos")
+	if err != nil {
+		return err
 	}
 
-	httpClient = &http.Client{
-		Timeout:   time.Second * time.Duration(120),
-		Transport: netTransport,
+	rev, err := strconv.Atoi(string(bytes))
+	if err != nil || rev != 0 {
+		return err
 	}
+	r.Revision = rev
+	r.log.Printf("Repo loaded revision: %d\n", rev)
+
+	return nil
+}
+
+// Exists ...
+func (r *Repo) Exists(slug string) bool {
+	r.RLock()
+	defer r.RUnlock()
+	_, ok := r.List[slug]
+	return ok
+}
+
+// Get ...
+func (r *Repo) Get(slug string) *Extension {
+	r.RLock()
+	defer r.RUnlock()
+	p := r.List[slug]
+	return p
+}
+
+// Add ...
+func (r *Repo) Add(slug string) {
+	r.Lock()
+	r.List[slug] = NewExt(slug)
+	r.Unlock()
+}
+
+// Set ...
+func (r *Repo) Set(slug string, e *Extension) {
+	r.Lock()
+	defer r.Unlock()
+	r.List[slug] = e
+}
+
+// Remove ...
+func (r *Repo) Remove(slug string) {
+	r.Lock()
+	defer r.Unlock()
+	delete(r.List, slug)
+}
+
+// UpdateIndex ...
+func (r *Repo) UpdateIndex(idx *index.Index) error {
+	var slug string
+	if slug = idx.Ref.Slug; slug == "" {
+		// bad index, perhaps delete?
+		return errors.New("Index contains empty slug")
+	}
+
+	if !r.Exists(slug) {
+		return errors.New("Index does not match an existing plugin")
+	}
+
+	err := r.List[slug].SwapIndexes(idx)
+	if err != nil {
+		r.List[slug].SetStatus(Closed)
+		return err
+	}
+
+	r.List[slug].SetStatus(Open)
+
+	return nil
+}
+
+// QueueUpdate ...
+func (r *Repo) QueueUpdate(slug string) {
+	r.UpdateQueue <- slug
+}
+
+// UpdateWorker ...
+func (r *Repo) UpdateWorker() {
+	for {
+		slug := <-r.UpdateQueue
+		err := r.ProcessUpdate(slug)
+		if err != nil {
+			r.log.Printf("Plugin (%s) Update Failed: %s\n", slug, err)
+		}
+	}
+}
+
+// ProcessUpdate ...
+func (r *Repo) ProcessUpdate(slug string) error {
+	if !r.Exists(slug) {
+		r.Add(slug)
+	}
+	e := r.Get(slug)
+	err := r.updateMeta(e)
+	if err != nil {
+		e.SetStatus(Closed)
+		return err
+	}
+
+	err = r.updateFiles(e)
+	if err != nil {
+		e.SetStatus(Closed)
+		return err
+	}
+
+	e.SetStatus(Open)
+	r.saveExt(e)
+
+	return nil
+}
+
+func (r *Repo) updateMeta(e *Extension) error {
+	e.RLock()
+	slug := e.Slug
+	e.RUnlock()
+
+	bytes, err := r.api.GetInfo(r.ExtType, slug)
+	if err != nil {
+		return err
+	}
+
+	e.Lock()
+	defer e.Unlock()
+	err = json.Unmarshal(bytes, e)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Repo) updateFiles(e *Extension) error {
+	e.RLock()
+	slug := e.Slug
+	e.RUnlock()
+
+	// Download Extension Archive
+	bytes, err := r.getArchive(slug)
+	if err != nil {
+		return err
+	}
+
+	// Index extension using Archive bytes
+	ref, files, err := r.generateIndex(bytes, slug)
+	if err != nil {
+		return err
+	}
+
+	// Update File Stats
+	e.Lock()
+	e.Stats = files
+	e.Unlock()
+
+	// Get Index
+	idx, err := ref.Open()
+	if err != nil {
+		return err
+	}
+
+	// Update Index
+	err = e.SwapIndexes(idx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Repo) getArchive(slug string) ([]byte, error) {
+	var content []byte
+	var err error
+
+	client := client.GetZip()
+	URL := fmt.Sprintf(archiveURL, r.ExtType, slug)
+
+	req, err := http.NewRequest("GET", URL, nil)
+	if err != nil {
+		r.log.Println(err)
+		return content, err
+	}
+
+	// Set User-Agent
+	req.Header.Set("User-Agent", "wpdirectory/0.1.0")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return content, err
+	}
+	defer utils.CheckClose(resp.Body, &err)
+
+	if resp.StatusCode != 200 {
+		// Code 404 is acceptable, it means the plugin/theme is no longer available.
+		if resp.StatusCode == 404 {
+			return content, nil
+		}
+
+		log.Printf("Downloading the extension '%s' failed. Response code: %d\n", slug, resp.StatusCode)
+
+		return content, err
+	}
+
+	content, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return content, err
+	}
+
+	return content, nil
+}
+
+// generateIndex indexes the contents of an archive provided in bytes
+func (r *Repo) generateIndex(archive []byte, slug string) (*index.IndexRef, *filestats.Stats, error) {
+	id := ulid.New()
+	dst := filepath.Join(r.cfg.WD, "data", "index", r.ExtType, id)
+	opts := &index.IndexOptions{
+		ExcludeDotFiles: true,
+	}
+
+	ref, stats, err := index.BuildFromZip(opts, archive, dst, slug)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return ref, stats, nil
+}
+
+// saveExt encodes to JSON and stores in DB
+func (r *Repo) saveExt(e *Extension) error {
+	e.RLock()
+	defer e.RUnlock()
+
+	bytes, err := json.Marshal(e)
+	if err != nil {
+		return err
+	}
+
+	db.PutToBucket(e.Slug, bytes, r.ExtType)
+
+	return nil
+}
+
+// UpdateList updates our Plugin list.
+func (r *Repo) UpdateList() error {
+	// Fetch list from WPOrg API
+	list, err := r.api.GetList(r.ExtType)
+	if err != nil {
+		return err
+	}
+	r.log.Printf("Found %d Extensions\n", len(list))
+
+	for _, ext := range list {
+		if !utf8.Valid([]byte(ext)) {
+			return errors.New("Extension slug is not valid UTF8")
+		}
+		if !r.Exists(ext) {
+			r.Add(ext)
+		}
+	}
+
+	return nil
+}
+
+// StartWorkers starts up Goroutines to process updates
+// Every 15 mins Plugin Repos check the changelog for updates
+// Every 24 hours all Plugins refresh API data
+func (r *Repo) StartWorkers() {
+	// Setup Tickers
+	checkChangelog := time.NewTicker(time.Minute * 15).C
+	checkAPI := time.NewTicker(time.Hour * 48).C
+
+	go func(r *Repo, ticker <-chan time.Time) {
+		for {
+			select {
+			// Check Changlog
+			case <-ticker:
+				latest, err := r.api.GetRevision("plugins")
+				if err != nil {
+					r.log.Printf("Failed getting Plugins Repo revision: %s\n", err)
+				}
+				r.RLock()
+				list, err := r.api.GetChangeLog("plugins", r.Revision, latest)
+				if err != nil {
+					r.log.Printf("Failed getting Plugins Changelog: %s\n", err)
+					r.RUnlock()
+					continue
+				}
+				r.RUnlock()
+
+				for _, slug := range list {
+					r.QueueUpdate(slug)
+				}
+
+				r.Lock()
+				r.Revision = latest
+				r.Unlock()
+
+				err = r.save()
+				if err != nil {
+					r.log.Printf("Failed saving Plugins Repo: %s\n", err)
+					continue
+				}
+			}
+		}
+	}(r, checkChangelog)
+
+	go func(r *Repo, ticker <-chan time.Time) {
+		for {
+			select {
+			// Refresh API Data
+			case <-ticker:
+				exts, err := r.api.GetList("plugins")
+				if err != nil {
+					r.log.Printf("Failed getting Plugins list: %s\n", err)
+				}
+				for _, slug := range exts {
+					if !r.Exists(slug) {
+						r.Add(slug)
+					}
+					e := r.Get(slug)
+					err := r.updateMeta(e)
+					if err != nil {
+						e.SetStatus(Closed)
+					}
+				}
+			}
+		}
+	}(r, checkAPI)
+}
+
+// LoadExisting loading data from DB and then Indexes
+func (r *Repo) LoadExisting() {
+	r.loadDBData()
+	r.loadIndexes()
+}
+
+// loadDBData loads all existing Plugin data from the DB
+func (r *Repo) loadDBData() {
+	exts, err := db.GetAllFromBucket(r.ExtType)
+	if err != nil {
+		return
+	}
+
+	r.log.Printf("Found %d %s in DB\n", len(exts), r.ExtType)
+
+	for slug, bytes := range exts {
+		var e Extension
+		err := json.Unmarshal(bytes, &e)
+		if err != nil {
+			continue
+		}
+		e.Status = Closed
+
+		r.Set(slug, &e)
+	}
+}
+
+// loadIndexes reads all existing Indexes and attempts to match them to a Plugin.
+func (r *Repo) loadIndexes() {
+	indexDir := filepath.Join(r.cfg.WD, "data", "index", r.ExtType)
+
+	dirs, err := ioutil.ReadDir(indexDir)
+	if err != nil {
+		r.log.Printf("Failed to read %s index dir: %s\n", r.ExtType, err)
+		return
+	}
+
+	r.log.Printf("Found %d existing %s indexes\n", len(dirs), r.ExtType)
+
+	var loaded int
+
+	for _, dir := range dirs {
+		// If not Directory discard.
+		if !dir.IsDir() {
+			continue
+		}
+
+		path := filepath.Join(indexDir, dir.Name())
+
+		// Read Index
+		ref, err := index.Read(path)
+		if err != nil {
+			os.RemoveAll(path)
+			continue
+		}
+
+		// Create Index
+		idx, err := ref.Open()
+		if err != nil {
+			os.RemoveAll(path)
+			continue
+		}
+
+		err = r.UpdateIndex(idx)
+		if err != nil {
+			os.RemoveAll(path)
+			continue
+		}
+		loaded++
+	}
+	r.log.Printf("Loaded %d/%d indexes", loaded, len(dirs))
+}
+
+// Summary ...
+func (r *Repo) Summary() *Summary {
+	r.RLock()
+	defer r.RUnlock()
+
+	rs := &Summary{
+		Revision: r.Revision,
+		Total:    len(r.List),
+		Queue:    len(r.UpdateQueue),
+	}
+
+	for _, e := range r.List {
+		e.RLock()
+		if e.Status == Closed {
+			rs.Closed++
+		}
+		e.RUnlock()
+	}
+
+	return rs
 }
