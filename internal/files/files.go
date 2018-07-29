@@ -9,25 +9,25 @@ import (
 
 // Stats contains
 type Stats struct {
-	Files      []File
-	TotalFiles int
-	TotalSize  int64
-	Summary    Summary
+	Files      []File  `json:"files"`
+	TotalFiles int     `json:"total_files"`
+	TotalSize  int64   `json:"total_size"`
+	Summary    Summary `json:"summary"`
 	sync.RWMutex
 }
 
 // File contains basic data about a specific file
 type File struct {
-	Name      string
-	Extension string
-	Size      int64
+	Name      string `json:"name"`
+	Extension string `json:"extension"`
+	Size      int64  `json:"size"`
 }
 
 // Summary contains an overview of the PHP/JS and CSS files contained
 type Summary struct {
-	PHP uint8
-	JS  uint8
-	CSS uint8
+	PHP uint8 `json:"php"`
+	JS  uint8 `json:"js"`
+	CSS uint8 `json:"css"`
 }
 
 // New returns an empty FileStats struct
