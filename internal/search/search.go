@@ -171,11 +171,14 @@ func (sm *Manager) processSearch(ID string) error {
 		break
 	default:
 		return errors.New("Not a valid respository name")
-		break
 	}
 
 	total = r.Len()
 	for _, e := range r.List {
+		// Limit to 50000 matches
+		if totalMatches > 50000 {
+			break
+		}
 		current++
 		sm.Lock()
 		srch.Progress = uint32(math.Round((float64(current) / float64(total)) * 100.00))
