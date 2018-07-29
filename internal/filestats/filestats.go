@@ -1,4 +1,4 @@
-package files
+package filestats
 
 import (
 	"archive/zip"
@@ -64,15 +64,15 @@ func (s *Stats) GenerateSummary() {
 	var php, js, css, total int64
 	for _, file := range s.Files {
 		switch file.Extension {
-		case "php":
+		case ".php":
 			php += file.Size
 			total += file.Size
 			break
-		case "js":
+		case ".js":
 			js += file.Size
 			total += file.Size
 			break
-		case "css":
+		case ".css":
 			css += file.Size
 			total += file.Size
 			break
@@ -82,8 +82,8 @@ func (s *Stats) GenerateSummary() {
 		return
 	}
 	s.Summary = Summary{
-		PHP: uint8((php / total) * 100),
-		JS:  uint8((js / total) * 100),
-		CSS: uint8((css / total) * 100),
+		PHP: uint8((float64(php) / float64(total)) * 100),
+		JS:  uint8((float64(js) / float64(total)) * 100),
+		CSS: uint8((float64(css) / float64(total)) * 100),
 	}
 }

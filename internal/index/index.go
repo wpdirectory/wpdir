@@ -17,7 +17,7 @@ import (
 
 	"github.com/wpdirectory/wpdir/internal/codesearch/index"
 	"github.com/wpdirectory/wpdir/internal/codesearch/regexp"
-	"github.com/wpdirectory/wpdir/internal/files"
+	"github.com/wpdirectory/wpdir/internal/filestats"
 )
 
 const (
@@ -563,7 +563,7 @@ func Build(opt *IndexOptions, dst, src, slug, rev string) (*IndexRef, error) {
 }
 
 // BuildFromZip ...
-func BuildFromZip(opt *IndexOptions, archive []byte, dst, slug string) (*IndexRef, *files.Stats, error) {
+func BuildFromZip(opt *IndexOptions, archive []byte, dst, slug string) (*IndexRef, *filestats.Stats, error) {
 
 	zr, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
 	if err != nil {
@@ -596,7 +596,7 @@ func BuildFromZip(opt *IndexOptions, archive []byte, dst, slug string) (*IndexRe
 	return r, stats, nil
 }
 
-func indexAllZipFiles(opt *IndexOptions, dst string, zfiles []*zip.File) (*files.Stats, error) {
+func indexAllZipFiles(opt *IndexOptions, dst string, zfiles []*zip.File) (*filestats.Stats, error) {
 	ix := index.Create(filepath.Join(dst, "tri"))
 	defer ix.Close()
 
@@ -670,7 +670,7 @@ func indexAllZipFiles(opt *IndexOptions, dst string, zfiles []*zip.File) (*files
 		return nil
 	}
 
-	stats := files.New()
+	stats := filestats.New()
 	for _, file := range zfiles {
 		if err = processFile(file.Name, file); err != nil {
 			return nil, err
