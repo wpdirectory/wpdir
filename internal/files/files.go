@@ -3,7 +3,6 @@ package files
 import (
 	"archive/zip"
 	"path/filepath"
-	"strings"
 	"sync"
 )
 
@@ -47,7 +46,7 @@ func (s *Stats) AddFile(zf *zip.File) {
 	defer s.RUnlock()
 	file := File{
 		Name:      f.Name(),
-		Extension: strings.TrimSuffix(f.Name(), filepath.Ext(f.Name())),
+		Extension: filepath.Ext(f.Name()),
 		Size:      f.Size(),
 	}
 	s.TotalFiles++
