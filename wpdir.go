@@ -16,7 +16,6 @@ import (
 )
 
 func main() {
-
 	// Set and Parse flags
 	flagHelp := flag.Bool("help", false, "")
 	flag.Parse()
@@ -28,9 +27,6 @@ func main() {
 
 	fmt.Println("Starting WPDirectory")
 
-	// Setup Stats.
-	//stats.Setup()
-
 	// Create Logger
 	l := log.New()
 
@@ -38,7 +34,7 @@ func main() {
 	c := config.Setup()
 
 	// Ensure Directory Structure Exists
-	mkdir(c.WD)
+	mkdirs(c.WD)
 
 	//err := certs.Get(c.DNS.Email, c.DNS.APIKey)
 	//panic(err)
@@ -60,9 +56,9 @@ func main() {
 
 	l.Printf("Shutting down WPdir...\n")
 
-	ctx, _ := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
 	s.Shutdown(ctx)
-
 }
 
 const (
@@ -80,8 +76,7 @@ Config:
   WPDirectory requires a config file, located at /etc/wpdir/ or in the working directory, to successfully run. See the example-config.yml.`
 )
 
-func mkdir(wd string) {
-
+func mkdirs(wd string) {
 	db := filepath.Join(wd, "data", "db")
 	os.MkdirAll(db, os.ModePerm)
 
@@ -90,5 +85,4 @@ func mkdir(wd string) {
 
 	themes := filepath.Join(wd, "data", "index", "themes")
 	os.MkdirAll(themes, os.ModePerm)
-
 }
