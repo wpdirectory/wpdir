@@ -10,9 +10,5 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# Ignore test data for now
-/testdata/
-/test/
-
 # Ignore frontend development modules
 */node_modules/
