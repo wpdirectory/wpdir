@@ -12,10 +12,8 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/wpdirectory/wpdir/internal/db"
-	"github.com/wpdirectory/wpdir/internal/plugin"
 	"github.com/wpdirectory/wpdir/internal/repo"
 	"github.com/wpdirectory/wpdir/internal/search"
-	"github.com/wpdirectory/wpdir/internal/theme"
 )
 
 type errResponse struct {
@@ -110,6 +108,8 @@ func (s *Server) getSearch() http.HandlerFunc {
 				writeResp(w, resp)
 				return
 			}
+
+			srch.Status = search.Completed
 
 			writeResp(w, srch)
 		} else {
@@ -398,7 +398,7 @@ func (s *Server) getPlugin() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if slug := chi.URLParam(r, "slug"); slug != "" {
-			p := s.Manager.Plugins.Get(slug).(*plugin.Plugin)
+			p := s.Manager.Plugins.Get(slug)
 			writeResp(w, p)
 		} else {
 			var resp errResponse
@@ -412,7 +412,7 @@ func (s *Server) getPlugin() http.HandlerFunc {
 func (s *Server) getTheme() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if slug := chi.URLParam(r, "slug"); slug != "" {
-			t := s.Manager.Themes.Get(slug).(*theme.Theme)
+			t := s.Manager.Themes.Get(slug)
 			writeResp(w, t)
 		} else {
 			var resp errResponse

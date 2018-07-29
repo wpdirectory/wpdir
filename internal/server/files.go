@@ -6,30 +6,29 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/wpdirectory/wpdir/internal/plugin"
-	"github.com/wpdirectory/wpdir/internal/theme"
+	"github.com/wpdirectory/wpdir/internal/repo"
 )
 
-func (s *Server) getFilePath(repo, slug, file string) (string, error) {
+func (s *Server) getFilePath(repository, slug, file string) (string, error) {
 
 	// Protect against directory traversal attacks
-	if containsDotDot(repo) || containsDotDot(slug) || containsDotDot(file) {
+	if containsDotDot(repository) || containsDotDot(slug) || containsDotDot(file) {
 		return "", errors.New("Paths must not include '..'")
 	}
 
-	switch repo {
+	switch repository {
 	case "plugins":
 		if !s.Manager.Plugins.Exists(slug) {
 			return "", errors.New("No matching plugin")
 		}
-		p := s.Manager.Plugins.Get(slug).(*plugin.Plugin)
-		if !p.HasIndex() {
-			return "", errors.New("Plugin has no indexed files")
+		p := s.Manager.Plugins.Get(slug)
+		if p.Status != repo.Open {
+			return "", errors.New("Plugin is Closed")
 		}
 
-		p.Searcher.Lock.RLock()
-		dir := p.Searcher.Dir()
-		p.Searcher.Lock.RUnlock()
+		p.RLock()
+		dir := p.Dir()
+		p.RUnlock()
 
 		path := filepath.Join(dir, "raw", file)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -43,14 +42,14 @@ func (s *Server) getFilePath(repo, slug, file string) (string, error) {
 			return "", errors.New("No matching theme")
 		}
 
-		t := s.Manager.Themes.Get(slug).(*theme.Theme)
-		if !t.HasIndex() {
+		t := s.Manager.Themes.Get(slug)
+		if t.Status != repo.Open {
 			return "", errors.New("Theme has no indexed files")
 		}
 
-		t.Searcher.Lock.RLock()
-		dir := t.Searcher.Dir()
-		t.Searcher.Lock.RUnlock()
+		t.RLock()
+		dir := t.Dir()
+		t.RUnlock()
 
 		path := filepath.Join(dir, "raw", file)
 		if _, err := os.Stat(path); os.IsNotExist(err) {

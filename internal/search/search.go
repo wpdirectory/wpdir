@@ -11,10 +11,8 @@ import (
 
 	"github.com/wpdirectory/wpdir/internal/db"
 	"github.com/wpdirectory/wpdir/internal/index"
-	"github.com/wpdirectory/wpdir/internal/plugin"
 	"github.com/wpdirectory/wpdir/internal/repo"
 	"github.com/wpdirectory/wpdir/internal/search/queue"
-	"github.com/wpdirectory/wpdir/internal/theme"
 	"github.com/wpdirectory/wpdir/internal/ulid"
 )
 
@@ -22,8 +20,8 @@ import (
 type Manager struct {
 	Queue   *queue.Queue
 	List    map[string]*Search
-	Plugins *repo.PluginRepo
-	Themes  *repo.ThemeRepo
+	Plugins *repo.Repo
+	Themes  *repo.Repo
 	sync.RWMutex
 }
 
@@ -162,133 +160,77 @@ func (sm *Manager) processSearch(ID string) error {
 
 	var wg sync.WaitGroup
 
+	var r *repo.Repo
+
 	switch srch.Repo {
 	case "plugins":
-		pr := sm.Plugins
-		total = pr.Len()
-		for _, p := range pr.List {
-			current++
-			sm.Lock()
-			srch.Progress = uint32(math.Round((float64(current) / float64(total)) * 100.00))
-			srch.Matches = uint32(totalMatches)
-			sm.Unlock()
-			if p.HasIndex() == false || p.Status != plugin.Open {
-				continue
-			}
-			wg.Add(1)
-			limiter <- struct{}{}
-
-			go func(p *plugin.Plugin, input string, sum *SummaryList, matchlist *MatchList, totalMatches *uint64, wg *sync.WaitGroup) {
-				p.RLock()
-				defer p.RUnlock()
-				resp, err := p.Searcher.Search(input, p.Slug, opts)
-				if err != nil || len(resp.Matches) == 0 {
-					wg.Done()
-					<-limiter
-					return
-				}
-				var pMatches uint64
-				for i := 0; i < len(resp.Matches); i++ {
-					if resp.Matches[i].Matches == nil {
-						continue
-					}
-					pMatches = uint64(len(resp.Matches[i].Matches))
-					atomic.AddUint64(totalMatches, pMatches)
-					ms := &Matches{}
-					for j := 0; j < len(resp.Matches[i].Matches); j++ {
-						m := &Match{
-							Slug:     p.Slug,
-							File:     resp.Matches[i].Filename,
-							LineNum:  uint32(resp.Matches[i].Matches[j].LineNumber),
-							LineText: resp.Matches[i].Matches[j].Line,
-						}
-						ms.List = append(ms.List, m)
-					}
-					matchList.Lock()
-					matchList.List[p.Slug] = ms
-					matchList.Unlock()
-				}
-				r := &Result{
-					Slug:           p.Slug,
-					Name:           p.Name,
-					Version:        p.Version,
-					Homepage:       p.Homepage,
-					ActiveInstalls: uint32(p.ActiveInstalls),
-					Matches:        uint32(pMatches),
-				}
-				sum.Lock()
-				sum.List[p.Slug] = r
-				sum.Unlock()
-				wg.Done()
-				<-limiter
-			}(p, input, sum, matchList, &totalMatches, &wg)
-		}
-
+		r = sm.Plugins
 		break
 	case "themes":
-		tr := sm.Themes
-		total = tr.Len()
-		for _, t := range tr.List {
-			current++
-			sm.Lock()
-			srch.Progress = uint32(math.Round((float64(current) / float64(total)) * 100.00))
-			srch.Matches = uint32(totalMatches)
-			sm.Unlock()
-			if t.HasIndex() == false || t.Status != theme.Open {
-				continue
-			}
-			wg.Add(1)
-			limiter <- struct{}{}
-
-			go func(t *theme.Theme, input string, sum *SummaryList, matchlist *MatchList, totalMatches *uint64, wg *sync.WaitGroup) {
-				t.RLock()
-				defer t.RUnlock()
-				resp, err := t.Searcher.Search(input, t.Slug, opts)
-				if err != nil || len(resp.Matches) == 0 {
-					wg.Done()
-					<-limiter
-					return
-				}
-				var tMatches uint64
-				for i := 0; i < len(resp.Matches); i++ {
-					if resp.Matches[i].Matches == nil {
-						continue
-					}
-					tMatches = uint64(len(resp.Matches[i].Matches))
-					atomic.AddUint64(totalMatches, tMatches)
-					ms := &Matches{}
-					for j := 0; j < len(resp.Matches[i].Matches); j++ {
-						m := &Match{
-							Slug:     t.Slug,
-							File:     resp.Matches[i].Filename,
-							LineNum:  uint32(resp.Matches[i].Matches[j].LineNumber),
-							LineText: resp.Matches[i].Matches[j].Line,
-						}
-						ms.List = append(ms.List, m)
-					}
-					matchList.Lock()
-					matchList.List[t.Slug] = ms
-					matchList.Unlock()
-				}
-				r := &Result{
-					Slug:           t.Slug,
-					Name:           t.Name,
-					Version:        t.Version,
-					Homepage:       t.Homepage,
-					ActiveInstalls: uint32(t.ActiveInstalls),
-					Matches:        uint32(tMatches),
-				}
-				sum.Lock()
-				sum.List[t.Slug] = r
-				sum.Unlock()
-				wg.Done()
-				<-limiter
-			}(t, input, sum, matchList, &totalMatches, &wg)
-		}
-
+		r = sm.Themes
 		break
 	default:
 		return errors.New("Not a valid respository name")
+		break
+	}
+
+	total = r.Len()
+	for _, e := range r.List {
+		current++
+		sm.Lock()
+		srch.Progress = uint32(math.Round((float64(current) / float64(total)) * 100.00))
+		srch.Matches = uint32(totalMatches)
+		sm.Unlock()
+		if e.Status != repo.Open {
+			continue
+		}
+		wg.Add(1)
+		limiter <- struct{}{}
+
+		go func(e *repo.Extension, input string, sum *SummaryList, matchlist *MatchList, totalMatches *uint64, wg *sync.WaitGroup) {
+			e.RLock()
+			defer e.RUnlock()
+			resp, err := e.Search(input, e.Slug, opts)
+			if err != nil || len(resp.Matches) == 0 {
+				wg.Done()
+				<-limiter
+				return
+			}
+			var eMatches uint64
+			for i := 0; i < len(resp.Matches); i++ {
+				if resp.Matches[i].Matches == nil {
+					continue
+				}
+				eMatches = uint64(len(resp.Matches[i].Matches))
+				atomic.AddUint64(totalMatches, eMatches)
+				ms := &Matches{}
+				for j := 0; j < len(resp.Matches[i].Matches); j++ {
+					m := &Match{
+						Slug:     e.Slug,
+						File:     resp.Matches[i].Filename,
+						LineNum:  uint32(resp.Matches[i].Matches[j].LineNumber),
+						LineText: resp.Matches[i].Matches[j].Line,
+					}
+					ms.List = append(ms.List, m)
+				}
+				matchList.Lock()
+				matchList.List[e.Slug] = ms
+				matchList.Unlock()
+			}
+			r := &Result{
+				Slug:           e.Slug,
+				Name:           e.Name,
+				Version:        e.Version,
+				Homepage:       e.Homepage,
+				ActiveInstalls: uint32(e.ActiveInstalls),
+				Matches:        uint32(eMatches),
+			}
+			sum.Lock()
+			sum.List[e.Slug] = r
+			sum.Unlock()
+			wg.Done()
+			<-limiter
+		}(e, input, sum, matchList, &totalMatches, &wg)
 	}
 
 	wg.Wait()

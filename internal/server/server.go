@@ -25,8 +25,8 @@ type Server struct {
 func New(log *log.Logger, config *config.Config) *Server {
 
 	// Init Repos
-	pr := repo.New("plugins", config, log)
-	tr := repo.New("themes", config, log)
+	pr := repo.New(config, log, "plugins", 1904883)
+	tr := repo.New(config, log, "themes", 96064)
 
 	// Load Existing from DB
 	pr.LoadExisting()
@@ -43,8 +43,8 @@ func New(log *log.Logger, config *config.Config) *Server {
 	}
 
 	sm := search.NewManager()
-	sm.Plugins = pr.(*repo.PluginRepo)
-	sm.Themes = tr.(*repo.ThemeRepo)
+	sm.Plugins = pr
+	sm.Themes = tr
 
 	// Debug Delete Searches
 	// Need to reset after break code changes
@@ -58,9 +58,9 @@ func New(log *log.Logger, config *config.Config) *Server {
 
 	// Start Workers
 	go pr.UpdateWorker()
-	pr.StartWorkers()
+	//pr.StartWorkers()
 	go tr.UpdateWorker()
-	tr.StartWorkers()
+	//tr.StartWorkers()
 
 	// Start Worker to Process Searches
 	go sm.Worker()
