@@ -1,4 +1,4 @@
-<p align="center"><img src="web/public/static/assets/horizontal.svg" alt="wpdir" height="120px"></p>
+<p align="center"><img src="web/public/assets/horizontal.svg" alt="wpdir" height="120px"></p>
 <p align="center"><strong>Lightning fast searching of the WordPress Plugin &#38; Theme Repositories.</strong></p>
 
 [![License](https://img.shields.io/badge/license-MIT-red.svg)](https://github.com/wpdirectory/wpdir/blob/master/LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/wpdirectory/wpdir)](https://goreportcard.com/report/github.com/wpdirectory/wpdir) [![Build Status](https://travis-ci.org/wpdirectory/wpdir.svg?branch=master)](https://travis-ci.org/wpdirectory/wpdir)
