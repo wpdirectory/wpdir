@@ -57,10 +57,7 @@ func New(log *log.Logger, config *config.Config) *Server {
 	}
 
 	// Start Workers
-	go pr.UpdateWorker()
-	//pr.StartWorkers()
-	go tr.UpdateWorker()
-	//tr.StartWorkers()
+	repo.StartUpdateWorkers(4, pr, tr, log)
 
 	// Start Worker to Process Searches
 	go sm.Worker()

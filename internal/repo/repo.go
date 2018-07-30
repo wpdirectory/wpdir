@@ -33,7 +33,7 @@ type Repo struct {
 	ExtType     string
 	Revision    int
 	Updated     time.Time
-	UpdateQueue chan string
+	UpdateQueue chan UpdateRequest
 
 	sync.RWMutex
 	List map[string]*Extension
@@ -66,7 +66,7 @@ func New(c *config.Config, l *log.Logger, t string, rev int) *Repo {
 		ExtType:     t,
 		Revision:    rev,
 		List:        make(map[string]*Extension),
-		UpdateQueue: make(chan string, 100000),
+		UpdateQueue: updateQueue,
 	}
 
 	// Load Existing Data
@@ -175,18 +175,11 @@ func (r *Repo) UpdateIndex(idx *index.Index) error {
 
 // QueueUpdate ...
 func (r *Repo) QueueUpdate(slug string) {
-	r.UpdateQueue <- slug
-}
-
-// UpdateWorker ...
-func (r *Repo) UpdateWorker() {
-	for {
-		slug := <-r.UpdateQueue
-		err := r.ProcessUpdate(slug)
-		if err != nil {
-			r.log.Printf("Plugin (%s) Update Failed: %s\n", slug, err)
-		}
+	ur := UpdateRequest{
+		Slug: slug,
+		Repo: r.ExtType,
 	}
+	r.UpdateQueue <- ur
 }
 
 // ProcessUpdate ...
