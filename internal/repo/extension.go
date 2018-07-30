@@ -68,7 +68,7 @@ const (
 	Closed
 )
 
-// New returns a new Extension.
+// NewExt returns a new Extension.
 func NewExt(slug string) *Extension {
 	return &Extension{
 		Slug:   slug,
