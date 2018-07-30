@@ -75,19 +75,33 @@ func (s *Server) getSearch() http.HandlerFunc {
 		ID        string               `json:"id"`
 		Input     string               `json:"input"`
 		Repo      string               `json:"repo"`
-		Matches   int                  `json:"matches"`
+		Matches   uint32               `json:"matches"`
 		Started   string               `json:"started,omitempty"`
 		Completed string               `json:"completed,omitempty"`
 		Progress  uint32               `json:"progress"`
 		Status    search.Search_Status `json:"status"`
+		QueuePos  int                  `json:"queue_pos"`
 		Opts      search.Options       `json:"options"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if searchID := chi.URLParam(r, "id"); searchID != "" {
 			if s.Manager.Exists(searchID) {
+				var resp getSearchResponse
 				srch := s.Manager.Get(searchID)
-				writeResp(w, srch)
+
+				resp.ID = srch.ID
+				resp.Input = srch.Input
+				resp.Repo = srch.Repo
+				resp.Matches = srch.Matches
+				resp.Started = srch.Started
+				resp.Completed = srch.Completed
+				resp.Progress = srch.Progress
+				resp.Status = srch.Status
+				resp.QueuePos = s.Manager.Queue.Pos(searchID)
+				resp.Opts = *srch.Options
+
+				writeResp(w, resp)
 				return
 			}
 
