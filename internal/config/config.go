@@ -3,18 +3,26 @@ package config
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/spf13/viper"
 )
 
 // Config contains useful App data.
 type Config struct {
-	Version string
-	Name    string
-	Commit  string
-	Date    string
-	WD      string
-	Ports   struct {
+	Version       string
+	Name          string
+	Commit        string
+	Date          string
+	WD            string
+	UpdateWorkers int
+	SearchWorkers int
+	DNS           struct {
+		Email  string
+		APIKey string
+	}
+	Host  string
+	Ports struct {
 		HTTP  string
 		HTTPS string
 	}
@@ -27,6 +35,9 @@ func Setup() *Config {
 	viper.SetDefault("name", "WP Directory")
 	viper.SetDefault("commit", "")
 	viper.SetDefault("date", "")
+	viper.SetDefault("updateworkers", 4)
+	viper.SetDefault("searchworkers", 6)
+	viper.SetDefault("host", "http://localhost")
 	viper.SetDefault("ports.http", "80")
 	viper.SetDefault("ports.https", "443")
 
@@ -46,11 +57,14 @@ func Setup() *Config {
 	}
 
 	config := &Config{
-		Version: viper.GetString("version"),
-		Name:    viper.GetString("name"),
-		Commit:  viper.GetString("commit"),
-		Date:    viper.GetString("date"),
-		WD:      wd,
+		Version:       "0.5.0",
+		Name:          viper.GetString("name"),
+		Commit:        "dgfsdghfisdfdsfsdf",
+		Date:          time.Now().Format(time.RFC3339Nano),
+		WD:            wd,
+		UpdateWorkers: viper.GetInt("updateworkers"),
+		SearchWorkers: viper.GetInt("searchworkers"),
+		Host:          viper.GetString("host"),
 	}
 
 	config.Ports.HTTP = viper.GetString("ports.http")
