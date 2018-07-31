@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -36,7 +37,7 @@ func (s *Server) startHTTP() {
 	// TODO: Remove this for prod?
 	cors := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
@@ -47,6 +48,47 @@ func (s *Server) startHTTP() {
 	FileServer(s.Router, "/assets")
 
 	s.routes()
+
+	cert := filepath.Join(s.Config.WD, "certs", "wpdirectory.net.crt")
+	key := filepath.Join(s.Config.WD, "certs", "wpdirectory.net.key")
+
+	// Serve HTTP if no cert found, HTTPS otherwise
+	if _, err := os.Stat(cert); os.IsNotExist(err) {
+		s.Logger.Println("No certs found, serving on HTTP Port")
+		s.serveHTTP()
+	} else {
+		s.Logger.Println("Found certs, serving on HTTP and HTTPS Ports")
+		s.serveHTTPS(cert, key)
+	}
+}
+
+func (s *Server) serveHTTP() {
+	s.http = &http.Server{
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+		Handler:      s.Router,
+		Addr:         ":" + s.Config.Ports.HTTP,
+	}
+	go func() { log.Fatal(s.http.ListenAndServe()) }()
+}
+
+func (s *Server) serveHTTPS(cert, key string) {
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{
+			tls.CurveP256,
+			tls.X25519,
+		},
+		MinVersion: tls.VersionTLS12,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		},
+	}
 
 	s.http = &http.Server{
 		ReadTimeout:  5 * time.Second,
@@ -65,16 +107,11 @@ func (s *Server) startHTTP() {
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
-		TLSConfig:    tlsConfig(),
+		TLSConfig:    tlsConfig,
 		Handler:      s.Router,
 		Addr:         ":" + s.Config.Ports.HTTPS,
 	}
-
-	cert := filepath.Join(s.Config.WD, "certs", "wpdirectory.net.crt")
-	key := filepath.Join(s.Config.WD, "certs", "wpdirectory.net.key")
-
 	go func() { log.Fatal(s.https.ListenAndServeTLS(cert, key)) }()
-
 }
 
 func (s *Server) routes() {
@@ -160,34 +197,4 @@ func writeError(w http.ResponseWriter, err error, status int) {
 	writeJSON(w, map[string]string{
 		"Error": err.Error(),
 	}, status)
-}
-
-// Setup the TLS/SSL configuration.
-func tlsConfig() *tls.Config {
-
-	return &tls.Config{
-		// Causes servers to use Go's default ciphersuite preferences,
-		// which are tuned to avoid attacks. Does nothing on clients.
-		PreferServerCipherSuites: true,
-		// Only use curves which have assembly implementations
-		CurvePreferences: []tls.CurveID{
-			tls.CurveP256,
-			tls.X25519, // Go 1.8 only
-		},
-		MinVersion: tls.VersionTLS12,
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305, // Go 1.8 only
-			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,   // Go 1.8 only
-			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-
-			// Best disabled, as they don't provide Forward Secrecy,
-			// but might be necessary for some clients
-			// tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			// tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
-		},
-	}
-
 }
