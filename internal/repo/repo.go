@@ -105,14 +105,10 @@ func (r *Repo) load() error {
 		return err
 	}
 
-	r.log.Printf("Rev Bytes: %s\n", string(bytes))
-
 	rev, err := strconv.Atoi(string(bytes))
 	if err != nil || rev == 0 {
 		return err
 	}
-
-	r.log.Printf("Rev Int: %d\n", rev)
 
 	r.Lock()
 	r.Revision = rev
