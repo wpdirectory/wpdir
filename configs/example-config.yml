@@ -1,9 +1,7 @@
 # WPdirectory Example Config
-workers: 50
-buffersize: 200
-datadir: data
-indexdir: index
-standalone: false # if true overwrites ports to 80/443
+host: http://localhost/
+updateworkers: 2
+searchworkers: 6
 ports:
   http: 11001
   https: 11002
