@@ -15,9 +15,16 @@ import (
 	"github.com/wpdirectory/wpdir/internal/server"
 )
 
+var (
+	Version string
+	Commit  string
+	Date    string
+)
+
 func main() {
 	// Set and Parse flags
-	flagHelp := flag.Bool("help", false, "")
+	flagHelp := flag.Bool("help", false, "Display help information")
+	flagFresh := flag.Bool("fresh", false, "Begin with fresh data load")
 	flag.Parse()
 
 	if *flagHelp {
@@ -33,18 +40,19 @@ func main() {
 	// Create Config
 	c := config.Setup()
 
+	l.Printf("Hostname: %s\n", c.Host)
+
+	//l.Printf("Version: %s Commit: %s Date: %s\n", Version, Commit, Date)
+
 	// Ensure Directory Structure Exists
 	mkdirs(c.WD)
-
-	//err := certs.Get(c.DNS.Email, c.DNS.APIKey)
-	//panic(err)
 
 	// Setup BoltDB
 	db.Setup(c.WD)
 	defer db.Close()
 
 	// Setup server struct to hold all App data
-	s := server.New(l, c)
+	s := server.New(l, c, flagFresh)
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
