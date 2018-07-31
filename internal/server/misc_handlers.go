@@ -3,6 +3,7 @@ package server
 import (
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/wpdirectory/wpdir/internal/data"
 )
@@ -30,6 +31,8 @@ func (s *Server) static() http.HandlerFunc {
 		if err != nil && err != io.EOF {
 			s.Logger.Fatalf("Failed to read index.html: %s\n", err)
 		}
+
+		buffer = []byte(strings.Replace(string(buffer), "%HOSTNAME%", s.Config.Host, 1))
 
 		w.Write(buffer)
 	}
