@@ -30,7 +30,7 @@ class SearchForm extends Component {
     handleSubmit = (event) => {
       event.preventDefault();
       console.log(this.state)
-      this.postData('https://wpdirectory.net/api/v1/search/new', {input: this.state.input, target: this.state.target, private: this.state.private})
+      this.postData(window.wpdirHost + '/api/v1/search/new', {input: this.state.input, target: this.state.target, private: this.state.private})
         .then(data => {
             console.log(data)
             this.props.history.push('/search/' + data.id)

@@ -18,7 +18,7 @@ class Modal extends Component {
   }
 
   componentWillMount = () => {
-    fetch('https://wpdirectory.net/api/v1/file', {
+    fetch(window.wpdirHost + '/api/v1/file', {
       body: JSON.stringify({repo: this.props.repo, slug: this.props.match.slug, file: this.props.match.file}),
       cache: 'no-cache',
       credentials: 'same-origin',

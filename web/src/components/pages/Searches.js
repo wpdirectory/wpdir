@@ -17,7 +17,7 @@ class Searches extends Component {
 
   componentWillMount = () => {
 
-    fetch('https://wpdirectory.net/api/v1/searches/100')
+    fetch(window.wpdirHost + '/api/v1/searches/100')
     .then( response => {
       return response.json()
       

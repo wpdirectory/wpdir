@@ -12,7 +12,7 @@ class Repos extends Component {
 
   componentWillMount = () => {
 
-    fetch('https://wpdirectory.net/api/v1/repos/overview')
+    fetch(window.wpdirHost + '/api/v1/repos/overview')
     .then( response => {
       return response.json()
     })

@@ -12,7 +12,7 @@ class Matches extends Component {
   }
 
   componentWillMount = () => {
-    fetch('https://wpdirectory.net/api/v1/search/matches/' + this.props.id + '/' + this.props.slug)
+    fetch(window.wpdirHost + '/api/v1/search/matches/' + this.props.id + '/' + this.props.slug)
     .then( response => {
       return response.json()
       

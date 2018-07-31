@@ -14,7 +14,7 @@ class Home extends Component {
 
   componentWillMount = () => {
 
-    fetch('https://wpdirectory.net/api/v1/searches/10')
+    fetch(window.wpdirHost + '/api/v1/searches/10')
     .then( response => {
       return response.json()
       

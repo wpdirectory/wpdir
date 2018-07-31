@@ -27,7 +27,7 @@ class Search extends Component {
 
   componentWillMount = () => {
 
-    fetch('https://wpdirectory.net/api/v1/search/' + this.props.match.params.id)
+    fetch(window.wpdirHost + '/api/v1/search/' + this.props.match.params.id)
     .then( response => {
       return response.json()
       
@@ -51,7 +51,7 @@ class Search extends Component {
   }
 
   refreshData = () => {
-    fetch('https://wpdirectory.net/api/v1/search/' + this.props.match.params.id)
+    fetch(window.wpdirHost + '/api/v1/search/' + this.props.match.params.id)
     .then( response => {
       return response.json()
       

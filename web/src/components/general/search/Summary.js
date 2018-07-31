@@ -12,12 +12,14 @@ class Summary extends Component {
       items: [],
       sorting: 'installs',
       desc: true,
+      currentPage: 1,
+      perPage: 250,
       isLoading: true,
     }
   }
 
   componentWillMount = () => {
-    fetch('https://wpdirectory.net/api/v1/search/summary/' + this.props.id)
+    fetch(window.wpdirHost + '/api/v1/search/summary/' + this.props.id)
     .then( response => {
       return response.json()
     })
@@ -105,10 +107,35 @@ class Summary extends Component {
     }
   }
 
+  prevPage = () => {
+    this.setState((prevState) => ({
+      currentPage: prevState.currentPage - 1,
+    }))
+  }
+
+  nextPage = () => {
+    this.setState((prevState) => ({
+      currentPage: prevState.currentPage + 1,
+    }))
+  }
+
   render() {
+    const { 
+      items,
+      currentPage,
+      perPage
+    } = this.state
+
+    console.log(currentPage)
+
+    const indexOfLastItem = currentPage * perPage
+    const indexOfFirstItem = indexOfLastItem - perPage
+    const currentItems = items.slice(indexOfFirstItem, indexOfLastItem)
+    const numPages = items.length / perPage
+
     let summaryItems
     if ( !!this.state.items && this.state.items.length && this.state.items.length > 0 ) {
-      summaryItems = this.state.items.map( (item, key) => {
+      summaryItems = currentItems.map( (item, key) => {
         return (
           <Item repo={this.props.repo} id={this.state.id} item={item} close={this.state.forceClose} key={key} />
         )
@@ -118,14 +145,22 @@ class Summary extends Component {
     }
 
     return (
-	    <ul className="accordion summary">
-        <li className="header">
-          <button className="name" onClick={this.sortByName}>Name{this.sortIcon('name')}</button>
-          <button className="installs" onClick={this.sortByInstalls}>Installs{this.sortIcon('installs')}</button>
-          <button className="matches" onClick={this.sortByMatches}>Matches{this.sortIcon('matches')}</button>
-        </li>
-        {summaryItems}
-      </ul>
+      <div>
+        <ul className="accordion summary">
+          <li className="header">
+            <button className="name" onClick={this.sortByName}>Name{this.sortIcon('name')}</button>
+            <button className="installs" onClick={this.sortByInstalls}>Installs{this.sortIcon('installs')}</button>
+            <button className="matches" onClick={this.sortByMatches}>Matches{this.sortIcon('matches')}</button>
+          </li>
+          {summaryItems}
+        </ul>
+        <nav aria-label="Pagination">
+          <ul className="pagination text-center">
+            <li className="pagination-previous"><button aria-label="Previous page" onClick={this.prevPage}>Previous <span className="show-for-sr">page</span></button></li>
+            <li className="pagination-next"><button aria-label="Next page" onClick={this.nextPage}>Next <span className="show-for-sr">page</span></button></li>
+          </ul>
+        </nav>
+      </div>
 	  );
   }
 }
