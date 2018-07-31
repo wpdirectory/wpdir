@@ -22,27 +22,27 @@ type Server struct {
 }
 
 // New returns a pointer to the main server struct
-func New(log *log.Logger, config *config.Config) *Server {
+func New(log *log.Logger, config *config.Config, fresh *bool) *Server {
 
 	// Init Repos
-	pr := repo.New(config, log, "plugins", 1904883)
-	tr := repo.New(config, log, "themes", 96064)
+	pr := repo.New(config, log, "plugins", 0)
+	tr := repo.New(config, log, "themes", 0)
 
 	// Load Existing from DB
 	pr.LoadExisting()
 	tr.LoadExisting()
 
 	// Initial List
-	err := pr.UpdateList()
+	err := pr.UpdateList(fresh)
 	if err != nil {
 		log.Fatalf("Could not get initial plugin list")
 	}
-	err = tr.UpdateList()
+	err = tr.UpdateList(fresh)
 	if err != nil {
 		log.Fatalf("Could not get initial theme list")
 	}
 
-	sm := search.NewManager()
+	sm := search.NewManager(config.SearchWorkers)
 	sm.Plugins = pr
 	sm.Themes = tr
 
@@ -57,7 +57,7 @@ func New(log *log.Logger, config *config.Config) *Server {
 	}
 
 	// Start Update Workers
-	repo.StartUpdateWorkers(config.UpdateWorkers, pr, tr)
+	go repo.StartUpdateWorkers(config.UpdateWorkers, pr, tr)
 
 	// Start Worker to Process Searches
 	go sm.Worker()
@@ -75,14 +75,9 @@ func (s *Server) Setup() {
 
 }
 
-// Close signals the server to gracefully shutdown.
-func (s *Server) Close() {
-	// Signal server to ignore new requests and finish existing.
-	s.Logger.Println("Closing Server...")
-}
-
 // Shutdown will release resources and stop the server.
 func (s *Server) Shutdown(ctx context.Context) {
-	//s.DB.Close()
+	s.http.Shutdown(ctx)
+	s.https.Shutdown(ctx)
 	s.Logger.Println("Server Shutdown")
 }
