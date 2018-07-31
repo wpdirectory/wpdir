@@ -22,14 +22,16 @@ type Manager struct {
 	List    map[string]*Search
 	Plugins *repo.Repo
 	Themes  *repo.Repo
+	limit   int
 	sync.RWMutex
 }
 
 // NewManager returns a new SearchManager struct
-func NewManager() *Manager {
+func NewManager(limit int) *Manager {
 	return &Manager{
 		Queue: queue.New(100),
 		List:  make(map[string]*Search),
+		limit: limit,
 	}
 }
 
@@ -155,8 +157,7 @@ func (sm *Manager) processSearch(ID string) error {
 		List: make(map[string]*Matches),
 	}
 
-	limit := runtime.NumCPU() - 2
-	limiter := make(chan struct{}, limit)
+	limiter := make(chan struct{}, sm.limit)
 
 	var wg sync.WaitGroup
 
