@@ -75,6 +75,8 @@ func New(c *config.Config, l *log.Logger, t string, rev int) *Repo {
 		l.Printf("Repo (%s) could not load data: %s\n", t, err)
 	}
 
+	repo.save()
+
 	return repo
 }
 
@@ -103,11 +105,18 @@ func (r *Repo) load() error {
 		return err
 	}
 
+	r.log.Printf("Rev Bytes: %s\n", string(bytes))
+
 	rev, err := strconv.Atoi(string(bytes))
-	if err != nil || rev != 0 {
+	if err != nil || rev == 0 {
 		return err
 	}
+
+	r.log.Printf("Rev Int: %d\n", rev)
+
+	r.Lock()
 	r.Revision = rev
+	r.Unlock()
 	r.log.Printf("Repo loaded revision: %d\n", rev)
 
 	return nil
@@ -174,16 +183,21 @@ func (r *Repo) UpdateIndex(idx *index.Index) error {
 }
 
 // QueueUpdate ...
-func (r *Repo) QueueUpdate(slug string) {
+func (r *Repo) QueueUpdate(slug string, rev string) {
+	revision, err := strconv.Atoi(rev)
+	if err != nil {
+		r.log.Printf("Revision not a valid int: %s\n", err)
+	}
 	ur := UpdateRequest{
-		Slug: slug,
-		Repo: r.ExtType,
+		Slug:     slug,
+		Repo:     r.ExtType,
+		Revision: revision,
 	}
 	r.UpdateQueue <- ur
 }
 
 // ProcessUpdate ...
-func (r *Repo) ProcessUpdate(slug string) error {
+func (r *Repo) ProcessUpdate(slug string, rev int) error {
 	if !r.Exists(slug) {
 		r.Add(slug)
 	}
@@ -202,6 +216,12 @@ func (r *Repo) ProcessUpdate(slug string) error {
 
 	e.SetStatus(Open)
 	r.saveExt(e)
+
+	r.Lock()
+	r.Revision = rev
+	r.Unlock()
+
+	r.save()
 
 	return nil
 }
@@ -268,7 +288,8 @@ func (r *Repo) getArchive(slug string) ([]byte, error) {
 	var err error
 
 	client := client.GetZip()
-	URL := fmt.Sprintf(archiveURL, r.ExtType, slug)
+	repo := r.ExtType[:len(r.ExtType)-1]
+	URL := fmt.Sprintf(archiveURL, repo, slug)
 
 	req, err := http.NewRequest("GET", URL, nil)
 	if err != nil {
@@ -336,13 +357,19 @@ func (r *Repo) saveExt(e *Extension) error {
 }
 
 // UpdateList updates our Plugin list.
-func (r *Repo) UpdateList() error {
+func (r *Repo) UpdateList(fresh *bool) error {
 	// Fetch list from WPOrg API
 	list, err := r.api.GetList(r.ExtType)
 	if err != nil {
 		return err
 	}
-	r.log.Printf("Found %d Extensions\n", len(list))
+	r.log.Printf("Found %d %s\n", len(list), r.ExtType)
+
+	revision, err := r.api.GetRevision(r.ExtType)
+	if err != nil {
+		return err
+	}
+	rev := strconv.Itoa(revision)
 
 	for _, ext := range list {
 		if !utf8.Valid([]byte(ext)) {
@@ -350,6 +377,9 @@ func (r *Repo) UpdateList() error {
 		}
 		if !r.Exists(ext) {
 			r.Add(ext)
+			if *fresh {
+				r.QueueUpdate(ext, rev)
+			}
 		}
 	}
 
@@ -382,13 +412,9 @@ func (r *Repo) StartWorkers() {
 				}
 				r.RUnlock()
 
-				for _, slug := range list {
-					r.QueueUpdate(slug)
+				for _, ext := range list {
+					r.QueueUpdate(string(ext[0]), string(ext[1]))
 				}
-
-				r.Lock()
-				r.Revision = latest
-				r.Unlock()
 
 				err = r.save()
 				if err != nil {
