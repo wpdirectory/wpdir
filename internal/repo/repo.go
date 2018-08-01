@@ -395,14 +395,14 @@ func (r *Repo) StartWorkers() {
 			select {
 			// Check Changlog
 			case <-ticker:
-				latest, err := r.api.GetRevision("plugins")
+				latest, err := r.api.GetRevision(r.ExtType)
 				if err != nil {
-					r.log.Printf("Failed getting Plugins Repo revision: %s\n", err)
+					r.log.Printf("Failed getting %s Repo revision: %s\n", r.ExtType, err)
 				}
 				r.RLock()
-				list, err := r.api.GetChangeLog("plugins", r.Revision, latest)
+				list, err := r.api.GetChangeLog(r.ExtType, r.Revision, latest)
 				if err != nil {
-					r.log.Printf("Failed getting Plugins Changelog: %s\n", err)
+					r.log.Printf("Failed getting %s Changelog: %s\n", r.ExtType, err)
 					r.RUnlock()
 					continue
 				}
@@ -410,12 +410,6 @@ func (r *Repo) StartWorkers() {
 
 				for _, ext := range list {
 					r.QueueUpdate(string(ext[0]), string(ext[1]))
-				}
-
-				err = r.save()
-				if err != nil {
-					r.log.Printf("Failed saving Plugins Repo: %s\n", err)
-					continue
 				}
 			}
 		}
@@ -426,9 +420,9 @@ func (r *Repo) StartWorkers() {
 			select {
 			// Refresh API Data
 			case <-ticker:
-				exts, err := r.api.GetList("plugins")
+				exts, err := r.api.GetList(r.ExtType)
 				if err != nil {
-					r.log.Printf("Failed getting Plugins list: %s\n", err)
+					r.log.Printf("Failed getting %s list: %s\n", r.ExtType, err)
 				}
 				for _, slug := range exts {
 					if !r.Exists(slug) {

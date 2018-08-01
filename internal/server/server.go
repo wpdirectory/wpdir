@@ -62,6 +62,10 @@ func New(log *log.Logger, config *config.Config, fresh *bool) *Server {
 	// Start Worker to Process Searches
 	go sm.Worker()
 
+	// Start Repo Update Check Workers
+	pr.StartWorkers()
+	tr.StartWorkers()
+
 	return s
 }
 
