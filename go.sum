@@ -49,6 +49,8 @@ github.com/wpdirectory/wporg v0.0.0-20180705220451-186d0b4cf9e0 h1:FzPiVg0gg3E4h
 github.com/wpdirectory/wporg v0.0.0-20180705220451-186d0b4cf9e0/go.mod h1:vvrKlUIujGRH7+zK09/6c51LPyRhRp3Fin9mqn5uL5A=
 github.com/wpdirectory/wporg v0.0.0-20180725150937-9d95908c6cca h1:QkMLlUALF65yslAQUFV5DWhwCJ1fD74FlSGXG5njtMs=
 github.com/wpdirectory/wporg v0.0.0-20180725150937-9d95908c6cca/go.mod h1:vvrKlUIujGRH7+zK09/6c51LPyRhRp3Fin9mqn5uL5A=
+github.com/wpdirectory/wporg v0.0.0-20180801160027-1a6caaeed4c9 h1:pwTcLQZaV7tWBm8d5NF5HJePp/hCAmgWfp4mQ9IyFe0=
+github.com/wpdirectory/wporg v0.0.0-20180801160027-1a6caaeed4c9/go.mod h1:vvrKlUIujGRH7+zK09/6c51LPyRhRp3Fin9mqn5uL5A=
 github.com/xenolf/lego v1.0.1 h1:Rr9iqO8MoNxY6OvqdIZTnNZ8bwt0RNz00nGXfoTq4Bc=
 github.com/xenolf/lego v1.0.1/go.mod h1:fwiGnfsIjG7OHPfOvgK7Y/Qo6+2Ox0iozjNTkZICKbY=
 golang.org/x/crypto v0.0.0-20180718160520-a2144134853f h1:lRy+hhwk7YT7MsKejxuz0C5Q1gk6p/QoPQYEmKmGFb8=
