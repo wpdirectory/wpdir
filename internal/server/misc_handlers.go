@@ -32,7 +32,9 @@ func (s *Server) static() http.HandlerFunc {
 			s.Logger.Fatalf("Failed to read index.html: %s\n", err)
 		}
 
-		buffer = []byte(strings.Replace(string(buffer), "%HOSTNAME%", s.Config.Host, 1))
+		// Embed Hostname into HTML, remove trailing slash
+		host := strings.TrimRight(s.Config.Host, "/")
+		buffer = []byte(strings.Replace(string(buffer), "%HOSTNAME%", host, 1))
 
 		w.Write(buffer)
 	}
