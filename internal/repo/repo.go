@@ -395,6 +395,11 @@ func (r *Repo) StartWorkers() {
 			select {
 			// Check Changlog
 			case <-ticker:
+				// Skip if the update queue is not empty
+				if len(r.UpdateQueue) > 0 {
+					continue
+				}
+
 				latest, err := r.api.GetRevision(r.ExtType)
 				if err != nil {
 					r.log.Printf("Failed getting %s Repo revision: %s\n", r.ExtType, err)
@@ -424,11 +429,11 @@ func (r *Repo) StartWorkers() {
 				if err != nil {
 					r.log.Printf("Failed getting %s list: %s\n", r.ExtType, err)
 				}
-				for _, slug := range exts {
-					if !r.Exists(slug) {
-						r.Add(slug)
+				for _, ext := range exts {
+					if !r.Exists(ext) {
+						r.Add(ext)
 					}
-					e := r.Get(slug)
+					e := r.Get(ext)
 					err := r.updateMeta(e)
 					if err != nil {
 						e.SetStatus(Closed)
