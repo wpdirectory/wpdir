@@ -214,7 +214,9 @@ func (r *Repo) ProcessUpdate(slug string, rev int) error {
 	r.saveExt(e)
 
 	r.Lock()
-	r.Revision = rev
+	if rev > r.Revision {
+		r.Revision = rev
+	}
 	r.Unlock()
 
 	r.save()
@@ -413,8 +415,8 @@ func (r *Repo) StartWorkers() {
 				}
 				r.RUnlock()
 
-				for _, ext := range list {
-					r.QueueUpdate(string(ext[0]), string(ext[1]))
+				for i := 0; i < len(list); i++ {
+					r.QueueUpdate(string(list[i][0]), string(list[i][1]))
 				}
 			}
 		}
