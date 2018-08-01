@@ -25,7 +25,7 @@ require (
 	github.com/spf13/jwalterweatherman v0.0.0-20180109140146-7c0cea34c8ec
 	github.com/spf13/pflag v1.0.1
 	github.com/spf13/viper v1.0.2
-	github.com/wpdirectory/wporg v0.0.0-20180801205955-3f5e76627e7b
+	github.com/wpdirectory/wporg v0.0.0-20180801221812-e8406b8307de
 	github.com/xenolf/lego v1.0.1
 	golang.org/x/crypto v0.0.0-20180718160520-a2144134853f
 	golang.org/x/net v0.0.0-20180530234432-1e491301e022
