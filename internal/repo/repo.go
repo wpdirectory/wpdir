@@ -375,7 +375,7 @@ func (r *Repo) UpdateList(fresh *bool) error {
 		}
 		if !r.Exists(ext) {
 			r.Add(ext)
-			if *fresh {
+			if *fresh || r.Revision == 0 {
 				r.QueueUpdate(ext, rev)
 			}
 		}
