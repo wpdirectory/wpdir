@@ -2,6 +2,7 @@ import React, { Component } from 'react'
 import Loadicon from '../general/Loadicon.js'
 import ProgressBlock from '../general/ProgressBlock.js'
 import Summary from '../general/search/Summary.js'
+import Hostname from '../../utils/Hostname.js'
 
 class Search extends Component {
   constructor(props) {
@@ -27,7 +28,7 @@ class Search extends Component {
 
   componentWillMount = () => {
 
-    fetch(window.wpdirHost + '/api/v1/search/' + this.props.match.params.id)
+    fetch( Hostname + '/api/v1/search/' + this.props.match.params.id )
     .then( response => {
       return response.json()
       
@@ -51,7 +52,7 @@ class Search extends Component {
   }
 
   refreshData = () => {
-    fetch(window.wpdirHost + '/api/v1/search/' + this.props.match.params.id)
+    fetch( Hostname + '/api/v1/search/' + this.props.match.params.id )
     .then( response => {
       return response.json()
       
@@ -88,13 +89,8 @@ class Search extends Component {
     return name.charAt(0).toUpperCase() + name.slice(1)
   }
 
-  progressTime = (started) => {
-    let active
-    if (this.state.completed > 0) {
-      active = this.state.completed - started
-    } else {
-      active = Date.now() - started
-    }
+  timeTaken = () => {
+    let active = this.state.completed - this.state.started
     return Math.floor(active/1000) + ' Seconds'
   }
 
@@ -141,15 +137,14 @@ class Search extends Component {
 
   formatOverview = () => {
     let duration
-    if (this.state.started > 0) {
-      duration = this.progressTime(this.state.started);
+    if (this.state.status === 2) {
+      duration = this.timeTaken()
     }
     switch( this.state.status ) {
       case 2:
         return (
           <div className="search-info panel cell small-12">
             <h2>Overview</h2>
-            <div className="info">
               <div className="info grid-x grid-margin-x grid-margin-y">
                 <div className="cell small-12">
                   <h5>Search Regex</h5>
@@ -173,7 +168,6 @@ class Search extends Component {
                   {duration}
                 </div>
               </div>
-            </div>
           </div>
         )
       case 1:

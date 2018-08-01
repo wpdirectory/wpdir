@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import { withRouter } from 'react-router-dom'
 import Dashicon from '../Dashicon.js'
+import Hostname from '../../../utils/Hostname.js'
 
 class SearchForm extends Component {
     constructor(props) {
@@ -28,11 +29,9 @@ class SearchForm extends Component {
     }
   
     handleSubmit = (event) => {
-      event.preventDefault();
-      console.log(this.state)
-      this.postData(window.wpdirHost + '/api/v1/search/new', {input: this.state.input, target: this.state.target, private: this.state.private})
+      event.preventDefault()
+      this.postData( Hostname + '/api/v1/search/new', {input: this.state.input, target: this.state.target, private: this.state.private} )
         .then(data => {
-            console.log(data)
             this.props.history.push('/search/' + data.id)
         })
         .catch(error => console.error(error))

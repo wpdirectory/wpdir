@@ -2,6 +2,7 @@ import React, { Component } from 'react'
 import { Link } from 'react-router-dom';
 import SearchForm from '../general/search/SearchForm'
 import Dashicon from '../general/Dashicon.js'
+import Hostname from '../../utils/Hostname.js'
 
 class Home extends Component {
 
@@ -14,7 +15,7 @@ class Home extends Component {
 
   componentWillMount = () => {
 
-    fetch(window.wpdirHost + '/api/v1/searches/10')
+    fetch( Hostname + '/api/v1/searches/10' )
     .then( response => {
       return response.json()
       

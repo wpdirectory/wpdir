@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import Match from './Match.js'
+import Hostname from '../../../utils/Hostname.js'
 
 class Matches extends Component {
 
@@ -12,7 +13,7 @@ class Matches extends Component {
   }
 
   componentWillMount = () => {
-    fetch(window.wpdirHost + '/api/v1/search/matches/' + this.props.id + '/' + this.props.slug)
+    fetch( Hostname + '/api/v1/search/matches/' + this.props.id + '/' + this.props.slug )
     .then( response => {
       return response.json()
       

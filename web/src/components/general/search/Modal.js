@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import CodeMirror from '../CodeMirror.js'
+import Hostname from '../../../utils/Hostname.js'
 
 class Modal extends Component {
   constructor(props) {
@@ -18,8 +19,8 @@ class Modal extends Component {
   }
 
   componentWillMount = () => {
-    fetch(window.wpdirHost + '/api/v1/file', {
-      body: JSON.stringify({repo: this.props.repo, slug: this.props.match.slug, file: this.props.match.file}),
+    fetch( Hostname + '/api/v1/file', {
+      body: JSON.stringify( {repo: this.props.repo, slug: this.props.match.slug, file: this.props.match.file} ),
       cache: 'no-cache',
       credentials: 'same-origin',
       headers: {
@@ -30,12 +31,12 @@ class Modal extends Component {
       mode: 'cors',
       redirect: 'follow',
       referrer: 'no-referrer',
-    })
+    } )
     .then( response => {
       return response.json()
     })
     .then( data => {
-      if (data.code) {
+      if ( data.code ) {
         this.setState({ code: data.code })
       } 
     })

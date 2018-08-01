@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom'
+import Hostname from '../../utils/Hostname.js'
 
 class Searches extends Component {
 
@@ -17,7 +18,7 @@ class Searches extends Component {
 
   componentWillMount = () => {
 
-    fetch(window.wpdirHost + '/api/v1/searches/100')
+    fetch( Hostname + '/api/v1/searches/100' )
     .then( response => {
       return response.json()
       

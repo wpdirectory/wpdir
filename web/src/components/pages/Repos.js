@@ -1,4 +1,5 @@
 import React, { Component } from 'react'
+import Hostname from '../../utils/Hostname.js'
 
 class Repos extends Component {
 
@@ -12,7 +13,7 @@ class Repos extends Component {
 
   componentWillMount = () => {
 
-    fetch(window.wpdirHost + '/api/v1/repos/overview')
+    fetch( Hostname + '/api/v1/repos/overview' )
     .then( response => {
       return response.json()
     })

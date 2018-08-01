@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import Item from './Item.js'
 import Dashicon from '../Dashicon.js'
+import Hostname from '../../../utils/Hostname.js'
 
 class Summary extends Component {
 
@@ -19,7 +20,7 @@ class Summary extends Component {
   }
 
   componentWillMount = () => {
-    fetch(window.wpdirHost + '/api/v1/search/summary/' + this.props.id)
+    fetch( Hostname + '/api/v1/search/summary/' + this.props.id )
     .then( response => {
       return response.json()
     })
