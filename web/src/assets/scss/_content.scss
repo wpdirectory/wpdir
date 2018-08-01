@@ -309,6 +309,10 @@ section.content {
     }
     .search-nav {
         margin-top: rem-calc(30);
+        .search-nav-page {
+            text-align: center;
+            padding-top: rem-calc(9);
+        }
     }
 }
 
