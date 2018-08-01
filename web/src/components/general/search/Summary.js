@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import Item from './Item.js'
 import Dashicon from '../Dashicon.js'
+import Pagination from '../Pagination.js'
 import Hostname from '../../../utils/Hostname.js'
 
 class Summary extends Component {
@@ -14,7 +15,7 @@ class Summary extends Component {
       sorting: 'installs',
       desc: true,
       currentPage: 1,
-      perPage: 250,
+      perPage: 100,
       isLoading: true,
     }
   }
@@ -127,12 +128,13 @@ class Summary extends Component {
       perPage
     } = this.state
 
-    console.log(currentPage)
-
     const indexOfLastItem = currentPage * perPage
     const indexOfFirstItem = indexOfLastItem - perPage
     const currentItems = items.slice(indexOfFirstItem, indexOfLastItem)
     const numPages = items.length / perPage
+    const needsPagination = ( numPages <= 1 ) ? false : true
+
+    console.log("Matches: " + items.length + " Pages: " + numPages)
 
     let summaryItems
     if ( !!this.state.items && this.state.items.length && this.state.items.length > 0 ) {
@@ -153,14 +155,9 @@ class Summary extends Component {
             <button className="installs" onClick={this.sortByInstalls}>Installs{this.sortIcon('installs')}</button>
             <button className="matches" onClick={this.sortByMatches}>Matches{this.sortIcon('matches')}</button>
           </li>
-          {summaryItems}
+          { summaryItems }
         </ul>
-        <nav aria-label="Pagination">
-          <ul className="pagination text-center">
-            <li className="pagination-previous"><button aria-label="Previous page" onClick={this.prevPage}>Previous <span className="show-for-sr">page</span></button></li>
-            <li className="pagination-next"><button aria-label="Next page" onClick={this.nextPage}>Next <span className="show-for-sr">page</span></button></li>
-          </ul>
-        </nav>
+        { needsPagination && <Pagination currentPage={currentPage} totalPages={numPages} prevClick={this.prevPage} nextClick={this.nextPage} /> }
       </div>
 	  );
   }

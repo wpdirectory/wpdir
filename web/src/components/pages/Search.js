@@ -158,8 +158,8 @@ class Search extends Component {
                   <h5>Total Matches</h5>
                   {this.state.matches}
                   {(() => {
-                    if (this.state.matches > 10000) {
-                      return (<label className="is-invalid-label">Search aborted after hitting match limit (10,000).</label>)
+                    if (this.state.matches > 100000) {
+                      return (<label className="is-invalid-label">Search aborted after hitting match limit (100,000).</label>)
                     }
                   })()}
                 </div>
