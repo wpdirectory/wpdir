@@ -262,16 +262,31 @@ func GetSummary(searchID string) ([]byte, error) {
 }
 
 // SaveMatches saves the Search Matches to DB
-func SaveMatches(searchID string, slug string, bytes []byte) error {
-	err := db.Update(func(tx *bolt.Tx) error {
-		// Get root Searches bucket
-		s := tx.Bucket([]byte("searches"))
-		// Get Search Data Bucket
-		data := s.Bucket([]byte("search_data"))
+func SaveMatches(searchID string, list map[string][]byte) error {
+	// Start a writable transaction.
+	tx, err := db.Begin(true)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 
-		return data.Put([]byte(searchID+"_matches_"+slug), bytes)
-	})
-	return err
+	// Get root Searches bucket
+	s := tx.Bucket([]byte("searches"))
+	// Get Search Data Bucket
+	data := s.Bucket([]byte("search_data"))
+
+	for slug, bytes := range list {
+		err := data.Put([]byte(searchID+"_matches_"+slug), bytes)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Commit the transaction and check for error.
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetMatches get Search data by ID

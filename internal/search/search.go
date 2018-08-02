@@ -269,15 +269,18 @@ func (sm *Manager) processSearch(ID string) error {
 		return errors.New("Failed Saving Summary to DB")
 	}
 
+	// Create new map with Marshal bytes so that the DB can be run as a transaction
+	mlist := make(map[string][]byte, len(matchList.List))
 	for slug, matches := range matchList.List {
 		bytes, err = matches.Marshal()
 		if err != nil {
 			return errors.New("Failed Marshalling Matches")
 		}
-		err = db.SaveMatches(s.ID, slug, bytes)
-		if err != nil {
-			return errors.New("Failed Saving Summary to DB")
-		}
+		mlist[slug] = bytes
+	}
+	err = db.SaveMatches(s.ID, mlist)
+	if err != nil {
+		return errors.New("Failed Saving Summary to DB")
 	}
 
 	sm.Lock()
