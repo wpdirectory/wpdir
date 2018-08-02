@@ -143,6 +143,9 @@ func GetLatestPublicSearchList(limit int) []string {
 		s := tx.Bucket([]byte("searches"))
 		// Get Relevant Internal Buckets
 		dates := s.Bucket([]byte("public_dates")).Cursor()
+		if dates == nil {
+			return nil
+		}
 		i := 0
 		for k, v := dates.Last(); k != nil; k, v = dates.Prev() {
 			list = append(list, string(v))
