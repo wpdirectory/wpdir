@@ -134,6 +134,7 @@ func (sm *Manager) processSearch(ID string) error {
 
 	sm.RLock()
 	input = srch.Input
+	searchID := srch.ID
 	sm.RUnlock()
 
 	sm.Lock()
@@ -247,24 +248,11 @@ func (sm *Manager) processSearch(ID string) error {
 		summary.List[key] = result
 	}
 
-	sm.RLock()
-	// Copy Search so we can close the lock earlier
-	s := *srch
-	bytes, err := srch.Marshal()
-	if err != nil {
-		return errors.New("Failed Marshalling Search")
-	}
-	sm.RUnlock()
-	err = db.SaveSearch(s.ID, s.Started, s.Private, bytes)
-	if err != nil {
-		return errors.New("Failed Saving Search to DB")
-	}
-
-	bytes, err = summary.Marshal()
+	bytes, err := summary.Marshal()
 	if err != nil {
 		return errors.New("Failed Marshalling Summary")
 	}
-	err = db.SaveSummary(s.ID, bytes)
+	err = db.SaveSummary(searchID, bytes)
 	if err != nil {
 		return errors.New("Failed Saving Summary to DB")
 	}
@@ -278,7 +266,7 @@ func (sm *Manager) processSearch(ID string) error {
 		}
 		mlist[slug] = bytes
 	}
-	err = db.SaveMatches(s.ID, mlist)
+	err = db.SaveMatches(searchID, mlist)
 	if err != nil {
 		return errors.New("Failed Saving Summary to DB")
 	}
@@ -288,6 +276,22 @@ func (sm *Manager) processSearch(ID string) error {
 	srch.Status = Completed
 	srch.Matches = uint32(totalMatches)
 	sm.Unlock()
+
+	sm.RLock()
+	s := *srch
+	bytes, err = srch.Marshal()
+	if err != nil {
+		sm.RUnlock()
+		return errors.New("Failed Marshalling Search")
+	}
+	sm.RUnlock()
+	err = db.SaveSearch(s.ID, s.Started, s.Private, bytes)
+	if err != nil {
+		return errors.New("Failed Saving Search to DB")
+	}
+
+	// Delete from Memory once saved in DB
+	delete(sm.List, searchID)
 
 	runtime.GC()
 
