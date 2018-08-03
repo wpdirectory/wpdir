@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/wpdirectory/wpdir/internal/db"
@@ -21,19 +20,8 @@ type errResponse struct {
 	Err  string `json:"error"`
 }
 
-// getSearches ...
+// getSearches returns a list of between 10-100 public Searches
 func (s *Server) getSearches() http.HandlerFunc {
-	type searchOverview struct {
-		ID        string               `json:"id"`
-		Input     string               `json:"input"`
-		Repo      string               `json:"repo"`
-		Matches   int                  `json:"matches"`
-		Started   time.Time            `json:"started,omitempty"`
-		Completed time.Time            `json:"completed,omitempty"`
-		Progress  uint32               `json:"progress"`
-		Status    search.Search_Status `json:"status"`
-	}
-
 	type getSearchesResponse struct {
 		Searches []search.Search `json:"searches,omitempty"`
 	}
@@ -69,7 +57,8 @@ func (s *Server) getSearches() http.HandlerFunc {
 	}
 }
 
-// getSearch ...
+// getSearch fetches the data for a search by ID
+// First we check for inprogress searches in memory, then we check in the DB
 func (s *Server) getSearch() http.HandlerFunc {
 	type getSearchResponse struct {
 		ID        string               `json:"id"`
@@ -86,6 +75,8 @@ func (s *Server) getSearch() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if searchID := chi.URLParam(r, "id"); searchID != "" {
+
+			// Check InProgress Searches
 			if s.Manager.Exists(searchID) {
 				var resp getSearchResponse
 				srch := s.Manager.Get(searchID)
@@ -105,6 +96,7 @@ func (s *Server) getSearch() http.HandlerFunc {
 				return
 			}
 
+			// Check Completed Searches in DB
 			bytes, err := db.GetSearch(searchID)
 			if err != nil || bytes == nil {
 				var resp errResponse
@@ -114,7 +106,6 @@ func (s *Server) getSearch() http.HandlerFunc {
 			}
 
 			var srch search.Search
-
 			err = srch.Unmarshal(bytes)
 			if err != nil {
 				var resp errResponse
@@ -134,7 +125,7 @@ func (s *Server) getSearch() http.HandlerFunc {
 	}
 }
 
-// getSearchSummary ...
+// getSearchSummary returns a Summary of the Search results
 func (s *Server) getSearchSummary() http.HandlerFunc {
 	type getSearchSummaryResponse struct {
 		Results []*search.Result `json:"results"`
@@ -153,7 +144,6 @@ func (s *Server) getSearchSummary() http.HandlerFunc {
 			}
 
 			var summary search.Summary
-
 			err = summary.Unmarshal(bytes)
 			if err != nil {
 				var resp errResponse
@@ -175,7 +165,7 @@ func (s *Server) getSearchSummary() http.HandlerFunc {
 	}
 }
 
-// getSearchMatches ...
+// getSearchMatches returns a list of Search matches for a given Extension
 func (s *Server) getSearchMatches() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		searchID := chi.URLParam(r, "id")
@@ -191,7 +181,6 @@ func (s *Server) getSearchMatches() http.HandlerFunc {
 			}
 
 			var matches search.Matches
-
 			err = matches.Unmarshal(bytes)
 			if err != nil {
 				var resp errResponse
@@ -209,7 +198,7 @@ func (s *Server) getSearchMatches() http.HandlerFunc {
 	}
 }
 
-// getMatchFile ...
+// getMatchFile returns the contents of a file identified by Repo, Slug and Filename
 func (s *Server) getMatchFile() http.HandlerFunc {
 	type getFileRequest struct {
 		Repo string `json:"repo"`
@@ -251,6 +240,7 @@ func (s *Server) getMatchFile() http.HandlerFunc {
 			}
 			defer f.Close()
 
+			// TODO: Consider making a sync.Pool of gzip Readers
 			c, err := gzip.NewReader(f)
 			if err != nil {
 				var resp errResponse
@@ -274,7 +264,7 @@ func (s *Server) getMatchFile() http.HandlerFunc {
 	}
 }
 
-// createSearch ...
+// createSearch creates a new Search and returns the ID
 func (s *Server) createSearch() http.HandlerFunc {
 	type createSearchRequest struct {
 		Input   string `json:"input"`
@@ -299,6 +289,7 @@ func (s *Server) createSearch() http.HandlerFunc {
 		}
 
 		// Ensure regex is not blank
+		// TODO: Are there other checks which should be made here to prevent abuse?
 		if data.Input == "" {
 			var resp errResponse
 			resp.Err = "Please provide non-blank search input."
@@ -332,7 +323,7 @@ func (s *Server) createSearch() http.HandlerFunc {
 	}
 }
 
-// getRepo ...
+// getRepo returns an overview of the Repo identified by name
 func (s *Server) getRepo() http.HandlerFunc {
 	type getRepoResponse struct {
 		Name            string `json:"name"`
@@ -352,12 +343,12 @@ func (s *Server) getRepo() http.HandlerFunc {
 				resp.Name = repoName
 				resp.Total = int(s.Manager.Plugins.Len())
 				resp.PendingUpdates = len(s.Manager.Plugins.UpdateQueue)
-				resp.CurrentRevision = s.Manager.Plugins.Rev()
+				resp.CurrentRevision = s.Manager.Plugins.GetRev()
 			case "themes":
 				resp.Name = repoName
 				resp.Total = int(s.Manager.Themes.Len())
 				resp.PendingUpdates = len(s.Manager.Themes.UpdateQueue)
-				resp.CurrentRevision = s.Manager.Themes.Rev()
+				resp.CurrentRevision = s.Manager.Themes.GetRev()
 			default:
 				resp.Err = "Repository Not Found."
 			}
@@ -386,30 +377,10 @@ func (s *Server) getRepoOverview() http.HandlerFunc {
 	}
 }
 
-// getPlugin ...
-func (s *Server) getPlugin() http.HandlerFunc {
-	type getPluginResponse struct {
-		Slug                   string `json:"slug"`
-		Name                   string `json:"name,omitempty"`
-		Version                string `json:"version,omitempty"`
-		Author                 string `json:"author,omitempty"`
-		AuthorProfile          string `json:"author_profile,omitempty"`
-		Rating                 int    `json:"rating,omitempty"`
-		NumRatings             int    `json:"num_ratings,omitempty"`
-		SupportThreads         int    `json:"support_threads,omitempty"`
-		SupportThreadsResolved int    `json:"support_threads_resolved,omitempty"`
-		ActiveInstalls         int    `json:"active_installs,omitempty"`
-		Downloaded             int    `json:"downloaded,omitempty"`
-		LastUpdated            string `json:"last_updated,omitempty"`
-		Added                  string `json:"added,omitempty"`
-		Homepage               string `json:"homepage,omitempty"`
-		ShortDescription       string `json:"short_description,omitempty"`
-		DownloadLink           string `json:"download_link,omitempty"`
-		StableTag              string `json:"stable_tag,omitempty"`
-		Status                 string `json:"status"`
-		Err                    string `json:"error,omitempty"`
-	}
+// TODO: Combine the below into a single getExtension handler/endpoint
 
+// getPlugin returns data for a Plugin Extension
+func (s *Server) getPlugin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if slug := chi.URLParam(r, "slug"); slug != "" {
 			p := s.Manager.Plugins.Get(slug)
@@ -422,7 +393,7 @@ func (s *Server) getPlugin() http.HandlerFunc {
 	}
 }
 
-// getTheme ...
+// getTheme returns data for a Theme Extension
 func (s *Server) getTheme() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if slug := chi.URLParam(r, "slug"); slug != "" {

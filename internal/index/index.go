@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -297,31 +296,6 @@ func detectBinary(bs []byte) bool {
 	return false
 }
 
-func isTextFile(filename string) (bool, error) {
-	buf := make([]byte, filePeekSize)
-	r, err := os.Open(filename)
-	if err != nil {
-		return false, err
-	}
-	defer r.Close()
-
-	n, err := io.ReadFull(r, buf)
-	if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
-		return false, err
-	}
-
-	buf = buf[:n]
-
-	if n < filePeekSize {
-		// read the whole file, must be valid.
-		return utf8.Valid(buf), nil
-	}
-
-	// read a prefix, allow trailing partial runes.
-	return validUTF8IgnoringPartialTrailingRune(buf), nil
-
-}
-
 // Determines if the buffer contains valid UTF8 encoded string data. The buffer is assumed
 // to be a prefix of a larger buffer so if the buffer ends with the start of a rune, it
 // is still considered valid.
@@ -348,46 +322,6 @@ func validUTF8IgnoringPartialTrailingRune(p []byte) bool {
 	return true
 }
 
-func addFileToIndex(ix *index.IndexWriter, dst, src, path string) (string, error) {
-	rel, err := filepath.Rel(src, path)
-	if err != nil {
-		return "", err
-	}
-
-	r, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
-	defer r.Close()
-
-	dup := filepath.Join(dst, "raw", rel)
-	w, err := os.Create(dup)
-	if err != nil {
-		return "", err
-	}
-	defer w.Close()
-
-	g := gzip.NewWriter(w)
-	defer g.Close()
-
-	return ix.Add(rel, io.TeeReader(r, g)), nil
-}
-
-func addDirToIndex(dst, src, path string) error {
-	rel, err := filepath.Rel(src, path)
-	if err != nil {
-		return err
-	}
-
-	if rel == "." {
-		return nil
-	}
-
-	dup := filepath.Join(dst, "raw", rel)
-	log.Printf("About to Index Dir: %s\n", rel)
-	return os.Mkdir(dup, os.ModePerm)
-}
-
 // write the list of excluded files to the given filename.
 func writeExcludedFilesJSON(filename string, files []*ExcludedFile) error {
 	w, err := os.Create(filename)
@@ -406,100 +340,6 @@ func containsString(haystack []string, needle string) bool {
 		}
 	}
 	return false
-}
-
-func indexAllFiles(opt *IndexOptions, dst, src string) error {
-	ix := index.Create(filepath.Join(dst, "tri"))
-	defer ix.Close()
-
-	// Prevent output for normal activity
-	ix.LogSkip = false
-	ix.Verbose = false
-
-	excluded := []*ExcludedFile{}
-
-	// Make a file to store the excluded files for this repo
-	fileHandle, err := os.Create(filepath.Join(dst, "excluded_files.json"))
-	if err != nil {
-		return err
-	}
-	defer fileHandle.Close()
-
-	if err := filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
-		name := info.Name()
-		rel, err := filepath.Rel(src, path)
-		if err != nil {
-			return err
-		}
-
-		// Is this file considered "special", this means it's not even a part
-		// of the source repository (like .git or .svn).
-		if containsString(opt.SpecialFiles, name) {
-			if info.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-
-		if opt.ExcludeDotFiles && name[0] == '.' {
-			if info.IsDir() {
-				return filepath.SkipDir
-			}
-
-			excluded = append(excluded, &ExcludedFile{
-				rel,
-				reasonDotFile,
-			})
-			return nil
-		}
-
-		if info.IsDir() {
-			return addDirToIndex(dst, src, path)
-		}
-
-		if info.Mode()&os.ModeType != 0 {
-			excluded = append(excluded, &ExcludedFile{
-				rel,
-				reasonInvalidMode,
-			})
-			return nil
-		}
-
-		binary, err := isBinaryFile(path)
-		if err != nil {
-			return err
-		}
-
-		if binary {
-			excluded = append(excluded, &ExcludedFile{
-				rel,
-				reasonNotText,
-			})
-			return nil
-		}
-
-		reasonForExclusion, err := addFileToIndex(ix, dst, src, path)
-		if err != nil {
-			return err
-		}
-		if reasonForExclusion != "" {
-			excluded = append(excluded, &ExcludedFile{rel, reasonForExclusion})
-		}
-
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	if err := writeExcludedFilesJSON(
-		filepath.Join(dst, excludedFileJSONFilename),
-		excluded); err != nil {
-		return err
-	}
-
-	ix.Flush()
-
-	return nil
 }
 
 // Read the metadata for the index directory. Note that even if this
@@ -532,34 +372,6 @@ func Open(dir string) (*Index, error) {
 	}
 
 	return r.Open()
-}
-
-// Build ...
-func Build(opt *IndexOptions, dst, src, slug, rev string) (*IndexRef, error) {
-	if _, err := os.Stat(dst); err != nil {
-		if err := os.MkdirAll(dst, os.ModePerm); err != nil {
-			return nil, err
-		}
-	}
-
-	if err := os.Mkdir(filepath.Join(dst, "raw"), os.ModePerm); err != nil {
-		return nil, err
-	}
-
-	if err := indexAllFiles(opt, dst, src); err != nil {
-		return nil, err
-	}
-
-	r := &IndexRef{
-		Time: time.Now(),
-		dir:  dst,
-	}
-
-	if err := r.writeManifest(); err != nil {
-		return nil, err
-	}
-
-	return r, nil
 }
 
 // BuildFromZip ...
@@ -730,7 +542,6 @@ func isZipTextFile(file *zip.File) (bool, error) {
 
 	// read a prefix, allow trailing partial runes.
 	return validUTF8IgnoringPartialTrailingRune(buf), nil
-
 }
 
 func addZipDirToIndex(dst, src, path string) error {

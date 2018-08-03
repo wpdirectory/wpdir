@@ -69,7 +69,7 @@ func Setup(dir string) {
 	}
 }
 
-// PutToBucket adds an iem to bucket
+// PutToBucket adds an item to bucket
 func PutToBucket(key string, content []byte, bucket string) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
@@ -78,7 +78,7 @@ func PutToBucket(key string, content []byte, bucket string) error {
 	return err
 }
 
-// GetFromBucket returns an item from bucket
+// GetFromBucket returns an item from a bucket
 func GetFromBucket(key string, bucket string) ([]byte, error) {
 	var data []byte
 	var err error
@@ -93,7 +93,7 @@ func GetFromBucket(key string, bucket string) ([]byte, error) {
 	return data, err
 }
 
-// DeleteFromBucket deletes an item from bucket
+// DeleteFromBucket deletes an item from a bucket
 func DeleteFromBucket(key string, bucket string) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
@@ -102,7 +102,7 @@ func DeleteFromBucket(key string, bucket string) error {
 	return err
 }
 
-// GetAllFromBucket returns all bucket contents
+// GetAllFromBucket returns all items from a bucket
 func GetAllFromBucket(bucket string) (map[string][]byte, error) {
 	items := make(map[string][]byte)
 
@@ -118,25 +118,7 @@ func GetAllFromBucket(bucket string) (map[string][]byte, error) {
 	return items, err
 }
 
-// GetLatestFromBucket ...
-func GetLatestFromBucket(bucket string, limit int) []string {
-	var list []string
-	db.View(func(tx *bolt.Tx) error {
-		c := tx.Bucket([]byte(bucket)).Cursor()
-		i := 0
-		for k, v := c.Last(); k != nil; k, v = c.Prev() {
-			list = append(list, string(v))
-			i++
-			if i == limit {
-				break
-			}
-		}
-		return nil
-	})
-	return list
-}
-
-// GetLatestPublicSearchList ...
+// GetLatestPublicSearchList most recent public searches
 func GetLatestPublicSearchList(limit int) []string {
 	var list []string
 	db.View(func(tx *bolt.Tx) error {
@@ -159,7 +141,7 @@ func GetLatestPublicSearchList(limit int) []string {
 	return list
 }
 
-// DeleteSearches saves the Search Data to DB
+// DeleteSearches removes all Search data and buckets
 func DeleteSearches() error {
 	// Start the transaction.
 	tx, err := db.Begin(true)
@@ -180,7 +162,7 @@ func DeleteSearches() error {
 	return nil
 }
 
-// SaveSearch saves the Search Data to DB
+// SaveSearch saves the Search data to DB
 func SaveSearch(searchID string, created string, private bool, bytes []byte) error {
 	// Start the transaction.
 	tx, err := db.Begin(true)
@@ -200,11 +182,9 @@ func SaveSearch(searchID string, created string, private bool, bytes []byte) err
 	if err = data.Put([]byte(searchID), bytes); err != nil {
 		return err
 	}
-
 	if err = allDates.Put([]byte(created), []byte(searchID)); err != nil {
 		return err
 	}
-
 	if !private {
 		if err = publicDates.Put([]byte(created), []byte(searchID)); err != nil {
 			return err
@@ -248,7 +228,7 @@ func SaveSummary(searchID string, bytes []byte) error {
 	return err
 }
 
-// GetSummary get Search data by ID
+// GetSummary get Search Summary by ID
 func GetSummary(searchID string) ([]byte, error) {
 	var data []byte
 	var err error
@@ -292,7 +272,7 @@ func SaveMatches(searchID string, list map[string][]byte) error {
 	return nil
 }
 
-// GetMatches get Search data by ID
+// GetMatches get Search Matches data by ID
 func GetMatches(searchID string, slug string) ([]byte, error) {
 	var data []byte
 	var err error

@@ -18,7 +18,6 @@ import (
 
 // startHTTP starts the HTTP server.
 func (s *Server) startHTTP() {
-
 	s.Router = chi.NewRouter()
 
 	// Middleware Stack
@@ -37,7 +36,7 @@ func (s *Server) startHTTP() {
 	// TODO: Remove this for prod?
 	cors := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedMethods:   []string{"GET", "POST"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
@@ -115,7 +114,6 @@ func (s *Server) serveHTTPS(cert, key string) {
 }
 
 func (s *Server) routes() {
-
 	// Add Routes
 	s.Router.Get("/", s.static())
 	s.Router.Get("/search/{id}", s.static())
@@ -132,11 +130,9 @@ func (s *Server) routes() {
 
 	// Handle NotFound
 	s.Router.NotFound(s.notFound())
-
 }
 
 func (s *Server) apiRoutes() chi.Router {
-
 	r := chi.NewRouter()
 
 	r.Get("/search/{id}", s.getSearch())
@@ -156,7 +152,6 @@ func (s *Server) apiRoutes() chi.Router {
 	r.Get("/theme/{slug}", s.getTheme())
 
 	return r
-
 }
 
 // FileServer conveniently sets up a http.FileServer handler to serve
@@ -166,7 +161,6 @@ func FileServer(r chi.Router, path string) {
 		panic("FileServer does not permit URL parameters.")
 	}
 
-	//fs := http.StripPrefix(path, http.FileServer(data.Assets))
 	fs := http.FileServer(data.Assets)
 
 	if path != "/" && path[len(path)-1] != '/' {
@@ -174,6 +168,7 @@ func FileServer(r chi.Router, path string) {
 		path += "/"
 	}
 	path += "*"
+
 	r.Get(path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Vary", "Accept-Encoding")
 		w.Header().Set("Cache-Control", "public, max-age=7776000")

@@ -68,8 +68,8 @@ const (
 	Closed
 )
 
-// NewExt returns a new Extension.
-func NewExt(slug string) *Extension {
+// newExt returns a new Extension.
+func newExt(slug string) *Extension {
 	return &Extension{
 		Slug:   slug,
 		Status: Closed,

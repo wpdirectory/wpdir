@@ -8,6 +8,9 @@ import (
 	"github.com/wpdirectory/wpdir/internal/data"
 )
 
+// TODO: Rewrite how the index.html file is served
+// Need to embed SEO related info too
+
 func (s *Server) static() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")

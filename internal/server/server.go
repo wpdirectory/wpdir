@@ -69,19 +69,13 @@ func New(log *log.Logger, config *config.Config, fresh *bool) *Server {
 	return s
 }
 
-// Setup ...
+// Setup starts the HTTP Server
 func (s *Server) Setup() {
-
-	// TODO: Pass shutdown channel for graceful shutdowns.
-
-	// Start HTTP Server
 	s.startHTTP()
-
 }
 
 // Shutdown will release resources and stop the server.
 func (s *Server) Shutdown(ctx context.Context) {
 	s.http.Shutdown(ctx)
 	s.https.Shutdown(ctx)
-	s.Logger.Println("Server Shutdown")
 }

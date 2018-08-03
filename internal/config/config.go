@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Config contains useful App data.
+// Config contains global application information
 type Config struct {
 	Version       string
 	Name          string
@@ -27,11 +27,10 @@ type Config struct {
 	}
 }
 
-// Setup creates and returns the Config struct.
+// Setup creates, fills and returns the Config struct
 func Setup(version, commit, date string) *Config {
-
 	viper.SetDefault("version", "0.1.0")
-	viper.SetDefault("name", "WP Directory")
+	viper.SetDefault("name", "wpdirectory")
 	viper.SetDefault("commit", "")
 	viper.SetDefault("date", "")
 	viper.SetDefault("updateworkers", 4)
@@ -70,5 +69,4 @@ func Setup(version, commit, date string) *Config {
 	config.Ports.HTTPS = viper.GetString("ports.https")
 
 	return config
-
 }

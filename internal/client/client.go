@@ -12,7 +12,6 @@ var zipClient *http.Client
 
 // Setup our HTTP transport and client
 func init() {
-
 	var netTransport = &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
@@ -27,16 +26,17 @@ func init() {
 		MaxIdleConnsPerHost:   runtime.GOMAXPROCS(0) + 1,
 	}
 
+	// Used for HTTP API Requests
 	apiClient = &http.Client{
 		Timeout:   time.Second * time.Duration(30),
 		Transport: netTransport,
 	}
 
+	// Used for downloading Archive files
 	zipClient = &http.Client{
 		Timeout:   time.Second * time.Duration(180),
 		Transport: netTransport,
 	}
-
 }
 
 // GetAPI returns an HTTP client

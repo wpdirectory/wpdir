@@ -2,11 +2,12 @@ package filestats
 
 import (
 	"archive/zip"
+	"math"
 	"path/filepath"
 	"sync"
 )
 
-// Stats contains
+// Stats contains information about a set of files
 type Stats struct {
 	Files      []File  `json:"files"`
 	TotalFiles int     `json:"total_files"`
@@ -59,6 +60,7 @@ func (s *Stats) GenerateSummary() {
 	if len(s.Files) == 0 {
 		return
 	}
+
 	s.RLock()
 	defer s.RUnlock()
 	var php, js, css, total int64
@@ -81,9 +83,11 @@ func (s *Stats) GenerateSummary() {
 	if total == 0 {
 		return
 	}
+
+	// Calculate percentages of each file type
 	s.Summary = Summary{
-		PHP: uint8((float64(php) / float64(total)) * 100),
-		JS:  uint8((float64(js) / float64(total)) * 100),
-		CSS: uint8((float64(css) / float64(total)) * 100),
+		PHP: uint8(math.RoundToEven((float64(php) / float64(total)) * 100)),
+		JS:  uint8(math.RoundToEven((float64(js) / float64(total)) * 100)),
+		CSS: uint8(math.RoundToEven((float64(css) / float64(total)) * 100)),
 	}
 }

@@ -74,11 +74,10 @@ const (
 
 Usage:
   wpdir [flags]
-
-Version: 0.5.0
 	
 Flags:
-  --help      Help outputs help text and exits.
+  -help      Help outputs help text and exits.
+  -fresh     Begins a fresh load, all extensions are queued for updating.
   
 Config:
   WPDirectory requires a config file, located at /etc/wpdir/ or in the working directory, to successfully run. See the example-config.yml.`

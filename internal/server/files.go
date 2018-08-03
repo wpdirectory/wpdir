@@ -9,8 +9,8 @@ import (
 	"github.com/wpdirectory/wpdir/internal/repo"
 )
 
+// getFilePath returns a safe PATH to an Extension file
 func (s *Server) getFilePath(repository, slug, file string) (string, error) {
-
 	// Protect against directory traversal attacks
 	if containsDotDot(repository) || containsDotDot(slug) || containsDotDot(file) {
 		return "", errors.New("Paths must not include '..'")

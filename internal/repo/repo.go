@@ -55,7 +55,7 @@ type Summary struct {
 func New(c *config.Config, l *log.Logger, t string, rev int) *Repo {
 	// Setup HTTP Client
 	opt := func(c *wporg.Client) {
-		c.HTTPClient = httpClient
+		c.HTTPClient = client.GetAPI()
 	}
 	api := wporg.NewClient(opt)
 
@@ -80,16 +80,33 @@ func New(c *config.Config, l *log.Logger, t string, rev int) *Repo {
 	return repo
 }
 
-// Len ...
+// Len returns the number of extensions in the Repository
 func (r *Repo) Len() uint64 {
+	r.RLock()
+	defer r.RUnlock()
+
 	return uint64(len(r.List))
 }
 
-// Rev ...
-func (r *Repo) Rev() int {
+// GetRev returns the Revision of the the Repository
+func (r *Repo) GetRev() int {
+	r.RLock()
+	defer r.RUnlock()
+
 	return r.Revision
 }
 
+// SetRev sets the Revision of the the Repository
+func (r *Repo) SetRev(new int) {
+	r.Lock()
+	// Check this is a progression
+	if new > r.Revision {
+		r.Revision = new
+	}
+	r.Unlock()
+}
+
+// save stores the Repo data in the DB
 func (r *Repo) save() error {
 	r.RLock()
 	defer r.RUnlock()
@@ -99,6 +116,7 @@ func (r *Repo) save() error {
 	return db.PutToBucket(r.ExtType, []byte(rev), "repos")
 }
 
+// load gets the Repo data from DB
 func (r *Repo) load() error {
 	bytes, err := db.GetFromBucket(r.ExtType, "repos")
 	if err != nil {
@@ -110,23 +128,22 @@ func (r *Repo) load() error {
 		return err
 	}
 
-	r.Lock()
-	r.Revision = rev
-	r.Unlock()
+	r.SetRev(rev)
 	r.log.Printf("Repo loaded revision: %d\n", rev)
 
 	return nil
 }
 
-// Exists ...
+// Exists checks if an extension exists in the Repo
 func (r *Repo) Exists(slug string) bool {
 	r.RLock()
 	defer r.RUnlock()
+
 	_, ok := r.List[slug]
 	return ok
 }
 
-// Get ...
+// Get returns a pointer to an Extension
 func (r *Repo) Get(slug string) *Extension {
 	r.RLock()
 	defer r.RUnlock()
@@ -134,28 +151,30 @@ func (r *Repo) Get(slug string) *Extension {
 	return p
 }
 
-// Add ...
+// Add creates a new Extension in the Repo
 func (r *Repo) Add(slug string) {
 	r.Lock()
-	r.List[slug] = NewExt(slug)
+	r.List[slug] = newExt(slug)
 	r.Unlock()
 }
 
-// Set ...
+// Set loads the provided Extension into the Repo
 func (r *Repo) Set(slug string, e *Extension) {
 	r.Lock()
 	defer r.Unlock()
+
 	r.List[slug] = e
 }
 
-// Remove ...
+// Remove deletes an Extension from the Repo
 func (r *Repo) Remove(slug string) {
 	r.Lock()
 	defer r.Unlock()
+
 	delete(r.List, slug)
 }
 
-// UpdateIndex ...
+// UpdateIndex updates the index held by an Extension
 func (r *Repo) UpdateIndex(idx *index.Index) error {
 	var slug string
 	if slug = idx.Ref.Slug; slug == "" {
@@ -167,6 +186,7 @@ func (r *Repo) UpdateIndex(idx *index.Index) error {
 		return errors.New("Index does not match an existing plugin")
 	}
 
+	// Swap the old index for the new
 	err := r.List[slug].SwapIndexes(idx)
 	if err != nil {
 		r.List[slug].SetStatus(Closed)
@@ -178,7 +198,7 @@ func (r *Repo) UpdateIndex(idx *index.Index) error {
 	return nil
 }
 
-// QueueUpdate ...
+// QueueUpdate adds a request to the Update Queue
 func (r *Repo) QueueUpdate(slug string, rev string) {
 	revision, err := strconv.Atoi(rev)
 	if err != nil {
@@ -192,18 +212,22 @@ func (r *Repo) QueueUpdate(slug string, rev string) {
 	r.UpdateQueue <- ur
 }
 
-// ProcessUpdate ...
+// ProcessUpdate performs an update
+// Updates Meta data and files
 func (r *Repo) ProcessUpdate(slug string, rev int) error {
 	if !r.Exists(slug) {
 		r.Add(slug)
 	}
 	e := r.Get(slug)
+
+	// Get latest API info
 	err := r.updateMeta(e)
 	if err != nil {
 		e.SetStatus(Closed)
 		return err
 	}
 
+	// Get latest files
 	err = r.updateFiles(e)
 	if err != nil {
 		e.SetStatus(Closed)
@@ -213,22 +237,19 @@ func (r *Repo) ProcessUpdate(slug string, rev int) error {
 	e.SetStatus(Open)
 	r.saveExt(e)
 
-	r.Lock()
-	if rev > r.Revision {
-		r.Revision = rev
-	}
-	r.Unlock()
-
+	r.SetRev(rev)
 	r.save()
 
 	return nil
 }
 
+// updateMeta updates the Info held for the Extension
 func (r *Repo) updateMeta(e *Extension) error {
 	e.RLock()
 	slug := e.Slug
 	e.RUnlock()
 
+	// Fetch API Response
 	bytes, err := r.api.GetInfo(r.ExtType, slug)
 	if err != nil {
 		return err
@@ -244,6 +265,7 @@ func (r *Repo) updateMeta(e *Extension) error {
 	return nil
 }
 
+// updateFiles updates the files and index for the Extension
 func (r *Repo) updateFiles(e *Extension) error {
 	e.RLock()
 	slug := e.Slug
@@ -281,6 +303,7 @@ func (r *Repo) updateFiles(e *Extension) error {
 	return nil
 }
 
+// getArchive fetches the latest archive containing Extension files
 func (r *Repo) getArchive(slug string) ([]byte, error) {
 	var content []byte
 	var err error
@@ -296,7 +319,8 @@ func (r *Repo) getArchive(slug string) ([]byte, error) {
 	}
 
 	// Set User-Agent
-	req.Header.Set("User-Agent", "wpdirectory/0.1.0")
+	agent := r.cfg.Name + "/" + r.cfg.Version
+	req.Header.Set("User-Agent", agent)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -363,6 +387,7 @@ func (r *Repo) UpdateList(fresh *bool) error {
 	}
 	r.log.Printf("Found %d %s\n", len(list), r.ExtType)
 
+	// Get latest Revision
 	revision, err := r.api.GetRevision(r.ExtType)
 	if err != nil {
 		return err
@@ -375,6 +400,7 @@ func (r *Repo) UpdateList(fresh *bool) error {
 		}
 		if !r.Exists(ext) {
 			r.Add(ext)
+			// If fresh start we should update all Extensions
 			if *fresh || r.Revision == 0 {
 				r.QueueUpdate(ext, rev)
 			}
@@ -387,11 +413,13 @@ func (r *Repo) UpdateList(fresh *bool) error {
 // StartWorkers starts up Goroutines to process updates
 // Every 15 mins Plugin Repos check the changelog for updates
 // Every 24 hours all Plugins refresh API data
+// TODO: All a job to clean out files created in temp dir
 func (r *Repo) StartWorkers() {
 	// Setup Tickers
 	checkChangelog := time.NewTicker(time.Minute * 15).C
 	checkAPI := time.NewTicker(time.Hour * 48).C
 
+	// Fetch the Changelog to get a list of Extensions to update
 	go func(r *Repo, ticker <-chan time.Time) {
 		for {
 			select {
@@ -422,6 +450,8 @@ func (r *Repo) StartWorkers() {
 		}
 	}(r, checkChangelog)
 
+	// Refresh Extension API data
+	// It will add missing Extensions to the Repo, but these should be caught in the Changelog above
 	go func(r *Repo, ticker <-chan time.Time) {
 		for {
 			select {
@@ -467,7 +497,7 @@ func (r *Repo) loadDBData() {
 		if err != nil {
 			continue
 		}
-		e.Status = Closed
+		e.SetStatus(Closed)
 
 		r.Set(slug, &e)
 	}
@@ -519,7 +549,7 @@ func (r *Repo) loadIndexes() {
 	r.log.Printf("Loaded %d/%d indexes", loaded, len(dirs))
 }
 
-// Summary ...
+// Summary generates an overview of the Repo
 func (r *Repo) Summary() *Summary {
 	r.RLock()
 	defer r.RUnlock()

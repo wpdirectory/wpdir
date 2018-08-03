@@ -15,7 +15,7 @@ func init() {
 	entropy = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
-// New ...
+// New returns a new ULID
 func New() string {
 	mutex.RLock()
 	id := ulid.MustNew(ulid.Timestamp(time.Now()), entropy)
