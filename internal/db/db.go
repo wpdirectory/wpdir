@@ -155,11 +155,9 @@ func DeleteSearches() error {
 	}
 
 	// Commit the transaction.
-	if err := tx.Commit(); err != nil {
-		return err
-	}
+	err = tx.Commit()
 
-	return nil
+	return err
 }
 
 // SaveSearch saves the Search data to DB
@@ -192,11 +190,9 @@ func SaveSearch(searchID string, created string, private bool, bytes []byte) err
 	}
 
 	// Commit the transaction.
-	if err := tx.Commit(); err != nil {
-		return err
-	}
+	err = tx.Commit()
 
-	return nil
+	return err
 }
 
 // GetSearch get Search data by ID
@@ -265,11 +261,10 @@ func SaveMatches(searchID string, list map[string][]byte) error {
 		}
 	}
 
-	// Commit the transaction and check for error.
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-	return nil
+	// Commit the transaction.
+	err = tx.Commit()
+
+	return err
 }
 
 // GetMatches get Search Matches data by ID
