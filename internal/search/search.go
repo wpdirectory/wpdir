@@ -177,8 +177,8 @@ func (sm *Manager) processSearch(ID string) error {
 
 	total = r.Len()
 	for _, e := range r.List {
-		// Limit to 50000 matches
-		if totalMatches > 50000 {
+		// Limit to 100000 matches
+		if totalMatches > 100000 {
 			break
 		}
 		current++
