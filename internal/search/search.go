@@ -172,7 +172,7 @@ func (sm *Manager) processSearch(ID string) error {
 		r = sm.Themes
 		break
 	default:
-		return errors.New("Not a valid respository name")
+		return errors.New("Not a valid repository name")
 	}
 
 	total = r.Len()
