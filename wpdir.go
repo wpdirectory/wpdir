@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	Version string
-	Commit  string
-	Date    string
+	version string
+	commit  string
+	date    string
 )
 
 func main() {
@@ -38,7 +38,7 @@ func main() {
 	l := log.New()
 
 	// Create Config
-	c := config.Setup()
+	c := config.Setup(version, commit, date)
 
 	l.Printf("Hostname: %s\n", c.Host)
 

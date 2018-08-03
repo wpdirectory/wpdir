@@ -3,7 +3,6 @@ package config
 import (
 	"log"
 	"os"
-	"time"
 
 	"github.com/spf13/viper"
 )
@@ -29,7 +28,7 @@ type Config struct {
 }
 
 // Setup creates and returns the Config struct.
-func Setup() *Config {
+func Setup(version, commit, date string) *Config {
 
 	viper.SetDefault("version", "0.1.0")
 	viper.SetDefault("name", "WP Directory")
@@ -57,10 +56,10 @@ func Setup() *Config {
 	}
 
 	config := &Config{
-		Version:       "0.5.0",
+		Version:       version,
 		Name:          viper.GetString("name"),
-		Commit:        "dgfsdghfisdfdsfsdf",
-		Date:          time.Now().Format(time.RFC3339Nano),
+		Commit:        commit,
+		Date:          date,
 		WD:            wd,
 		UpdateWorkers: viper.GetInt("updateworkers"),
 		SearchWorkers: viper.GetInt("searchworkers"),
