@@ -33,8 +33,8 @@ func TestAddFile(t *testing.T) {
 	}
 
 	files := [][]string{
-		[]string{"test.php", ".php", "87"},
-		[]string{"test.css", ".css", "58"},
+		{"test.php", ".php", "87"},
+		{"test.css", ".css", "58"},
 	}
 
 	for _, f := range zr.File {
