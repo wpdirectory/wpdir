@@ -13,7 +13,9 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
+	"github.com/ulule/limiter/drivers/middleware/stdlib"
 	"github.com/wpdirectory/wpdir/internal/data"
+	"github.com/wpdirectory/wpdir/internal/limit"
 )
 
 // startHTTP starts the HTTP server.
@@ -135,8 +137,10 @@ func (s *Server) routes() {
 func (s *Server) apiRoutes() chi.Router {
 	r := chi.NewRouter()
 
+	middleware := stdlib.NewMiddleware(limit.New(), stdlib.WithForwardHeader(true))
+
 	r.Get("/search/{id}", s.getSearch())
-	r.Post("/search/new", s.createSearch())
+	r.Post("/search/new", middleware.Handler(s.createSearch()).(http.HandlerFunc))
 	r.Get("/searches/{limit}", s.getSearches())
 	r.Get("/search/matches/{id}/{slug}", s.getSearchMatches())
 

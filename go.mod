@@ -2,6 +2,7 @@ module github.com/wpdirectory/wpdir
 
 require (
 	github.com/boltdb/bolt v1.3.1
+	github.com/davecgh/go-spew v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/giantswarm/retry-go v0.0.0-20151203102909-d78cea247d5e
 	github.com/go-chi/chi v3.3.2+incompatible
@@ -17,6 +18,8 @@ require (
 	github.com/oklog/ulid v0.3.0
 	github.com/patrickmn/go-cache v1.0.0
 	github.com/pelletier/go-toml v1.1.0
+	github.com/pkg/errors v0.8.0 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/pressly/chi v1.0.0
 	github.com/shurcooL/httpfs v0.0.0-20171119174359-809beceb2371 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20180711163814-62bca832be04
@@ -25,6 +28,9 @@ require (
 	github.com/spf13/jwalterweatherman v0.0.0-20180109140146-7c0cea34c8ec
 	github.com/spf13/pflag v1.0.1
 	github.com/spf13/viper v1.0.2
+	github.com/stretchr/objx v0.1.1 // indirect
+	github.com/stretchr/testify v1.2.2 // indirect
+	github.com/ulule/limiter v2.2.0+incompatible
 	github.com/wpdirectory/wporg v0.0.0-20180801223137-8c91e16b74cf
 	github.com/xenolf/lego v1.0.1
 	golang.org/x/crypto v0.0.0-20180718160520-a2144134853f
