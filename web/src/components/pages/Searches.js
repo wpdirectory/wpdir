@@ -1,40 +1,48 @@
 import React, { Component } from 'react'
 import { Link } from 'react-router-dom'
+import Loadicon from '../general/Loadicon.js'
 import Hostname from '../../utils/Hostname.js'
 
 class Searches extends Component {
 
   constructor(props) {
-    super(props);
+    super(props)
     this.state = {
-      isLoading: true,
       searches: [],
-    };
-  }
-
-  upperCaseFirst = (name) => {
-    return name.charAt(0).toUpperCase() + name.slice(1)
+      isLoading: true,
+      error: '',
+    }
   }
 
   componentWillMount = () => {
-
     fetch( Hostname + '/api/v1/searches/100' )
     .then( response => {
       return response.json()
       
     })
     .then( data => {
-      this.setState({searches: data.searches})
+      this.setState({
+        searches: data.searches,
+        isLoading: false
+      })
     })
-
+    .catch( error => {
+      this.setState({
+        isLoading: false,
+        error: error
+      })
+    })
   }
 
   componentDidMount() {
     document.title = 'Searches - WPdirectory'
   }
 
+  upperCaseFirst = (name) => {
+    return name.charAt(0).toUpperCase() + name.slice(1)
+  }
+
   render() {
-    console.log(this.state.searches)
     let searchList
     if ( !!this.state.searches && this.state.searches.length && this.state.searches.length > 0 ) {
       searchList = this.state.searches.map( (search, idx) => {
@@ -44,6 +52,10 @@ class Searches extends Component {
       })
     } else {
       searchList = <tr><th>Sorry, no searches found.</th></tr>
+    }
+
+    if (this.state.isLoading === true) {
+      searchList = <Loadicon />
     }
     
     return (

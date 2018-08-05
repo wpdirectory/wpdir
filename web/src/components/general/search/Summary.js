@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import Item from './Item.js'
 import Dashicon from '../Dashicon.js'
+import Loadicon from '../Loadicon.js'
 import Pagination from '../Pagination.js'
 import Hostname from '../../../utils/Hostname.js'
 
@@ -26,8 +27,10 @@ class Summary extends Component {
       return response.json()
     })
     .then( data => {
-      this.setState({ items: data.results })
-      this.setState({ isLoading: false })
+      this.setState({
+        items: data.results,
+        isLoading: false
+      })
       this.sortByInstalls()
     })
   }
@@ -134,8 +137,6 @@ class Summary extends Component {
     const numPages = items.length / perPage
     const needsPagination = ( numPages <= 1 ) ? false : true
 
-    console.log("Matches: " + items.length + " Pages: " + numPages)
-
     let summaryItems
     if ( !!this.state.items && this.state.items.length && this.state.items.length > 0 ) {
       summaryItems = currentItems.map( (item, key) => {
@@ -145,6 +146,14 @@ class Summary extends Component {
       })
     } else {
       summaryItems = <p>Sorry, no matches found.</p>
+    }
+
+    if (this.state.isLoading === true) {
+      return (
+        <div>
+          <Loadicon />
+        </div>
+      );
     }
 
     return (
@@ -159,7 +168,7 @@ class Summary extends Component {
         </ul>
         { needsPagination && <Pagination currentPage={currentPage} totalPages={numPages} prevClick={this.prevPage} nextClick={this.nextPage} /> }
       </div>
-	  );
+	  )
   }
 }
 

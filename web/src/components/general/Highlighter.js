@@ -38,8 +38,6 @@ class Highlighter extends Component {
     }
     const mode = CodeMirror.findModeByName(lang)
     CodeMirror.runMode(value, mode ? mode.mime : 'meta', (token, style) => {
-      //console.log(token)
-      //console.log(style)
       if (lastStyle === style) {
         tokenBuf += token
         lastStyle = style

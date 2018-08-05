@@ -1,5 +1,5 @@
-import React, { Component } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import React, { Component } from 'react'
+import { NavLink, Link } from 'react-router-dom'
 import Logo from './general/logos/Logo.js'
 
 class Header extends Component {
@@ -54,4 +54,4 @@ class Header extends Component {
   }
 }
 
-export default Header;
+export default Header

@@ -6,9 +6,11 @@ class Pagination extends Component {
       currentPage,
       totalPages,
     } = this.props
+    
     let prev = ( currentPage <= 1 ) ? true : false
     let next = ( currentPage >= totalPages ) ? true : false
     let pageText = 'Page ' + currentPage + '/' + Math.ceil(totalPages)
+
     return (
 	    <nav className="search-nav grid-x" aria-label="Pagination">
         <div className="cell small-6 medium-4"><button type="button" className="button primary expanded" onClick={this.props.prevClick} disabled={prev}>Previous</button></div>

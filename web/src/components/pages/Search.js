@@ -27,7 +27,6 @@ class Search extends Component {
   }
 
   componentWillMount = () => {
-
     fetch( Hostname + '/api/v1/search/' + this.props.match.params.id )
     .then( response => {
       return response.json()

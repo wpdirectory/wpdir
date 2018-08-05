@@ -2,7 +2,7 @@ import React, { Component } from 'react'
 import Dashicon from '../Dashicon.js'
 import Modal from './Modal.js'
 
-const ESCAPE = 27;
+const ESCAPE = 27
 
 class Match extends Component {
   constructor(props) {

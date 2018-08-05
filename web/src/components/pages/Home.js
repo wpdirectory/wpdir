@@ -2,19 +2,20 @@ import React, { Component } from 'react'
 import { Link } from 'react-router-dom';
 import SearchForm from '../general/search/SearchForm'
 import Dashicon from '../general/Dashicon.js'
+import Loadicon from '../general/Loadicon.js'
 import Hostname from '../../utils/Hostname.js'
 
 class Home extends Component {
 
   constructor(props) {
-    super(props);
+    super(props)
     this.state = {
         searches: [],
-    };
+        isLoading: true,
+    }
   }
 
   componentWillMount = () => {
-
     fetch( Hostname + '/api/v1/searches/10' )
     .then( response => {
       return response.json()
@@ -25,7 +26,6 @@ class Home extends Component {
         this.setState({searches: data.searches})
       }
     })
-
   }
 
   getRepoIcon = (repo) => {
@@ -42,12 +42,9 @@ class Home extends Component {
   }
 
   render() {
-    console.log(this.state.searches)
     let latestSearches
-
     if ( this.state.searches.length && this.state.searches.length > 0 ) {
-      let searches = this.state.searches.sort( (a,b) => Date.parse(a.started) < Date.parse(b.started) )
-      latestSearches = searches.map( (search, idx) => {
+      latestSearches = this.state.searches.map( (search, idx) => {
         return (
           <li key={idx}>
             <span className="input"><Link to={'/search/' + search.id} title={search.input}>{search.input.substring(0, 34)}</Link></span>
@@ -56,11 +53,8 @@ class Home extends Component {
           </li>
         )
       })
-
     } else {
-
-      latestSearches = <p>Sorry, no searches found.</p>
-
+      latestSearches = <Loadicon />
     }
 
     return (

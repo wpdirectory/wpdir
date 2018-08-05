@@ -2,7 +2,6 @@ import React, { Component } from 'react'
 import Matches from './Matches.js'
 
 class Item extends Component {
-
   constructor(props) {
     super(props)
     this.state = {
@@ -23,9 +22,7 @@ class Item extends Component {
       return 'n/a';
     }
     let installs = item.active_installs.toString()
-    console.log(installs.length)
     if (installs.length > 6) {
-      console.log('Over 6 Length')
       return installs.slice(0, installs.length - 6) + ',' + installs.slice(installs.length - 6, installs.length - 3) + ',' + installs.slice(installs.length - 3)
     }
     if (installs.length > 3) {

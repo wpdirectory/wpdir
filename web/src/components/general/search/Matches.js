@@ -16,11 +16,12 @@ class Matches extends Component {
     fetch( Hostname + '/api/v1/search/matches/' + this.props.id + '/' + this.props.slug )
     .then( response => {
       return response.json()
-      
     })
     .then( data => {
-      this.setState({ matches: data.list })
-      this.setState({ isLoading: false })
+      this.setState({
+        matches: data.list,
+        isLoading: false
+      })
     })
   }
 
@@ -40,7 +41,7 @@ class Matches extends Component {
       <ul className="matches">
         {matchList}
       </ul>
-	  );
+	  )
   }
 }
 
