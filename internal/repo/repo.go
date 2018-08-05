@@ -561,13 +561,17 @@ func (r *Repo) Summary() *Summary {
 		Queue:    len(r.UpdateQueue),
 	}
 
-	for _, e := range r.List {
-		e.RLock()
-		if e.Status == Closed {
-			rs.Closed++
+	// TODO: Cannot loop through every Extension for each Repos page load
+	// Must rewrite this to be generated in the background
+	/*
+		for _, e := range r.List {
+			e.RLock()
+			if e.Status == Closed {
+				rs.Closed++
+			}
+			e.RUnlock()
 		}
-		e.RUnlock()
-	}
+	*/
 
 	return rs
 }
