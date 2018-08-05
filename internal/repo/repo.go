@@ -396,14 +396,15 @@ func (r *Repo) UpdateList(fresh *bool) error {
 
 	for _, ext := range list {
 		if !utf8.Valid([]byte(ext)) {
-			return errors.New("Extension slug is not valid UTF8")
+			r.log.Printf("Extension slug is not valid UTF8: %s\n", ext)
+			continue
 		}
 		if !r.Exists(ext) {
 			r.Add(ext)
-			// If fresh start we should update all Extensions
-			if *fresh || r.Revision == 0 {
-				r.QueueUpdate(ext, rev)
-			}
+		}
+		// If fresh start we should update all Extensions
+		if *fresh || r.Revision == 0 {
+			r.QueueUpdate(ext, rev)
 		}
 	}
 
