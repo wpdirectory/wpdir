@@ -55,7 +55,7 @@ class Searches extends Component {
     }
 
     if (this.state.isLoading === true) {
-      searchList = <Loadicon />
+      searchList = <tr><td><Loadicon /></td></tr>
     }
     
     return (
