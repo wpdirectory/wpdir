@@ -175,7 +175,8 @@ func (sm *Manager) processSearch(ID string) error {
 		return errors.New("Not a valid repository name")
 	}
 
-	total = r.Len()
+	r.RLock()
+	total = uint64(len(r.List))
 	for _, e := range r.List {
 		// Limit to 100000 matches
 		if totalMatches > 100000 {
@@ -239,6 +240,8 @@ func (sm *Manager) processSearch(ID string) error {
 	}
 
 	wg.Wait()
+
+	r.RUnlock()
 
 	summary := &Summary{
 		List:  make(map[string]*Result),
