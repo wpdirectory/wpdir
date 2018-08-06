@@ -438,7 +438,7 @@ func (r *Repo) StartWorkers() {
 					r.log.Printf("Failed getting %s Repo revision: %s\n", r.ExtType, err)
 				}
 				r.RLock()
-				list, err := r.api.GetChangeLog(r.ExtType, r.Revision, latest)
+				log, err := r.api.GetChangeLog(r.ExtType, r.Revision, latest)
 				if err != nil {
 					r.log.Printf("Failed getting %s Changelog: %s\n", r.ExtType, err)
 					r.RUnlock()
@@ -446,8 +446,16 @@ func (r *Repo) StartWorkers() {
 				}
 				r.RUnlock()
 
-				for i := 0; i < len(list); i++ {
-					r.QueueUpdate(string(list[i][0]), string(list[i][1]))
+				// Remove Duplicates
+				// Save most recent revision
+				list := make(map[string]string, len(log))
+				for i := 0; i < len(log); i++ {
+					list[log[i][1]] = log[i][2]
+				}
+
+				// Queue Updates
+				for k, v := range list {
+					r.QueueUpdate(k, v)
 				}
 			}
 		}
