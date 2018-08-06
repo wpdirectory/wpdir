@@ -45,10 +45,11 @@ type Repo struct {
 
 // Summary ...
 type Summary struct {
-	Revision int `json:"revision"`
-	Total    int `json:"total"`
-	Closed   int `json:"closed"`
-	Queue    int `json:"queue"`
+	Revision int    `json:"revision"`
+	Updated  string `json:"updated"`
+	Total    int    `json:"total"`
+	Closed   int    `json:"closed"`
+	Queue    int    `json:"queue"`
 }
 
 // New returns a new Repo
@@ -102,6 +103,7 @@ func (r *Repo) SetRev(new int) {
 	// Check this is a progression
 	if new > r.Revision {
 		r.Revision = new
+		r.Updated = time.Now()
 	}
 	r.Unlock()
 }
@@ -557,6 +559,7 @@ func (r *Repo) Summary() *Summary {
 
 	rs := &Summary{
 		Revision: r.Revision,
+		Updated:  r.Updated.Format(time.RFC3339),
 		Total:    len(r.List),
 		Queue:    len(r.UpdateQueue),
 	}
