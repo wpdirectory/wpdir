@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import CodeMirror from '../CodeMirror.js'
+import Loadicon from '../Loadicon.js'
 import API from '../../../utils/API.js'
 
 class Modal extends Component {
@@ -88,12 +89,24 @@ class Modal extends Component {
       display: 'block',
     }
 
+    let modalContent
+
+    if ( isLoading ) {
+      modalContent = <Loadicon />
+    }  else {
+      if ( error ) {
+        modalContent = <p className="error">Sorry, there was a problem fetching the file contents.</p>
+      } else {
+        modalContent = <CodeMirror value={this.state.code} file={match.file} line={match.line_num} options={options} focus={true} />
+      }
+    }
+
     return (
       <div style={styles} className="reveal-overlay">
         <div style={styles} className="reveal large">
           <h1>{match.file}</h1>
           <div className="reveal-content">
-            <CodeMirror value={this.state.code} file={match.file} line={match.line_num} options={options} focus={true} />
+            {modalContent}
           </div>
           {this.props.children}
         </div>
