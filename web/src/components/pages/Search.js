@@ -2,13 +2,12 @@ import React, { Component } from 'react'
 import Loadicon from '../general/Loadicon.js'
 import ProgressBlock from '../general/ProgressBlock.js'
 import Summary from '../general/search/Summary.js'
-import Hostname from '../../utils/Hostname.js'
+import API from '../../utils/API.js'
 
 class Search extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      isLoading: true,
       interval: 0,
       id: '',
       input: '',
@@ -19,58 +18,34 @@ class Search extends Component {
       total: 0,
       status: 5,
       matches: 0,
-      summary: {
-        list: [],
-        total: 0,
-      },
+      isLoading: true,
+      error: '',
     }
   }
 
   componentWillMount = () => {
-    fetch( Hostname + '/api/v1/search/' + this.props.match.params.id )
-    .then( response => {
-      return response.json()
-      
-    })
-    .then( data => {
-      this.setState({ id: data.id })
-      this.setState({ input: data.input })
-      this.setState({ repo: data.repo })
-      if (data.started) {
-        this.setState({ started: Date.parse(data.started) })
-      }
-      if (data.completed) {
-        this.setState({ completed: Date.parse(data.completed) })
-      }
-      this.setState({ progress: data.progress })
-      this.setState({ status: data.status })
-      this.setState({ matches: data.matches })
-      this.setState({ isLoading: false })
-    })
-
+    this.fetchData()
   }
 
-  refreshData = () => {
-    fetch( Hostname + '/api/v1/search/' + this.props.match.params.id )
-    .then( response => {
-      return response.json()
-      
-    })
-    .then( data => {
-      this.setState({ id: data.id })
-      this.setState({ input: data.input })
-      this.setState({ repo: data.repo })
-      if (data.started) {
-        this.setState({ started: Date.parse(data.started) })
-      }
-      if (data.completed) {
-        this.setState({ completed: Date.parse(data.completed) })
-      }
-      this.setState({ progress: data.progress })
-      this.setState({ status: data.status })
-      this.setState({ matches: data.matches })
-      this.setState({ isLoading: false })
-    })
+  fetchData = () => {
+    this.setState({ isLoading: true })
+
+    API.get( '/search/' + this.props.match.params.id )
+      .then( result => this.setState({
+        id: result.data.id,
+        input: result.data.input,
+        repo: result.data.repo,
+        progress: result.data.progress,
+        status: result.data.status,
+        matches: result.data.matches,
+        started: Date.parse(result.data.started),
+        completed: ( result.data.completed ? Date.parse(result.data.completed) : 0 ),
+        isLoading: false
+      }))
+      .catch(error => this.setState({
+        error,
+        isLoading: false
+      }))
   }
 
   getStatus = (code) => {
@@ -119,12 +94,12 @@ class Search extends Component {
     document.title = 'Search ' + this.state.id + ' - WPdirectory'
     this.queueInterval = setInterval(() => {
       if ( this.state.status === 0 ) {
-        this.refreshData()
+        this.fetchData()
       }
     }, 5000)
     this.updateInterval = setInterval(() => {
       if ( this.state.status === 1 ) {
-        this.refreshData()
+        this.fetchData()
       }
     }, 2000)
   }
@@ -209,23 +184,28 @@ class Search extends Component {
   }
 
   render() {
-    let searchSummary
+    const {
+      isLoading,
+      error
+    } = this.state
+
+    let summary
     if ( this.state.status === 2 ) {
-      searchSummary = (
+      summary = (
         <div className="search-summary panel cell small-12">
           <h2>Summary <small>({this.state.matches}{ ' matches'})</small></h2>
           <Summary repo={this.state.repo} id={this.state.id} matches={this.state.matches} />
         </div>
       )
     } else {
-      searchSummary = (
+      summary = (
         <div className="search-summary panel cell small-12">
           <Loadicon />
         </div>
       )
     }
 
-    if ( this.state.isLoading === true ) {
+    if ( isLoading ) {
       return (
         <div className="page page-search grid-container">
           <div className="grid-x grid-margin-x grid-margin-y">
@@ -238,27 +218,42 @@ class Search extends Component {
           </div>
         </div>
       )
-    } else {
-      return (
-        <div className="page page-search grid-container">
-          <div className="grid-x grid-margin-x grid-margin-y">
-            <div className="title panel cell small-12">
-              <h1>Search - {this.getStatus(this.state.status)}</h1>
+    }  else {
+      if ( error ) {
+        return (
+          <div className="page page-search grid-container">
+            <div className="grid-x grid-margin-x grid-margin-y">
+              <div className="title panel cell small-12">
+                <h1>Search - {this.getStatus(this.state.status)}</h1>
+              </div>
+              <div className="search-info panel cell small-12">
+                <p className="error">Sorry, there was a problem fetching data.</p>
+              </div>
             </div>
-            {(() => {
-              if (this.state.status === 1) {
-                return (<ProgressBlock progress={this.state.progress} status={this.getStatus(this.state.status)} />)
-              }
-            })()}
-            {this.formatOverview()}
-            {(() => {
-              if (this.state.status === 2 && this.state.matches > 0) {
-                return searchSummary
-              }
-            })()}
           </div>
-        </div>
-      )
+        )
+      } else {
+        return (
+          <div className="page page-search grid-container">
+            <div className="grid-x grid-margin-x grid-margin-y">
+              <div className="title panel cell small-12">
+                <h1>Search - {this.getStatus(this.state.status)}</h1>
+              </div>
+              {(() => {
+                if (this.state.status === 1) {
+                  return (<ProgressBlock progress={this.state.progress} status={this.getStatus(this.state.status)} />)
+                }
+              })()}
+              {this.formatOverview()}
+              {(() => {
+                if (this.state.status === 2 && this.state.matches > 0) {
+                  return summary
+                }
+              })()}
+            </div>
+          </div>
+        )
+      }
     }
   }
 }

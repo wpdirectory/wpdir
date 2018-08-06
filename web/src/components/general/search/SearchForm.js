@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import { withRouter } from 'react-router-dom'
 import Dashicon from '../Dashicon.js'
-import Hostname from '../../../utils/Hostname.js'
+import API from '../../../utils/API.js'
 
 class SearchForm extends Component {
     constructor(props) {
@@ -30,47 +30,65 @@ class SearchForm extends Component {
   
     handleSubmit = (event) => {
       event.preventDefault()
-      this.postData( Hostname + '/api/v1/search/new', {input: this.state.input, target: this.state.target, private: this.state.private} )
-        .then(data => {
-            this.props.history.push('/search/' + data.id)
+      this.setState({
+        isLoading: true,
+        error: ''
+      })
+      API.post( '/search/new', {
+        input: this.state.input,
+        target: this.state.target,
+        private: this.state.private
+      })
+      .then( response => {
+        this.setState({
+          isLoading: false
         })
-        .catch(error => console.error(error))
+        this.props.history.push( '/search/' + response.data.id )
+      })
+      .catch( error => {
+        if ( error.response ) {
+          this.setState({
+            error: 'Error bad status: ' + error.response.status,
+            isLoading: false
+          })
+        } else if ( error.request ) {
+          this.setState({
+            error: 'Error no response received',
+            isLoading: false
+          })
+        } else {
+          this.setState({
+            error: 'Error making request: ' + error.message,
+            isLoading: false
+          })
+        }
+      })
     }
 
-    postData(url, data) {
-        return fetch(url, {
-          body: JSON.stringify(data),
-          cache: 'no-cache',
-          credentials: 'same-origin',
-          headers: {
-            'user-agent': 'WPDirectory/0.1.0',
-            'content-type': 'application/json'
-          },
-          method: 'POST',
-          mode: 'cors',
-          redirect: 'follow',
-          referrer: 'no-referrer',
-        })
-        .then(response => response.json())
-    }
-  
     render() {
+      const { 
+        input,
+        target,
+        isLoading,
+        error
+      } = this.state
+
       return (
         <form className="search-form" onSubmit={this.handleSubmit}>
           <h3>New Search</h3>
           <div className="input-choice">
             <label>Regular Expression:</label>
-            <input className="input" type="text" placeholder="" value={this.state.input} onChange={this.updateInput} />
+            <input className="input" type="text" placeholder="" value={input} onChange={this.updateInput} />
           </div>
 
           <div className="directory-choice">
             <label>What to Search:</label>
             <div className="button-group expanded stacked-for-small">
-              <button className={this.state.target === 'plugins' ? 'button' : 'button secondary'} value="plugins" onClick={this.updateTarget}>
+              <button className={target === 'plugins' ? 'button' : 'button secondary'} value="plugins" onClick={this.updateTarget}>
                 <Dashicon icon="admin-plugins" size={ 16 } />
                 Plugins
               </button>
-              <button className={this.state.target === 'themes' ? 'button' : 'button secondary'} value="themes" onClick={this.updateTarget}>
+              <button className={target === 'themes' ? 'button' : 'button secondary'} value="themes" onClick={this.updateTarget}>
                 <Dashicon icon="admin-appearance" size={ 16 } />
                 Themes
               </button>
@@ -90,6 +108,12 @@ class SearchForm extends Component {
           </div>
 
           <input className="button expanded" type="submit" value="Search" onClick={this.handleSubmit} />
+
+          { ( !isLoading && error ) &&
+          <div className="callout alert">
+            <p>{error}</p>
+          </div>
+          }
         </form>
       );
     }

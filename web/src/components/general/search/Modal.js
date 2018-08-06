@@ -1,14 +1,15 @@
 import React, { Component } from 'react'
 import CodeMirror from '../CodeMirror.js'
-import Hostname from '../../../utils/Hostname.js'
+import API from '../../../utils/API.js'
 
 class Modal extends Component {
   constructor(props) {
     super(props)
     this.state = {
-      isLoading: true,
       code: '',
       lang: '',
+      isLoading: true,
+      error: ''
     }
   }
 
@@ -19,29 +20,23 @@ class Modal extends Component {
   }
 
   componentWillMount = () => {
-    fetch( Hostname + '/api/v1/file', {
-      body: JSON.stringify( {repo: this.props.repo, slug: this.props.match.slug, file: this.props.match.file} ),
-      cache: 'no-cache',
-      credentials: 'same-origin',
-      headers: {
-        'user-agent': 'WPDirectory/0.1.0',
-        'content-type': 'application/json'
-      },
-      method: 'POST',
-      mode: 'cors',
-      redirect: 'follow',
-      referrer: 'no-referrer',
-    } )
-    .then( response => {
-      return response.json()
-    })
-    .then( data => {
-      if ( data.code ) {
-        this.setState({ code: data.code })
-      } 
-    })
+    this.setState({ isLoading: true })
+
+    API.post( '/file', {
+      repo: this.props.repo,
+      slug: this.props.match.slug,
+      file: this.props.match.file
+      })
+      .then( result => this.setState({
+        code: result.data.code,
+        isLoading: false
+      }))
+      .catch(error => this.setState({
+        error,
+        isLoading: false
+      }))
   }
-  
+
 	updateCode = ( newCode ) => {
 		this.setState({
 			code: newCode,
@@ -50,7 +45,7 @@ class Modal extends Component {
   
   calculateLanguage = (filename) => {
     let guess = filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2)
-    switch (guess) {
+    switch ( guess ) {
       case 'php':
         return 'php'
       case 'js':
@@ -76,6 +71,11 @@ class Modal extends Component {
     const {
       match
     } = this.props
+
+    const {
+      isLoading,
+      error
+    } = this.state
 
     let options = {
       styleActiveLine: true,

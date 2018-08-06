@@ -3,7 +3,7 @@ import Item from './Item.js'
 import Dashicon from '../Dashicon.js'
 import Loadicon from '../Loadicon.js'
 import Pagination from '../Pagination.js'
-import Hostname from '../../../utils/Hostname.js'
+import API from '../../../utils/API.js'
 
 class Summary extends Component {
 
@@ -14,25 +14,31 @@ class Summary extends Component {
       matches: this.props.matches,
       items: [],
       sorting: 'installs',
-      desc: true,
+      desc: false,
       currentPage: 1,
       perPage: 100,
       isLoading: true,
+      error: ''
     }
   }
 
   componentWillMount = () => {
-    fetch( Hostname + '/api/v1/search/summary/' + this.props.id )
-    .then( response => {
-      return response.json()
-    })
-    .then( data => {
-      this.setState({
-        items: data.results,
-        isLoading: false
+    this.setState({ isLoading: true })
+
+    API.get( '/search/summary/' + this.props.id )
+      .then( result => {
+        this.setState({
+          items: result.data.results,
+          isLoading: false
+        })
+        this.sortByInstalls()
       })
-      this.sortByInstalls()
-    })
+      .catch( error => this.setState({
+        error,
+        isLoading: false
+      }))
+
+    this.sortByInstalls()
   }
 
   sortByName = () => {
@@ -128,7 +134,9 @@ class Summary extends Component {
     const { 
       items,
       currentPage,
-      perPage
+      perPage,
+      isLoading,
+      error
     } = this.state
 
     const indexOfLastItem = currentPage * perPage
@@ -138,22 +146,23 @@ class Summary extends Component {
     const needsPagination = ( numPages <= 1 ) ? false : true
 
     let summaryItems
-    if ( !!this.state.items && this.state.items.length && this.state.items.length > 0 ) {
-      summaryItems = currentItems.map( (item, key) => {
-        return (
-          <Item repo={this.props.repo} id={this.state.id} item={item} close={this.state.forceClose} key={key} />
-        )
-      })
-    } else {
-      summaryItems = <p>Sorry, no matches found.</p>
-    }
 
-    if (this.state.isLoading === true) {
+    if ( isLoading ) {
       return (
         <div>
           <Loadicon />
         </div>
-      );
+      )
+    }  else {
+      if ( error ) {
+        summaryItems = <p className="error">Sorry, there was a problem fetching data.</p>
+      } else {
+        summaryItems = currentItems.map( (item, key) => {
+          return (
+            <Item repo={this.props.repo} id={this.state.id} item={item} close={this.state.forceClose} key={key} />
+          )
+        })
+      }
     }
 
     return (

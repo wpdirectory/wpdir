@@ -1,9 +1,9 @@
 import React, { Component } from 'react'
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom'
 import SearchForm from '../general/search/SearchForm'
 import Dashicon from '../general/Dashicon.js'
 import Loadicon from '../general/Loadicon.js'
-import Hostname from '../../utils/Hostname.js'
+import API from '../../utils/API.js'
 
 class Home extends Component {
 
@@ -12,20 +12,22 @@ class Home extends Component {
     this.state = {
         searches: [],
         isLoading: true,
+        error: '',
     }
   }
 
   componentWillMount = () => {
-    fetch( Hostname + '/api/v1/searches/10' )
-    .then( response => {
-      return response.json()
-      
-    })
-    .then( data => {
-      if (data.searches) {
-        this.setState({searches: data.searches})
-      }
-    })
+    this.setState({ isLoading: true })
+
+    API.get( '/searches/10' )
+      .then( result => this.setState({
+        searches: result.data.searches,
+        isLoading: false
+      }))
+      .catch(error => this.setState({
+        error,
+        isLoading: false
+      }))
   }
 
   getRepoIcon = (repo) => {
@@ -42,19 +44,30 @@ class Home extends Component {
   }
 
   render() {
+    const { 
+      searches,
+      isLoading,
+      error
+    } = this.state
+
     let latestSearches
-    if ( this.state.searches.length && this.state.searches.length > 0 ) {
-      latestSearches = this.state.searches.map( (search, idx) => {
-        return (
-          <li key={idx}>
-            <span className="input"><Link to={'/search/' + search.id} title={search.input}>{search.input.substring(0, 34)}</Link></span>
-            <span className="matches">{search.matches}</span>
-            <span className="directory" title={search.repo.charAt(0).toUpperCase() + search.repo.slice(1)}>{this.getRepoIcon(search.repo)}</span>
-          </li>
-        )
-      })
-    } else {
+
+    if ( isLoading ) {
       latestSearches = <Loadicon />
+    }  else {
+      if ( error ) {
+        latestSearches = <p className="error">Sorry, there was a problem fetching data.</p>
+      } else {
+        latestSearches = searches.map( (search, idx) => {
+          return (
+            <li key={idx}>
+              <span className="input"><Link to={'/search/' + search.id} title={search.input}>{search.input.substring(0, 34)}</Link></span>
+              <span className="matches">{search.matches}</span>
+              <span className="directory" title={search.repo.charAt(0).toUpperCase() + search.repo.slice(1)}>{this.getRepoIcon(search.repo)}</span>
+            </li>
+          )
+        })
+      }
     }
 
     return (

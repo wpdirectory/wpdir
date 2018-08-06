@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import { Link } from 'react-router-dom'
 import Loadicon from '../general/Loadicon.js'
-import Hostname from '../../utils/Hostname.js'
+import API from '../../utils/API.js'
 
 class Searches extends Component {
 
@@ -15,23 +15,17 @@ class Searches extends Component {
   }
 
   componentWillMount = () => {
-    fetch( Hostname + '/api/v1/searches/100' )
-    .then( response => {
-      return response.json()
-      
-    })
-    .then( data => {
-      this.setState({
-        searches: data.searches,
+    this.setState({ isLoading: true })
+
+    API.get( '/searches/100' )
+      .then( result => this.setState({
+        searches: result.data.searches,
         isLoading: false
-      })
-    })
-    .catch( error => {
-      this.setState({
-        isLoading: false,
-        error: error
-      })
-    })
+      }))
+      .catch(error => this.setState({
+        error,
+        isLoading: false
+      }))
   }
 
   componentDidMount() {
@@ -43,19 +37,26 @@ class Searches extends Component {
   }
 
   render() {
-    let searchList
-    if ( !!this.state.searches && this.state.searches.length && this.state.searches.length > 0 ) {
-      searchList = this.state.searches.map( (search, idx) => {
-        return (
-          <tr key={idx}><td><Link to={'/search/' + search.id}>{search.input}</Link></td><td>{this.upperCaseFirst(search.repo)}</td><td>{search.matches}</td></tr>
-        )
-      })
-    } else {
-      searchList = <tr><th>Sorry, no searches found.</th></tr>
-    }
+    const { 
+      searches,
+      isLoading,
+      error
+    } = this.state
 
-    if (this.state.isLoading === true) {
-      searchList = <tr><td><Loadicon /></td></tr>
+    let searchList
+
+    if ( isLoading ) {
+      searchList = <Loadicon />
+    }  else {
+      if ( error ) {
+        searchList = <p className="error">Sorry, there was a problem fetching data.</p>
+      } else {
+        searchList = searches.map( (search, idx) => {
+          return (
+            <tr key={idx}><td><Link to={'/search/' + search.id}>{search.input}</Link></td><td>{this.upperCaseFirst(search.repo)}</td><td>{search.matches}</td></tr>
+          )
+        })
+      }
     }
     
     return (
