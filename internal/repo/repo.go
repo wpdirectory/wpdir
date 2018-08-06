@@ -444,19 +444,28 @@ func (r *Repo) StartWorkers() {
 					r.RUnlock()
 					continue
 				}
+
+				// If no changes skip
+				if len(log) == 0 {
+					r.log.Printf("Now new %s updates since: %d\n", r.ExtType, r.Revision)
+					r.RUnlock()
+					continue
+				}
 				r.RUnlock()
 
 				// Remove Duplicates
 				// Save most recent revision
-				list := make(map[string]string, len(log))
-				for i := 0; i < len(log); i++ {
-					list[log[i][1]] = log[i][2]
+				list := make(map[string]string)
+				for _, update := range log {
+					list[update[0]] = update[1]
 				}
 
 				// Queue Updates
 				for k, v := range list {
 					r.QueueUpdate(k, v)
 				}
+
+				r.log.Printf("%d %s added to the update queue\n", len(list), r.ExtType)
 			}
 		}
 	}(r, checkChangelog)
