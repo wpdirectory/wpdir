@@ -75,6 +75,8 @@ github.com/wpdirectory/wporg v0.0.0-20180805135126-007bebbb10a7 h1:PZvsf/yF/YL2m
 github.com/wpdirectory/wporg v0.0.0-20180805135126-007bebbb10a7/go.mod h1:vvrKlUIujGRH7+zK09/6c51LPyRhRp3Fin9mqn5uL5A=
 github.com/wpdirectory/wporg v0.0.0-20180805152731-8f71dac6ad1c h1:aD8Kwn6ARvFdjc7HNfdvvJDq1n8LoD1Sk3bV4pM+wQg=
 github.com/wpdirectory/wporg v0.0.0-20180805152731-8f71dac6ad1c/go.mod h1:vvrKlUIujGRH7+zK09/6c51LPyRhRp3Fin9mqn5uL5A=
+github.com/wpdirectory/wporg v0.0.0-20180806220619-cb2e70e4b5fd h1:aOH6kaNgx1MiyLWKh+JB3h+3wf5wjcFcYl1HUhBk2jw=
+github.com/wpdirectory/wporg v0.0.0-20180806220619-cb2e70e4b5fd/go.mod h1:vvrKlUIujGRH7+zK09/6c51LPyRhRp3Fin9mqn5uL5A=
 github.com/xenolf/lego v1.0.1 h1:Rr9iqO8MoNxY6OvqdIZTnNZ8bwt0RNz00nGXfoTq4Bc=
 github.com/xenolf/lego v1.0.1/go.mod h1:fwiGnfsIjG7OHPfOvgK7Y/Qo6+2Ox0iozjNTkZICKbY=
 golang.org/x/crypto v0.0.0-20180718160520-a2144134853f h1:lRy+hhwk7YT7MsKejxuz0C5Q1gk6p/QoPQYEmKmGFb8=

@@ -31,7 +31,7 @@ require (
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.2.2 // indirect
 	github.com/ulule/limiter v2.2.0+incompatible
-	github.com/wpdirectory/wporg v0.0.0-20180805152731-8f71dac6ad1c
+	github.com/wpdirectory/wporg v0.0.0-20180806220619-cb2e70e4b5fd
 	github.com/xenolf/lego v1.0.1
 	golang.org/x/crypto v0.0.0-20180718160520-a2144134853f
 	golang.org/x/net v0.0.0-20180530234432-1e491301e022
