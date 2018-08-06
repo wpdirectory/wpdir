@@ -24,12 +24,11 @@ class Search extends Component {
   }
 
   componentWillMount = () => {
+    this.setState({ isLoading: true })
     this.fetchData()
   }
 
   fetchData = () => {
-    this.setState({ isLoading: true })
-
     API.get( '/search/' + this.props.match.params.id )
       .then( result => this.setState({
         id: result.data.id,
