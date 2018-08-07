@@ -35,11 +35,9 @@ func (s *Server) static() http.HandlerFunc {
 			s.Logger.Fatalf("Failed to read index.html: %s\n", err)
 		}
 
-		// Embed Hostname into HTML, remove trailing slash
-		host := strings.TrimRight(s.Config.Host, "/")
-		buffer = []byte(strings.Replace(string(buffer), "%HOSTNAME%", host, 1))
+		html := s.addConfig(buffer)
 
-		w.Write(buffer)
+		w.Write(html)
 	}
 }
 
@@ -68,6 +66,19 @@ func (s *Server) notFound() http.HandlerFunc {
 			s.Logger.Fatalf("Failed to read index.html: %s\n", err)
 		}
 
-		w.Write(buffer)
+		html := s.addConfig(buffer)
+
+		w.Write(html)
 	}
+}
+
+func (s *Server) addConfig(html []byte) []byte {
+	// Embed Hostname into HTML, remove trailing slash
+	host := strings.TrimRight(s.Config.Host, "/")
+	html = []byte(strings.Replace(string(html), "%HOSTNAME%", host, 1))
+
+	// Embed HTTP Config into HTML
+	html = []byte(strings.Replace(string(html), "%TIMEOUT%", "5000", 1))
+
+	return html
 }

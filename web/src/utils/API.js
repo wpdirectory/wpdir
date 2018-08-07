@@ -1,9 +1,9 @@
 import axios from 'axios'
-import Hostname from './Hostname.js'
+import Config from './Config.js'
 
 let API = axios.create({
-  baseURL: Hostname + '/api/v1',
-  timeout: 5000,
+  baseURL: Config.Hostname + '/api/v1',
+  timeout: Config.HTTP.Timeout,
 })
 
 export default API
