@@ -363,16 +363,21 @@ func (s *Server) getRepo() http.HandlerFunc {
 // getRepoOverview ...
 func (s *Server) getRepoOverview() http.HandlerFunc {
 	type getRepoOverviewResponse struct {
-		Plugins     *repo.Summary `json:"plugins,omitempty"`
-		Themes      *repo.Summary `json:"themes,omitempty"`
-		UpdateQueue int           `json:"update_queue,omitempty"`
+		Plugins     repo.Repo `json:"plugins,omitempty"`
+		Themes      repo.Repo `json:"themes,omitempty"`
+		UpdateQueue int       `json:"update_queue,omitempty"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		var resp getRepoOverviewResponse
+		s.Manager.Plugins.RLock()
+		resp.Plugins = *s.Manager.Plugins
+		s.Manager.Plugins.RUnlock()
 
-		resp.Plugins = s.Manager.Plugins.Summary()
-		resp.Themes = s.Manager.Themes.Summary()
+		s.Manager.Themes.RLock()
+		resp.Themes = *s.Manager.Themes
+		s.Manager.Themes.RUnlock()
+
 		resp.UpdateQueue = len(s.Manager.Plugins.UpdateQueue)
 
 		writeResp(w, resp)
