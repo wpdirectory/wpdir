@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/wpdirectory/wpdir/internal/config"
@@ -47,6 +48,10 @@ func main() {
 	// Ensure Directory Structure Exists
 	mkdirs(c.WD)
 
+	// Set Temp Dir
+	// TODO: Check error- what would we do?
+	setTempDir(c.WD)
+
 	// Setup BoltDB
 	db.Setup(c.WD)
 	defer db.Close()
@@ -84,12 +89,36 @@ Config:
 )
 
 func mkdirs(wd string) {
+	tmp := filepath.Join(wd, "tmp")
+	os.MkdirAll(tmp, os.ModeDir)
+
 	db := filepath.Join(wd, "data", "db")
-	os.MkdirAll(db, os.ModePerm)
+	os.MkdirAll(db, os.ModeDir)
 
 	plugins := filepath.Join(wd, "data", "index", "plugins")
-	os.MkdirAll(plugins, os.ModePerm)
+	os.MkdirAll(plugins, os.ModeDir)
 
 	themes := filepath.Join(wd, "data", "index", "themes")
-	os.MkdirAll(themes, os.ModePerm)
+	os.MkdirAll(themes, os.ModeDir)
+}
+
+// setTempDir sets the temp dir
+// WPdir creates a lot of temp files which need
+// to be cleaned up by the program itself
+func setTempDir(wd string) error {
+	path := filepath.Join(wd, "tmp")
+
+	switch opsys := runtime.GOOS; opsys {
+	case "windows":
+		err := os.Setenv("TMP", path)
+		return err
+	case "darwin":
+		err := os.Setenv("TMPDIR", path)
+		return err
+	case "linux":
+		err := os.Setenv("TMPDIR", path)
+		return err
+	default:
+		return nil
+	}
 }
