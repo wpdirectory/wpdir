@@ -91,13 +91,6 @@ func (e *Extension) GetStatus() string {
 	}
 }
 
-// SetStatus sets the Extension Status
-func (e *Extension) SetStatus(s status) {
-	e.Lock()
-	defer e.Unlock()
-	e.Status = s
-}
-
 // SwapIndexes ...
 func (e *Extension) SwapIndexes(idx *index.Index) error {
 	e.Lock()

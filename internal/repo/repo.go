@@ -30,26 +30,19 @@ var (
 
 // Repo holds data about the Plugins SVN Repo.
 type Repo struct {
-	ExtType     string
-	Revision    int
-	Updated     time.Time
-	UpdateQueue chan UpdateRequest
+	ExtType     string             `json:"type"`
+	Revision    int                `json:"revision"`
+	Updated     time.Time          `json:"updated"`
+	Total       int                `json:"total"`
+	Closed      int                `json:"closed"`
+	UpdateQueue chan UpdateRequest `json:"-"`
 
+	List map[string]*Extension `json:"-"`
 	sync.RWMutex
-	List map[string]*Extension
 
 	log *log.Logger
 	cfg *config.Config
 	api *wporg.Client
-}
-
-// Summary ...
-type Summary struct {
-	Revision int    `json:"revision"`
-	Updated  string `json:"updated"`
-	Total    int    `json:"total"`
-	Closed   int    `json:"closed"`
-	Queue    int    `json:"queue"`
 }
 
 // New returns a new Repo
@@ -120,12 +113,12 @@ func (r *Repo) save() error {
 
 // load gets the Repo data from DB
 func (r *Repo) load() error {
-	bytes, err := db.GetFromBucket(r.ExtType, "repos")
+	b, err := db.GetFromBucket(r.ExtType, "repos")
 	if err != nil {
 		return err
 	}
 
-	rev, err := strconv.Atoi(string(bytes))
+	rev, err := strconv.Atoi(string(b))
 	if err != nil || rev == 0 {
 		return err
 	}
@@ -157,6 +150,8 @@ func (r *Repo) Get(slug string) *Extension {
 func (r *Repo) Add(slug string) {
 	r.Lock()
 	r.List[slug] = newExt(slug)
+	r.Total++
+	r.Closed++
 	r.Unlock()
 }
 
@@ -173,7 +168,25 @@ func (r *Repo) Remove(slug string) {
 	r.Lock()
 	defer r.Unlock()
 
+	r.Total--
 	delete(r.List, slug)
+}
+
+// SetStatus sets the Extension Status
+func (r *Repo) SetStatus(e *Extension, s status) {
+	e.Lock()
+	defer e.Unlock()
+
+	r.Lock()
+	if e.Status == Closed {
+		r.Closed--
+	}
+	if s == Closed {
+		r.Closed++
+	}
+	r.Unlock()
+
+	e.Status = s
 }
 
 // UpdateIndex updates the index held by an Extension
@@ -191,11 +204,11 @@ func (r *Repo) UpdateIndex(idx *index.Index) error {
 	// Swap the old index for the new
 	err := r.List[slug].SwapIndexes(idx)
 	if err != nil {
-		r.List[slug].SetStatus(Closed)
+		r.SetStatus(r.Get(slug), Closed)
 		return err
 	}
 
-	r.List[slug].SetStatus(Open)
+	r.SetStatus(r.Get(slug), Open)
 
 	return nil
 }
@@ -225,18 +238,18 @@ func (r *Repo) ProcessUpdate(slug string, rev int) error {
 	// Get latest API info
 	err := r.updateMeta(e)
 	if err != nil {
-		e.SetStatus(Closed)
+		r.SetStatus(e, Closed)
 		return err
 	}
 
 	// Get latest files
 	err = r.updateFiles(e)
 	if err != nil {
-		e.SetStatus(Closed)
+		r.SetStatus(e, Closed)
 		return err
 	}
 
-	e.SetStatus(Open)
+	r.SetStatus(e, Open)
 	r.saveExt(e)
 
 	r.SetRev(rev)
@@ -252,14 +265,14 @@ func (r *Repo) updateMeta(e *Extension) error {
 	e.RUnlock()
 
 	// Fetch API Response
-	bytes, err := r.api.GetInfo(r.ExtType, slug)
+	b, err := r.api.GetInfo(r.ExtType, slug)
 	if err != nil {
 		return err
 	}
 
 	e.Lock()
 	defer e.Unlock()
-	err = json.Unmarshal(bytes, e)
+	err = json.Unmarshal(b, e)
 	if err != nil {
 		return err
 	}
@@ -274,13 +287,13 @@ func (r *Repo) updateFiles(e *Extension) error {
 	e.RUnlock()
 
 	// Download Extension Archive
-	bytes, err := r.getArchive(slug)
+	b, err := r.getArchive(slug)
 	if err != nil {
 		return err
 	}
 
 	// Index extension using Archive bytes
-	ref, files, err := r.generateIndex(bytes, slug)
+	ref, files, err := r.generateIndex(b, slug)
 	if err != nil {
 		return err
 	}
@@ -370,12 +383,12 @@ func (r *Repo) saveExt(e *Extension) error {
 	e.RLock()
 	defer e.RUnlock()
 
-	bytes, err := json.Marshal(e)
+	b, err := json.Marshal(e)
 	if err != nil {
 		return err
 	}
 
-	db.PutToBucket(e.Slug, bytes, r.ExtType)
+	db.PutToBucket(e.Slug, b, r.ExtType)
 
 	return nil
 }
@@ -447,7 +460,7 @@ func (r *Repo) StartWorkers() {
 
 				// If no changes skip
 				if len(log) == 0 {
-					r.log.Printf("Now new %s updates since: %d\n", r.ExtType, r.Revision)
+					r.log.Printf("No new %s updates since: %d\n", r.ExtType, r.Revision)
 					r.RUnlock()
 					continue
 				}
@@ -488,7 +501,7 @@ func (r *Repo) StartWorkers() {
 					e := r.Get(ext)
 					err := r.updateMeta(e)
 					if err != nil {
-						e.SetStatus(Closed)
+						r.SetStatus(e, Closed)
 					}
 				}
 			}
@@ -500,6 +513,16 @@ func (r *Repo) StartWorkers() {
 func (r *Repo) LoadExisting() {
 	r.loadDBData()
 	r.loadIndexes()
+
+	r.Total = 0
+	r.Closed = 0
+
+	for _, ext := range r.List {
+		r.Total++
+		if ext.Status == Closed {
+			r.Closed++
+		}
+	}
 }
 
 // loadDBData loads all existing Plugin data from the DB
@@ -511,13 +534,14 @@ func (r *Repo) loadDBData() {
 
 	r.log.Printf("Found %d %s in DB\n", len(exts), r.ExtType)
 
-	for slug, bytes := range exts {
+	for slug, b := range exts {
 		var e Extension
-		err := json.Unmarshal(bytes, &e)
+		err := json.Unmarshal(b, &e)
 		if err != nil {
 			continue
 		}
-		e.SetStatus(Closed)
+
+		e.Status = Closed
 
 		r.Set(slug, &e)
 	}
@@ -564,34 +588,10 @@ func (r *Repo) loadIndexes() {
 			os.RemoveAll(path)
 			continue
 		}
+
+		r.SetStatus(r.Get(ref.Slug), Open)
+
 		loaded++
 	}
 	r.log.Printf("Loaded %d/%d indexes", loaded, len(dirs))
-}
-
-// Summary generates an overview of the Repo
-func (r *Repo) Summary() *Summary {
-	r.RLock()
-	defer r.RUnlock()
-
-	rs := &Summary{
-		Revision: r.Revision,
-		Updated:  r.Updated.Format(time.RFC3339),
-		Total:    len(r.List),
-		Queue:    len(r.UpdateQueue),
-	}
-
-	// TODO: Cannot loop through every Extension for each Repos page load
-	// Must rewrite this to be generated in the background
-	/*
-		for _, e := range r.List {
-			e.RLock()
-			if e.Status == Closed {
-				rs.Closed++
-			}
-			e.RUnlock()
-		}
-	*/
-
-	return rs
 }
