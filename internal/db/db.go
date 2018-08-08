@@ -16,6 +16,7 @@ var (
 		"plugins",
 		"themes",
 		"searches",
+		"charts",
 	}
 	searchBuckets = []string{
 		"search_data",
