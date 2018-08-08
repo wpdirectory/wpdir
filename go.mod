@@ -10,6 +10,7 @@ require (
 	github.com/go-chi/render v1.0.1
 	github.com/gogo/protobuf v1.1.1
 	github.com/golang/crypto v0.0.0-20180723164146-c126467f60eb
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/hashicorp/hcl v0.0.0-20180404174102-ef8a98b0bbce
 	github.com/juju/errgo v0.0.0-20140925100237-08cceb5d0b53
 	github.com/magiconair/properties v1.8.0
@@ -31,9 +32,11 @@ require (
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.2.2 // indirect
 	github.com/ulule/limiter v2.2.0+incompatible
+	github.com/wcharczuk/go-chart v0.0.0-20180415235301-9e3a080aa3e7
 	github.com/wpdirectory/wporg v0.0.0-20180806220619-cb2e70e4b5fd
 	github.com/xenolf/lego v1.0.1
 	golang.org/x/crypto v0.0.0-20180718160520-a2144134853f
+	golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81 // indirect
 	golang.org/x/net v0.0.0-20180530234432-1e491301e022
 	golang.org/x/text v0.3.0
 	gopkg.in/square/go-jose.v2 v2.1.6 // indirect
