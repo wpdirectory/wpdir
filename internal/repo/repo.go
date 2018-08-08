@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"bytes"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"strings"
+	"sort"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -22,7 +25,8 @@ import (
 	"github.com/wpdirectory/wpdir/internal/ulid"
 	"github.com/wpdirectory/wpdir/internal/utils"
 	"github.com/wpdirectory/wporg"
-)
+	"github.com/wcharczuk/go-chart"
+) 
 
 var (
 	archiveURL = "http://downloads.wordpress.org/%s/%s.latest-stable.zip?nostats=1"
@@ -254,6 +258,11 @@ func (r *Repo) ProcessUpdate(slug string, rev int) error {
 
 	r.SetRev(rev)
 	r.save()
+
+	//err = utils.RemoveContents(filepath.Join(r.cfg.WD, "tmp"))
+	//if err != nil {
+		//r.log.Printf("Failed to clean tmp dir: %s\n", err)
+	//}
 
 	return nil
 }
@@ -594,4 +603,192 @@ func (r *Repo) loadIndexes() {
 		loaded++
 	}
 	r.log.Printf("Loaded %d/%d indexes", loaded, len(dirs))
+}
+
+// GetInstallsChart ...
+func (r *Repo) GetInstallsChart() string {
+	yr, m, _ := time.Now().Date()
+	key := fmt.Sprintf("installs_%s_%d_%d", r.ExtType, yr, m)
+
+	b, err := db.GetFromBucket(key, "charts")
+	if err != nil {
+		b = r.GenerateInstallsChart()
+	}
+
+	return string(b)
+}
+
+// generateInstallsChart ...
+func (r *Repo) GenerateInstallsChart() []byte {
+	r.RLock()
+	list := r.List
+	r.RUnlock()
+	var x, y []float64
+	i := 1
+	for _, ext := range list {
+		x = append(x, 1.00 * float64(i))
+		ext.RLock()
+		y = append(y, float64(ext.ActiveInstalls))
+		ext.RUnlock()
+		i++
+	}
+
+	sort.Float64s(y)
+
+	graph := chart.Chart{
+		XAxis: chart.XAxis{
+			Name:      r.ExtType,
+			NameStyle: chart.StyleShow(),
+			Style:     chart.Style{
+				Show: false,
+			},
+		},
+		YAxis: chart.YAxis{
+			Name:      "Installs",
+			NameStyle: chart.StyleShow(),
+			Style:     chart.StyleShow(),
+			ValueFormatter: func(v interface{}) string {
+				if v, isFloat := v.(float64); isFloat {
+					return fmt.Sprintf("%d", int(v))
+				}
+				return ""
+			},
+		},
+		Series: []chart.Series{
+			chart.ContinuousSeries{
+				XValues: x,
+				YValues: y,
+			},
+		},
+	}
+
+	b := bytes.NewBuffer([]byte{})
+	graph.Render(chart.SVG, b)
+
+	// Alter SVG Tag
+	str := string(b.Bytes())
+	str = strings.Replace(str, "width=\"1024\"", "", 1)
+	str = strings.Replace(str, "height=\"400\"", "viewBox=\"0 0 1024 400\"", 1)
+
+	yr, m, _ := time.Now().Date()
+	key := fmt.Sprintf("installs_%s_%d_%d", r.ExtType, yr, m)
+	err := db.PutToBucket(key, []byte(str), "charts")
+	if err != nil {
+		r.log.Printf("Error saving %s installs Chart: %s\n", r.ExtType, err)
+	}
+
+	return []byte(str)
+}
+
+// GetSizeChart ...
+func (r *Repo) GetSizeChart() string {
+	yr, m, _ := time.Now().Date()
+	key := fmt.Sprintf("size_%s_%d_%d", r.ExtType, yr, m)
+
+	b, err := db.GetFromBucket(key, "charts")
+	if err != nil {
+		b = r.GenerateSizeChart()
+	}
+
+	return string(b)
+}
+
+// generateSizeChart ...
+func (r *Repo) GenerateSizeChart() []byte {
+	r.RLock()
+	list := r.List
+	r.RUnlock()
+	var x, y1, y2 []float64
+	i := 1
+	for _, ext := range list {
+		if ext.Stats == nil {
+			i++
+			continue
+		}
+		x = append(x, 1.00 * float64(i))
+		ext.RLock()
+		size := (float64(ext.Stats.TotalSize) / 1024) / 1024
+		y1 = append(y1, size)
+		y2 = append(y2, float64(ext.Stats.TotalFiles))
+		ext.RUnlock()
+		i++
+	}
+
+	sort.Float64s(y1)
+	sort.Float64s(y2)
+
+	graph := chart.Chart{
+		XAxis: chart.XAxis{
+			Name:      r.ExtType,
+			NameStyle: chart.StyleShow(),
+			Style:     chart.Style{
+				Show: false,
+			},
+		},
+		YAxis: chart.YAxis{
+			Name:      "Size (MB)",
+			NameStyle: chart.StyleShow(),
+			Style:     chart.Style{
+				Show: true,
+				FontSize: 20,
+			},
+			ValueFormatter: func(v interface{}) string {
+				if v, isFloat := v.(float64); isFloat {
+					return fmt.Sprintf("%d", int(v))
+				}
+				return ""
+			},
+		},
+		YAxisSecondary: chart.YAxis{
+			Name:      "Files",
+			NameStyle: chart.StyleShow(),
+			Style:     chart.StyleShow(),
+			ValueFormatter: func(v interface{}) string {
+				if v, isFloat := v.(float64); isFloat {
+					return fmt.Sprintf("%.0f", v)
+				}
+				return ""
+			},
+		},
+		Background: chart.Style{
+			Padding: chart.Box{
+				Top:  20,
+				Left: 40,
+			},
+		},
+		Series: []chart.Series{
+			chart.ContinuousSeries{
+				Name:    "Total Size (MB)",
+				XValues: x,
+				YValues: y1,
+			},
+			chart.ContinuousSeries{
+				Name:    "Total Files",
+				YAxis:   chart.YAxisSecondary,
+				XValues: x,
+				YValues: y2,
+			},
+		},
+	}
+
+	graph.Elements = []chart.Renderable{
+		chart.Legend(&graph),
+	}
+
+	b := bytes.NewBuffer([]byte{})
+	graph.Render(chart.SVG, b)
+
+	// Alter SVG Tag
+	str := string(b.Bytes())
+	str = strings.Replace(str, "width=\"1024\"", "", 1)
+	str = strings.Replace(str, "height=\"400\"", "viewBox=\"0 0 1024 400\"", 1)
+
+	yr, m, _ := time.Now().Date()
+	key := fmt.Sprintf("size_%s_%d_%d", r.ExtType, yr, m)
+	err := db.PutToBucket(key, []byte(str), "charts")
+	if err != nil {
+		r.log.Printf("Error saving %s size Chart: %s\n", r.ExtType, err)
+	}
+
+	return []byte(str)
 }
