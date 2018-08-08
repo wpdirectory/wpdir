@@ -177,7 +177,9 @@ func (sm *Manager) processSearch(ID string) error {
 
 	r.RLock()
 	total = uint64(len(r.List))
-	for _, e := range r.List {
+	list := r.List
+	r.RUnlock()
+	for _, e := range list {
 		// Limit to 100000 matches
 		if totalMatches > 100000 {
 			break
@@ -240,8 +242,6 @@ func (sm *Manager) processSearch(ID string) error {
 	}
 
 	wg.Wait()
-
-	r.RUnlock()
 
 	summary := &Summary{
 		List:  make(map[string]*Result),
