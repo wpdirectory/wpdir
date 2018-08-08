@@ -645,8 +645,14 @@ func (r *Repo) GenerateInstallsChart() []byte {
 		},
 		YAxis: chart.YAxis{
 			Name:      "Installs",
-			NameStyle: chart.StyleShow(),
-			Style:     chart.StyleShow(),
+			NameStyle: chart.Style{
+				Show: true,
+				FontSize: 16,
+			},
+			Style:     chart.Style{
+				Show: true,
+				FontSize: 16,
+			},
 			ValueFormatter: func(v interface{}) string {
 				if v, isFloat := v.(float64); isFloat {
 					return fmt.Sprintf("%d", int(v))
@@ -727,10 +733,13 @@ func (r *Repo) GenerateSizeChart() []byte {
 		},
 		YAxis: chart.YAxis{
 			Name:      "Size (MB)",
-			NameStyle: chart.StyleShow(),
+			NameStyle: chart.Style{
+				Show: true,
+				FontSize: 16,
+			},
 			Style:     chart.Style{
 				Show: true,
-				FontSize: 20,
+				FontSize: 16,
 			},
 			ValueFormatter: func(v interface{}) string {
 				if v, isFloat := v.(float64); isFloat {
@@ -741,8 +750,14 @@ func (r *Repo) GenerateSizeChart() []byte {
 		},
 		YAxisSecondary: chart.YAxis{
 			Name:      "Files",
-			NameStyle: chart.StyleShow(),
-			Style:     chart.StyleShow(),
+			NameStyle: chart.Style{
+				Show: true,
+				FontSize: 16,
+			},
+			Style:     chart.Style{
+				Show: true,
+				FontSize: 16,
+			},
 			ValueFormatter: func(v interface{}) string {
 				if v, isFloat := v.(float64); isFloat {
 					return fmt.Sprintf("%.0f", v)
@@ -772,7 +787,13 @@ func (r *Repo) GenerateSizeChart() []byte {
 	}
 
 	graph.Elements = []chart.Renderable{
-		chart.Legend(&graph),
+		chart.Legend(
+			&graph,
+			chart.Style{
+				Show: true,
+				FontSize: 16,
+			},
+		),
 	}
 
 	b := bytes.NewBuffer([]byte{})
