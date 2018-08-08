@@ -4,6 +4,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
+	"os"
+	"path/filepath"
 )
 
 // EncodeURL properly encodes the URL for compatibility with special characters
@@ -36,4 +38,27 @@ func DrainAndClose(rd io.ReadCloser, err *error) {
 	if err != nil && *err == nil {
 		*err = cErr
 	}
+}
+
+// RemoveContents deletes the contents of a directory
+func RemoveContents(dir string) error {
+	d, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+
+	names, err := d.Readdirnames(-1)
+	if err != nil {
+		return err
+	}
+
+	for _, name := range names {
+		err = os.RemoveAll(filepath.Join(dir, name))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
