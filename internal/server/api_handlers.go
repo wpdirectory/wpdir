@@ -363,20 +363,30 @@ func (s *Server) getRepo() http.HandlerFunc {
 // getRepoOverview ...
 func (s *Server) getRepoOverview() http.HandlerFunc {
 	type getRepoOverviewResponse struct {
-		Plugins     repo.Repo `json:"plugins,omitempty"`
-		Themes      repo.Repo `json:"themes,omitempty"`
-		UpdateQueue int       `json:"update_queue,omitempty"`
+		Plugins             repo.Repo `json:"plugins,omitempty"`
+		Themes              repo.Repo `json:"themes,omitempty"`
+		PluginChartInstalls string    `json:"plugin_chart_installs,omitempty"`
+		ThemeChartInstalls  string    `json:"theme_chart_installs,omitempty"`
+		PluginChartSize     string    `json:"plugin_chart_size,omitempty"`
+		ThemeChartSize      string    `json:"theme_chart_size,omitempty"`
+		UpdateQueue         int       `json:"update_queue,omitempty"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		var resp getRepoOverviewResponse
-		s.Manager.Plugins.RLock()
+		//s.Manager.Plugins.RLock()
 		resp.Plugins = *s.Manager.Plugins
-		s.Manager.Plugins.RUnlock()
+		//s.Manager.Plugins.RUnlock()
 
-		s.Manager.Themes.RLock()
+		//s.Manager.Themes.RLock()
 		resp.Themes = *s.Manager.Themes
-		s.Manager.Themes.RUnlock()
+		//s.Manager.Themes.RUnlock()
+
+		resp.PluginChartInstalls = s.Manager.Plugins.GetInstallsChart()
+		resp.PluginChartSize = s.Manager.Plugins.GetSizeChart()
+
+		resp.ThemeChartInstalls = s.Manager.Themes.GetInstallsChart()
+		resp.ThemeChartSize = s.Manager.Themes.GetSizeChart()
 
 		resp.UpdateQueue = len(s.Manager.Plugins.UpdateQueue)
 
