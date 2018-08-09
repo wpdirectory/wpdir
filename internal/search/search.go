@@ -217,7 +217,7 @@ func (sm *Manager) processSearch(ID string) error {
 						Slug:     e.Slug,
 						File:     resp.Matches[i].Filename,
 						LineNum:  uint32(resp.Matches[i].Matches[j].LineNumber),
-						LineText: resp.Matches[i].Matches[j].Line,
+						LineText: resp.Matches[i].Matches[j].Line[0:100],
 					}
 					ms.List = append(ms.List, m)
 				}
