@@ -29,7 +29,6 @@ type Config struct {
 
 // Setup creates, fills and returns the Config struct
 func Setup(version, commit, date string) *Config {
-	viper.SetDefault("version", "0.1.0")
 	viper.SetDefault("name", "wpdirectory")
 	viper.SetDefault("commit", "")
 	viper.SetDefault("date", "")
