@@ -46,10 +46,10 @@ class Searches extends Component {
     let searchList
 
     if ( isLoading ) {
-      searchList = <Loadicon />
+      searchList = <tr><td><Loadicon /></td></tr>
     }  else {
       if ( error ) {
-        searchList = <p className="error">Sorry, there was a problem fetching data.</p>
+        searchList = <tr><td><p className="error">Sorry, there was a problem fetching data.</p></td></tr>
       } else {
         searchList = searches.map( (search, idx) => {
           return (

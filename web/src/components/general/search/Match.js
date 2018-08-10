@@ -35,6 +35,7 @@ class Match extends Component {
       this.setState({ modalActive: false })
     }
   }
+
   componentDidMount = () => {
     document.addEventListener( 'keydown', this.escFunction, false )
   }
@@ -46,12 +47,13 @@ class Match extends Component {
   render() {
     const {
       match,
+      repo,
     } = this.props
 
     let modal
     if (this.state.modalActive) {
       modal = (
-        <Modal isOpen={this.state.modalActive} repo={this.props.repo} match={match}>
+        <Modal isOpen={this.state.modalActive} repo={repo} match={match}>
           <button className="close-button" onClick={this.toggleModal}>
             <span aria-hidden="true">&times;</span>
           </button>

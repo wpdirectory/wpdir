@@ -104,7 +104,7 @@ class Modal extends Component {
     return (
       <div style={styles} className="reveal-overlay">
         <div style={styles} className="reveal large">
-          <h1>{match.file}</h1>
+          <h3 className="reveal-title">File: {match.file}</h3>
           <div className="reveal-content">
             {modalContent}
           </div>

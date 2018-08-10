@@ -1,4 +1,5 @@
 import React, { Component } from 'react'
+import Dashicon from '../Dashicon.js'
 import Matches from './Matches.js'
 
 class Item extends Component {
@@ -9,8 +10,8 @@ class Item extends Component {
     }
   }
 
-  formatName = (item) => {
-    if (!item.name) {
+  formatName = ( item ) => {
+    if ( !item.name ) {
       return item.slug
     } else {
       return item.name
@@ -19,14 +20,14 @@ class Item extends Component {
 
   formatInstalls = (item) => {
     if (!item.active_installs) {
-      return 'n/a';
+      return '0';
     }
     let installs = item.active_installs.toString()
     if (installs.length > 6) {
-      return installs.slice(0, installs.length - 6) + ',' + installs.slice(installs.length - 6, installs.length - 3) + ',' + installs.slice(installs.length - 3)
+      return installs.slice( 0, installs.length - 6 ) + ',' + installs.slice( installs.length - 6, installs.length - 3 ) + ',' + installs.slice (installs.length - 3 )
     }
     if (installs.length > 3) {
-      return installs.slice(0, installs.length - 3) + ',' + installs.slice(installs.length - 3)
+      return installs.slice( 0, installs.length - 3 ) + ',' + installs.slice( installs.length - 3 )
     }
     return installs
   }
@@ -51,6 +52,10 @@ class Item extends Component {
     }
   }
 
+  stopPropagation = (e) => {
+    e.stopPropagation()
+  }
+
   render() {
     const {
       id,
@@ -66,11 +71,16 @@ class Item extends Component {
 
     return (
       <li className={this.formatClass()}>
-        <button className="accordion-title" onClick={this.toggleClass}>
-          <span className="name" dangerouslySetInnerHTML={{__html: this.formatName(item)}}></span>
-          <span className="installs" dangerouslySetInnerHTML={{__html: this.formatInstalls(item)}}></span>
+        <div className="accordion-title" onClick={this.toggleClass}>
+          <span className="name">
+            <span dangerouslySetInnerHTML={{__html: this.formatName(item)}}></span>
+            <a href={'https://wordpress.org/plugins/' + item.slug + '/'} onClick={this.stopPropagation} target="_blank" rel="noopener noreferrer">
+              <Dashicon icon="wordpress" size={ 22 } />
+            </a>
+          </span>
+          <span className="installs">{this.formatInstalls(item)}</span>
           <span className="matches">{item.matches}</span>
-        </button>
+        </div>
         <div className="accordion-content">
           {matches}
         </div>

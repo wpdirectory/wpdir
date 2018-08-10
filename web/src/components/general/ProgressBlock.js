@@ -6,30 +6,46 @@ const messages = [
   'Making Up Results',
   'Updating to PHP7',
   'Resolving Dependencies',
-  'Listening To Jazz'
+  'Listening To Jazz',
+  'Initiating the Loop',
+  'Yodaing conditions, I am',
+  'do_action( \'search-directory\' )'
 ]
 
 class ProgressBlock extends Component {
   constructor(props) {
-    super(props);
+    super(props)
     this.state = {
       currentMessage: 0,
       timer: null,
+      messageTimer: null,
+      message: messages[Math.floor( Math.random() * messages.length )],
       counter: 0,
     }
   }
 
   componentDidMount = () => {
     let timer = setInterval( this.tick, 1000 )
-    this.setState({ timer })
+    let messageTimer = setInterval( this.changeMessage, 5000 )
+    let taken = Math.ceil( ( Date.now() - this.props.started ) / 1000 )
+    this.setState({
+      timer,
+      messageTimer,
+      counter: taken,
+    })
   }
 
   componentWillUnmount = () => {
     clearInterval( this.state.timer )
+    clearInterval( this.state.messageTimer )
   }
 
   tick = () => {
     this.setState({ counter: this.state.counter + 1 })
+  }
+
+  changeMessage = () => {
+    this.setState({ message: messages[Math.floor( Math.random() * messages.length )] })
   }
 
   formatCounter = () => {
@@ -39,7 +55,8 @@ class ProgressBlock extends Component {
   }
 
   render() {
-    const { progress, status } = this.props;
+    const { progress } = this.props
+    const { message } = this.state
     let style = {
       width: progress+'%',
     }
@@ -48,7 +65,8 @@ class ProgressBlock extends Component {
         <div className="progress-block">
           <div className="progress-block-background"></div>
           <div className="progress-block-bar" style={style}></div>
-          <h2 className="progress-block-title">{status} - {this.formatCounter()}</h2>
+          <div className="progress-block-messages">{message}</div>
+          <div className="progress-block-timer">{this.formatCounter()}</div>
         </div>
       </div>
 		);

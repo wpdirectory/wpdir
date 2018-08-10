@@ -12,6 +12,7 @@ class Search extends Component {
       id: '',
       input: '',
       repo: '',
+      queue: 0,
       started: 0,
       completed: 0,
       progress: 0,
@@ -34,6 +35,7 @@ class Search extends Component {
         id: result.data.id,
         input: result.data.input,
         repo: result.data.repo,
+        queue: ( result.data.queue_pos ? result.data.queue_pos : -1 ),
         progress: result.data.progress,
         status: result.data.status,
         matches: result.data.matches,
@@ -54,7 +56,7 @@ class Search extends Component {
       case 2:
         return 'Completed'
       default:
-        return 'Queued'
+        return ( this.state.queue ? 'Queued (' + this.state.queue + ')' : 'Queued' )
     }
   }
 
@@ -191,10 +193,7 @@ class Search extends Component {
     let summary
     if ( this.state.status === 2 ) {
       summary = (
-        <div className="search-summary panel cell small-12">
-          <h2>Summary <small>({this.state.matches}{ ' matches'})</small></h2>
-          <Summary repo={this.state.repo} id={this.state.id} matches={this.state.matches} />
-        </div>
+        <Summary repo={this.state.repo} id={this.state.id} matches={this.state.matches} />
       )
     } else {
       summary = (
@@ -240,7 +239,7 @@ class Search extends Component {
               </div>
               {(() => {
                 if (this.state.status === 1) {
-                  return (<ProgressBlock progress={this.state.progress} status={this.getStatus(this.state.status)} />)
+                  return (<ProgressBlock progress={this.state.progress} started={this.state.started} />)
                 }
               })()}
               {this.formatOverview()}

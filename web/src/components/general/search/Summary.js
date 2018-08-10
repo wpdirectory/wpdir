@@ -20,6 +20,7 @@ class Summary extends Component {
       isLoading: true,
       error: ''
     }
+    this.topRef = React.createRef()
   }
 
   componentWillMount = () => {
@@ -122,12 +123,20 @@ class Summary extends Component {
     this.setState((prevState) => ({
       currentPage: prevState.currentPage - 1,
     }))
+    this.topRef.current.scrollIntoView({
+      block: "start",
+      behavior: "smooth"
+    })
   }
 
   nextPage = () => {
     this.setState((prevState) => ({
       currentPage: prevState.currentPage + 1,
     }))
+    this.topRef.current.scrollIntoView({
+      block: "start",
+      behavior: "smooth"
+    })
   }
 
   render() {
@@ -149,7 +158,7 @@ class Summary extends Component {
 
     if ( isLoading ) {
       return (
-        <div>
+        <div className="search-summary panel cell small-12">
           <Loadicon />
         </div>
       )
@@ -166,16 +175,20 @@ class Summary extends Component {
     }
 
     return (
-      <div>
-        <ul className="accordion summary">
-          <li className="header">
-            <button className="name" onClick={this.sortByName}>Name{this.sortIcon('name')}</button>
-            <button className="installs" onClick={this.sortByInstalls}>Installs{this.sortIcon('installs')}</button>
-            <button className="matches" onClick={this.sortByMatches}>Matches{this.sortIcon('matches')}</button>
-          </li>
-          { summaryItems }
-        </ul>
-        { needsPagination && <Pagination currentPage={currentPage} totalPages={numPages} prevClick={this.prevPage} nextClick={this.nextPage} /> }
+      <div className="search-summary panel cell small-12">
+        <h2>Summary <small>({items.length}{ ' Extensions'})</small></h2>
+        <div ref={this.topRef}>
+          { needsPagination && <Pagination currentPage={currentPage} totalPages={numPages} prevClick={this.prevPage} nextClick={this.nextPage} /> }
+          <ul className="accordion summary">
+            <li className="header">
+              <button className="name" onClick={this.sortByName}>Name{this.sortIcon('name')}</button>
+              <button className="installs" onClick={this.sortByInstalls}>Installs{this.sortIcon('installs')}</button>
+              <button className="matches" onClick={this.sortByMatches}>Matches{this.sortIcon('matches')}</button>
+            </li>
+            { summaryItems }
+          </ul>
+          { needsPagination && <Pagination currentPage={currentPage} totalPages={numPages} prevClick={this.prevPage} nextClick={this.nextPage} /> }
+        </div>
       </div>
 	  )
   }

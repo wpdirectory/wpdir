@@ -35,7 +35,8 @@ class CodeEditor extends Component {
 		if ( this.props.editorRef ) {
 			this.props.editorRef( this.editor )
     }
-
+    this.editor.scrollIntoView( {line: this.props.line, ch: 0}, 100 )
+		this.editor.addLineClass( this.props.line - 1, 'wrap', 'active' );
     this.updateFocus()
 	}
 
@@ -47,8 +48,8 @@ class CodeEditor extends Component {
 		if ( this.props.focus !== prevProps.focus ) {
 			this.updateFocus()
     }
-    this.editor.scrollIntoView( {line: this.props.line, ch: 0}, 100 )
-    this.editor.addLineClass( this.props.line - 1, 'wrap', 'active' );
+		this.editor.scrollIntoView( {line: this.props.line, ch: 0}, 100 )
+		this.editor.addLineClass( this.props.line - 1, 'wrap', 'active' );
   }
 
 	componentWillUnmount = () => {
@@ -95,7 +96,6 @@ class CodeEditor extends Component {
 	}
 
 	updateFocus = () => {
-    console.log(this.props)
 		if ( this.props.focus && ! this.editor.hasFocus() ) {
 			// Need to wait for the next frame to be painted before we can focus the editor
 			window.requestAnimationFrame( () => {

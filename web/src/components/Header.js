@@ -17,7 +17,7 @@ class Header extends Component {
   render () {
     return (
       <header className="header cell shrink medium-cell-block-container">
-        <div className="grid-x grid-margin-x">
+        <div className="grid-x">
 
           <div className="title cell small-6 medium-4 large-3">
             <Link to="/"><Logo width={255} height={50} /></Link>

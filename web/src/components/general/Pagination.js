@@ -13,9 +13,9 @@ class Pagination extends Component {
 
     return (
 	    <nav className="search-nav grid-x" aria-label="Pagination">
-        <div className="cell small-6 medium-4"><button type="button" className="button primary expanded" onClick={this.props.prevClick} disabled={prev}>Previous</button></div>
+        <div className="cell small-6 medium-4"><button type="button" className="button primary hollow expanded" onClick={this.props.prevClick} disabled={prev}>Previous</button></div>
         <div className="cell small-6 medium-4 show-for-medium"><div className="search-nav-page">{pageText}</div></div>
-        <div className="cell small-6 medium-4"><button type="button" className="button primary expanded" onClick={this.props.nextClick} disabled={next}>Next</button></div>
+        <div className="cell small-6 medium-4"><button type="button" className="button primary hollow expanded" onClick={this.props.nextClick} disabled={next}>Next</button></div>
       </nav>
 	  )
   }
