@@ -213,11 +213,15 @@ func (sm *Manager) processSearch(ID string) error {
 				atomic.AddUint64(totalMatches, eMatches)
 				ms := &Matches{}
 				for j := 0; j < len(resp.Matches[i].Matches); j++ {
+					text := resp.Matches[i].Matches[j].Line
+					if len(text) > 100 {
+						text = text[0:100]
+					}
 					m := &Match{
 						Slug:     e.Slug,
 						File:     resp.Matches[i].Filename,
 						LineNum:  uint32(resp.Matches[i].Matches[j].LineNumber),
-						LineText: resp.Matches[i].Matches[j].Line[0:100],
+						LineText: text,
 					}
 					ms.List = append(ms.List, m)
 				}
