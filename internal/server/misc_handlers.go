@@ -73,6 +73,9 @@ func (s *Server) notFound() http.HandlerFunc {
 }
 
 func (s *Server) addConfig(html []byte) []byte {
+	// Embed Version into HTML
+	html = []byte(strings.Replace(string(html), "%VERSION%", s.Config.Version, 1))
+
 	// Embed Hostname into HTML, remove trailing slash
 	host := strings.TrimRight(s.Config.Host, "/")
 	html = []byte(strings.Replace(string(html), "%HOSTNAME%", host, 1))
