@@ -465,11 +465,17 @@ $progress-block-height: 100px;
         }
         .progress-block-messages {
             @include xy-cell( 'auto', false );
-            padding-left: rem-calc(30);
+            padding-left: rem-calc(15);
+            @include breakpoint(medium) {
+                padding-left: rem-calc(30);
+            }
         }
         .progress-block-timer {
             @include xy-cell( 'shrink', false );
-            padding-right: rem-calc(30);
+            padding-right: rem-calc(15);
+            @include breakpoint(medium) {
+                padding-right: rem-calc(30);
+            }
         }
         .progress-block-messages,
         .progress-block-timer {
@@ -480,7 +486,10 @@ $progress-block-height: 100px;
             
             z-index: 50;
             font-weight: bold;
-            font-size: rem-calc(24);
+            font-size: rem-calc(20);
+            @include breakpoint(medium) {
+                font-size: rem-calc(24);
+            }
         }
         .cog {
             position: absolute;
@@ -511,40 +520,6 @@ $progress-block-height: 100px;
             &.five {
                 bottom: -33px;
                 left: 3%;
-            }
-        }
-    }
-}
-
-/*--------------------------------------------------------------
-# Multi Progress Block
---------------------------------------------------------------*/
-
-.multi-progress {
-    background-color: #ffffff;
-    .multi-progress-stages {
-        @include xy-grid( 'horizontal', false );
-        .stage {
-            @include xy-cell( 'shrink', false );
-            padding: rem-calc(16) rem-calc(22);
-            text-align: center;
-            border: 1px solid #dedede;
-            border-right: 2px solid #dedede;
-            &.two {
-                @include xy-cell( 'auto', false );
-            }
-            &.three {
-                border-right: 1px solid #dedede;
-            }
-            &.active {
-                background-color: get-color( primary );
-                color: #fff;
-                border-color: smart-scale( get-color( primary ), 15% );
-            }
-
-            .title {
-                color: smart-scale( $body-font-color, 35% );
-                font-weight: bold;
             }
         }
     }
