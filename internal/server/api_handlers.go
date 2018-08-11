@@ -293,6 +293,7 @@ func (s *Server) createSearch() http.HandlerFunc {
 		if data.Input == "" {
 			var resp errResponse
 			resp.Err = "Please provide non-blank search input."
+			w.WriteHeader(http.StatusBadRequest)
 			writeResp(w, resp)
 			return
 		}
@@ -306,6 +307,7 @@ func (s *Server) createSearch() http.HandlerFunc {
 		default:
 			var resp errResponse
 			resp.Err = "Please provide a valid target"
+			w.WriteHeader(http.StatusBadRequest)
 			writeResp(w, resp)
 			return
 		}
