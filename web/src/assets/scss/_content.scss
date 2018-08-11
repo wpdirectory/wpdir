@@ -212,11 +212,14 @@ section.content {
                         white-space: nowrap;
                         text-align: left;
 
+                        .wplink {
+                            margin-right: rem-calc(12);
+                        }
                         .dashicon {
                             display: inline-block;
                             vertical-align: middle;
-                            margin-left: rem-calc(12);
                             fill: #8c8c8c;
+                            margin-top: rem-calc(-3);
                         }
                     }
                     .installs {

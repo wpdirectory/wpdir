@@ -69,14 +69,16 @@ class Item extends Component {
       matches = ''
     }
 
+    let title = ( item.name ? item.name : item.slug )
+
     return (
       <li className={this.formatClass()}>
         <div className="accordion-title" onClick={this.toggleClass}>
           <span className="name">
-            <span dangerouslySetInnerHTML={{__html: this.formatName(item)}}></span>
-            <a href={'https://wordpress.org/plugins/' + item.slug + '/'} onClick={this.stopPropagation} target="_blank" rel="noopener noreferrer">
+            <a className="wplink" href={'https://wordpress.org/plugins/' + item.slug + '/'} title={'WordPress.org - ' + title} onClick={this.stopPropagation} target="_blank" rel="noopener noreferrer">
               <Dashicon icon="wordpress" size={ 22 } />
             </a>
+            <span dangerouslySetInnerHTML={{__html: this.formatName(item)}}></span>
           </span>
           <span className="installs">{this.formatInstalls(item)}</span>
           <span className="matches">{item.matches}</span>
