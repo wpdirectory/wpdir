@@ -14,6 +14,7 @@ import (
 	"github.com/wpdirectory/wpdir/internal/db"
 	"github.com/wpdirectory/wpdir/internal/log"
 	"github.com/wpdirectory/wpdir/internal/server"
+	"github.com/wpdirectory/wpdir/internal/tasks"
 )
 
 var (
@@ -65,12 +66,21 @@ func main() {
 	// Setup HTTP server.
 	s.Setup()
 
+	// Clean up temp dir
+	tasks.Add("0 */15 * * * *", emptyTempDir)
+
+	// Start Task Runner
+	tasks.Start()
+
 	<-stop
 
 	l.Printf("Shutting down WPdir...\n")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
+
+	// Shutdown
+	tasks.Stop()
 	s.Shutdown(ctx)
 }
 
@@ -121,4 +131,31 @@ func setTempDir(wd string) error {
 	default:
 		return nil
 	}
+}
+
+// emptyTempDir deletes the contents of the temp dir
+// Clears out temp files created during indexing
+func emptyTempDir() {
+	wd, _ := os.Getwd()
+	dir := filepath.Join(wd, "tmp")
+
+	d, err := os.Open(dir)
+	if err != nil {
+		return
+	}
+	defer d.Close()
+
+	names, err := d.Readdirnames(-1)
+	if err != nil {
+		return
+	}
+
+	for _, name := range names {
+		err = os.RemoveAll(filepath.Join(dir, name))
+		if err != nil {
+			return
+		}
+	}
+
+	return
 }

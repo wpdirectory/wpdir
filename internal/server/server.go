@@ -42,6 +42,12 @@ func New(log *log.Logger, config *config.Config, fresh *bool) *Server {
 		log.Fatalf("Could not get initial theme list")
 	}
 
+	// TODO: Auto generate in background
+	//pr.GenerateInstallsChart()
+	//tr.GenerateInstallsChart()
+	//pr.GenerateSizeChart()
+	//tr.GenerateSizeChart()
+
 	sm := search.NewManager(config.SearchWorkers)
 	sm.Plugins = pr
 	sm.Themes = tr
@@ -57,14 +63,11 @@ func New(log *log.Logger, config *config.Config, fresh *bool) *Server {
 	}
 
 	// Start Update Workers
+	// These process updates from the queue
 	go repo.StartUpdateWorkers(config.UpdateWorkers, pr, tr)
 
 	// Start Worker to Process Searches
 	go sm.Worker()
-
-	// Start Repo Update Check Workers
-	pr.StartWorkers()
-	tr.StartWorkers()
 
 	return s
 }

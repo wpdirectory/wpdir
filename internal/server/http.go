@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/ulule/limiter/drivers/middleware/stdlib"
 	"github.com/wpdirectory/wpdir/internal/data"
 	"github.com/wpdirectory/wpdir/internal/limit"
@@ -122,6 +123,7 @@ func (s *Server) routes() {
 	s.Router.Get("/searches", s.static())
 	s.Router.Get("/repos", s.static())
 	s.Router.Get("/about", s.static())
+	s.Router.Get("/metrics", promhttp.Handler().(http.HandlerFunc))
 
 	// Need to disable RedirectSlashes middleware to enable this
 	// redirects to /debug/prof/ which causes redirect loop

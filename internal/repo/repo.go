@@ -24,6 +24,7 @@ import (
 	"github.com/wpdirectory/wpdir/internal/index"
 	"github.com/wpdirectory/wpdir/internal/ulid"
 	"github.com/wpdirectory/wpdir/internal/utils"
+	"github.com/wpdirectory/wpdir/internal/tasks"
 	"github.com/wpdirectory/wporg"
 	"github.com/wcharczuk/go-chart"
 ) 
@@ -66,6 +67,10 @@ func New(c *config.Config, l *log.Logger, t string, rev int) *Repo {
 		List:        make(map[string]*Extension),
 		UpdateQueue: updateQueue,
 	}
+
+	// Setup Task
+	tasks.Add("0 */15 * * * *", repo.jobCheckChangelog)
+	tasks.Add("0 12 2 * 7 *", repo.jobUpdateMeta)
 
 	// Load Existing Data
 	err := repo.load()
@@ -435,87 +440,63 @@ func (r *Repo) UpdateList(fresh *bool) error {
 	return nil
 }
 
-// StartWorkers starts up Goroutines to process updates
-// Every 15 mins Plugin Repos check the changelog for updates
-// Every 24 hours all Plugins refresh API data
-// TODO: All a job to clean out files created in temp dir
-func (r *Repo) StartWorkers() {
-	// Setup Tickers
-	checkChangelog := time.NewTicker(time.Minute * 15).C
-	checkAPI := time.NewTicker(time.Hour * 48).C
+func (r *Repo) jobCheckChangelog() {
+	// Skip if the update queue is not empty
+	if len(r.UpdateQueue) > 0 {
+		return
+	}
 
-	// Fetch the Changelog to get a list of Extensions to update
-	go func(r *Repo, ticker <-chan time.Time) {
-		for {
-			select {
-			// Check Changlog
-			case <-ticker:
-				// Skip if the update queue is not empty
-				if len(r.UpdateQueue) > 0 {
-					continue
-				}
+	latest, err := r.api.GetRevision(r.ExtType)
+	if err != nil {
+		r.log.Printf("Failed getting %s Repo revision: %s\n", r.ExtType, err)
+	}
+	r.RLock()
+	log, err := r.api.GetChangeLog(r.ExtType, r.Revision, latest)
+	if err != nil {
+		r.log.Printf("Failed getting %s Changelog: %s\n", r.ExtType, err)
+		r.RUnlock()
+		return
+	}
 
-				latest, err := r.api.GetRevision(r.ExtType)
-				if err != nil {
-					r.log.Printf("Failed getting %s Repo revision: %s\n", r.ExtType, err)
-				}
-				r.RLock()
-				log, err := r.api.GetChangeLog(r.ExtType, r.Revision, latest)
-				if err != nil {
-					r.log.Printf("Failed getting %s Changelog: %s\n", r.ExtType, err)
-					r.RUnlock()
-					continue
-				}
+	// If no changes skip
+	if len(log) == 0 {
+		r.log.Printf("No new %s updates since: %d\n", r.ExtType, r.Revision)
+		r.RUnlock()
+		return
+	}
+	r.RUnlock()
 
-				// If no changes skip
-				if len(log) == 0 {
-					r.log.Printf("No new %s updates since: %d\n", r.ExtType, r.Revision)
-					r.RUnlock()
-					continue
-				}
-				r.RUnlock()
+	// Remove Duplicates
+	// Save most recent revision
+	list := make(map[string]string)
+	for _, update := range log {
+		list[update[0]] = update[1]
+	}
 
-				// Remove Duplicates
-				// Save most recent revision
-				list := make(map[string]string)
-				for _, update := range log {
-					list[update[0]] = update[1]
-				}
+	// Queue Updates
+	for k, v := range list {
+		r.QueueUpdate(k, v)
+	}
 
-				// Queue Updates
-				for k, v := range list {
-					r.QueueUpdate(k, v)
-				}
+	r.log.Printf("%d %s added to the update queue\n", len(list), r.ExtType)
+}
 
-				r.log.Printf("%d %s added to the update queue\n", len(list), r.ExtType)
-			}
+func (r *Repo) jobUpdateMeta() {
+	exts, err := r.api.GetList(r.ExtType)
+	if err != nil {
+		r.log.Printf("Failed getting %s list: %s\n", r.ExtType, err)
+	}
+
+	for _, ext := range exts {
+		if !r.Exists(ext) {
+			r.Add(ext)
 		}
-	}(r, checkChangelog)
-
-	// Refresh Extension API data
-	// It will add missing Extensions to the Repo, but these should be caught in the Changelog above
-	go func(r *Repo, ticker <-chan time.Time) {
-		for {
-			select {
-			// Refresh API Data
-			case <-ticker:
-				exts, err := r.api.GetList(r.ExtType)
-				if err != nil {
-					r.log.Printf("Failed getting %s list: %s\n", r.ExtType, err)
-				}
-				for _, ext := range exts {
-					if !r.Exists(ext) {
-						r.Add(ext)
-					}
-					e := r.Get(ext)
-					err := r.updateMeta(e)
-					if err != nil {
-						r.SetStatus(e, Closed)
-					}
-				}
-			}
+		e := r.Get(ext)
+		err := r.updateMeta(e)
+		if err != nil {
+			r.SetStatus(e, Closed)
 		}
-	}(r, checkAPI)
+	}
 }
 
 // LoadExisting loading data from DB and then Indexes
