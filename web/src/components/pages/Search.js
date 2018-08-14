@@ -112,8 +112,12 @@ class Search extends Component {
 
   formatOverview = () => {
     let duration
+    let startedDate
     if (this.state.status === 2) {
       duration = this.timeTaken()
+      let msec = Date.parse(this.state.started)
+      let d = new Date(msec)
+      startedDate = d.toString()
     }
     switch( this.state.status ) {
       case 2:
@@ -141,6 +145,10 @@ class Search extends Component {
                 <div className="cell small-12 medium-4">
                   <h5>Time Taken</h5>
                   {duration}
+                </div>
+                <div className="cell small-12 medium-4">
+                  <h5>Started</h5>
+                  {startedDate}
                 </div>
               </div>
           </div>
