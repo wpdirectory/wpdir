@@ -11,6 +11,7 @@ import (
 
 	"github.com/wpdirectory/wpdir/internal/db"
 	"github.com/wpdirectory/wpdir/internal/index"
+	"github.com/wpdirectory/wpdir/internal/metrics"
 	"github.com/wpdirectory/wpdir/internal/repo"
 	"github.com/wpdirectory/wpdir/internal/search/queue"
 	"github.com/wpdirectory/wpdir/internal/ulid"
@@ -114,6 +115,8 @@ type MatchList struct {
 
 // processSearch ...
 func (sm *Manager) processSearch(ID string) error {
+	start := time.Now()
+
 	sm.RLock()
 	srch, ok := sm.List[ID]
 	sm.RUnlock()
@@ -299,6 +302,10 @@ func (sm *Manager) processSearch(ID string) error {
 
 	// Delete from Memory once saved in DB
 	delete(sm.List, searchID)
+
+	// Metrics
+	metrics.SearchCount.Inc()
+	metrics.SearchDuration.Observe(time.Since(start).Seconds())
 
 	runtime.GC()
 

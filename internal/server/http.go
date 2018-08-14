@@ -31,6 +31,9 @@ func (s *Server) startHTTP() {
 	s.Router.Use(middleware.DefaultCompress)
 	s.Router.Use(middleware.RedirectSlashes)
 
+	// Metrics
+	s.Router.Use(metricsMiddleware)
+
 	// Set a timeout value on the request context (ctx), that will signal
 	// through ctx.Done() that the request has timed out and further
 	// processing should be stopped.

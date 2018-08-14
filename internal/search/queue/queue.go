@@ -1,6 +1,10 @@
 package queue
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/wpdirectory/wpdir/internal/metrics"
+)
 
 // Queue contains information about and helper funcs for the queue
 type Queue struct {
@@ -24,6 +28,8 @@ func (q *Queue) Add(id string) {
 	q.Lock()
 	q.pos[id] = len(q.queue)
 	q.Unlock()
+
+	metrics.SearchQueue.Inc()
 }
 
 // Get returns an item from the queue
@@ -35,6 +41,8 @@ func (q *Queue) Get() string {
 	defer q.Unlock()
 	delete(q.pos, id)
 	q.decrementPos()
+
+	metrics.SearchQueue.Dec()
 
 	return id
 }

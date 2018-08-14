@@ -13,6 +13,7 @@ import (
 	"github.com/wpdirectory/wpdir/internal/config"
 	"github.com/wpdirectory/wpdir/internal/db"
 	"github.com/wpdirectory/wpdir/internal/log"
+	"github.com/wpdirectory/wpdir/internal/metrics"
 	"github.com/wpdirectory/wpdir/internal/server"
 	"github.com/wpdirectory/wpdir/internal/tasks"
 )
@@ -52,6 +53,9 @@ func main() {
 	// Set Temp Dir
 	// TODO: Check error- what would we do?
 	setTempDir(c.WD)
+
+	// Setup Metrics
+	metrics.Setup()
 
 	// Setup BoltDB
 	db.Setup(c.WD)
