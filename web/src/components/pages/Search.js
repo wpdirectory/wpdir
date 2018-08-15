@@ -3,6 +3,7 @@ import Loadicon from '../general/Loadicon.js'
 import ProgressBlock from '../general/ProgressBlock.js'
 import Summary from '../general/search/Summary.js'
 import API from '../../utils/API.js'
+import timeago from 'timeago.js'
 
 class Search extends Component {
   constructor(props) {
@@ -112,12 +113,10 @@ class Search extends Component {
 
   formatOverview = () => {
     let duration
-    let startedDate
+    let timeSince
     if (this.state.status === 2) {
       duration = this.timeTaken()
-      let msec = Date.parse(this.state.started)
-      let d = new Date(msec)
-      startedDate = d.toString()
+      timeSince = timeago().format(this.state.completed)
     }
     switch( this.state.status ) {
       case 2:
@@ -147,8 +146,8 @@ class Search extends Component {
                   {duration}
                 </div>
                 <div className="cell small-12 medium-4">
-                  <h5>Started</h5>
-                  {startedDate}
+                  <h5>Completed</h5>
+                  {timeSince}
                 </div>
               </div>
           </div>
