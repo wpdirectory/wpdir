@@ -23,14 +23,16 @@ func Setup() {
 	prometheus.MustRegister(SearchQueue)
 
 	SearchDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name: "search_duration_seconds",
-		Help: "Time taken to complete searches",
+		Namespace: "wpdir",
+		Name:      "search_duration_seconds",
+		Help:      "Time taken to complete searches",
 	})
 	prometheus.MustRegister(SearchDuration)
 
 	SearchCount = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "searches",
-		Help: "Total number of searches",
+		Namespace: "wpdir",
+		Name:      "search_count",
+		Help:      "Total number of searches",
 	})
 	prometheus.MustRegister(SearchCount)
 }
