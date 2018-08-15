@@ -76,6 +76,12 @@ func (s *Server) addConfig(html []byte) []byte {
 	// Embed Version into HTML
 	html = []byte(strings.Replace(string(html), "%VERSION%", s.Config.Version, 1))
 
+	// Embed Commit Hash into HTML
+	html = []byte(strings.Replace(string(html), "%COMMIT%", s.Config.Commit, 1))
+
+	// Embed Date into HTML
+	html = []byte(strings.Replace(string(html), "%DATE%", s.Config.Date, 1))
+
 	// Embed Hostname into HTML, remove trailing slash
 	host := strings.TrimRight(s.Config.Host, "/")
 	html = []byte(strings.Replace(string(html), "%HOSTNAME%", host, 1))
