@@ -1,8 +1,13 @@
 package queue
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/wpdirectory/wpdir/internal/metrics"
+)
 
 func TestAdd(t *testing.T) {
+	metrics.Setup()
 	queue := &Queue{
 		queue: make(chan string, 10),
 		pos:   make(map[string]int),
@@ -24,6 +29,7 @@ func TestAdd(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
+	metrics.Setup()
 	queue := &Queue{
 		queue: make(chan string, 10),
 		pos:   make(map[string]int),
@@ -48,6 +54,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestPos(t *testing.T) {
+	metrics.Setup()
 	queue := &Queue{
 		queue: make(chan string, 10),
 		pos:   make(map[string]int),
@@ -72,6 +79,7 @@ func TestPos(t *testing.T) {
 }
 
 func TestDecrementPos(t *testing.T) {
+	metrics.Setup()
 	queue := &Queue{
 		queue: make(chan string, 10),
 		pos:   make(map[string]int),
