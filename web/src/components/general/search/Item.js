@@ -60,6 +60,7 @@ class Item extends Component {
     const {
       id,
       item,
+      repo
     } = this.props
 
     let matches
@@ -75,7 +76,7 @@ class Item extends Component {
       <li className={this.formatClass()}>
         <div className="accordion-title" onClick={this.toggleClass}>
           <span className="name">
-            <a className="wplink" href={'https://wordpress.org/plugins/' + item.slug + '/'} title={'WordPress.org - ' + title} onClick={this.stopPropagation} target="_blank" rel="noopener noreferrer">
+            <a className="wplink" href={'https://wordpress.org/' + repo + '/' + item.slug + '/'} title={'WordPress.org - ' + title} onClick={this.stopPropagation} target="_blank" rel="noopener noreferrer">
               <Dashicon icon="wordpress" size={ 22 } />
             </a>
             <span dangerouslySetInnerHTML={{__html: this.formatName(item)}}></span>
