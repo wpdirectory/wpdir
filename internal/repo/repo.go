@@ -69,7 +69,7 @@ func New(c *config.Config, l *log.Logger, t string, rev int) *Repo {
 	}
 
 	// Setup Task
-	tasks.Add("0 43 * * * *", repo.jobCheckChangelog)
+	tasks.Add("13 2 * * * *", repo.jobCheckChangelog)
 	tasks.Add("0 2 31 * * *", repo.jobUpdateMeta)
 
 	// Load Existing Data
