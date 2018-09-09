@@ -1,0 +1,22 @@
+[Unit]
+Description=WPDirectory
+After=network-online.target
+Wants=network-online.target systemd-networkd-wait-online.service
+
+[Service]
+Type=simple
+User=wpdir
+Group=wpdir
+KillMode=mixed
+KillSignal=SIGQUIT
+TimeoutStopSec=5s
+ProtectHome=true
+
+ProtectSystem=full
+ReadWriteDirectories=/etc/wpdir
+
+WorkingDirectory=/etc/wpdir
+ExecStart=/usr/local/bin/wpdir
+
+[Install]
+WantedBy=multi-user.target
