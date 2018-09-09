@@ -3,6 +3,8 @@
 *.dll
 *.so
 *.dylib
+wpdir.exe
+wpdir
 
 # Test binary, build with `go test -c`
 *.test
