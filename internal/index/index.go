@@ -546,5 +546,5 @@ func isZipTextFile(file *zip.File) (bool, error) {
 
 func addZipDirToIndex(dst, src, path string) error {
 	dup := filepath.Join(dst, "raw", path)
-	return os.Mkdir(dup, os.ModePerm)
+	return os.Mkdir(dup, 0766)
 }

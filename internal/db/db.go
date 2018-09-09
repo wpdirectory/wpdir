@@ -42,7 +42,7 @@ func Setup(dir string) {
 	}
 
 	var err error
-	db, err = bolt.Open(path, 0600, options)
+	db, err = bolt.Open(path, 0770, options)
 	if err != nil {
 		log.Fatal(err)
 	}
