@@ -18,6 +18,8 @@ import (
 	"github.com/wpdirectory/wpdir/internal/tasks"
 )
 
+//go:generate go run -tags=dev embed_files.go
+
 var (
 	version string
 	commit  string
@@ -104,16 +106,16 @@ Config:
 
 func mkdirs(wd string) {
 	tmp := filepath.Join(wd, "tmp")
-	os.MkdirAll(tmp, os.ModeDir)
+	os.MkdirAll(tmp, 0766)
 
 	db := filepath.Join(wd, "data", "db")
-	os.MkdirAll(db, os.ModeDir)
+	os.MkdirAll(db, 0766)
 
 	plugins := filepath.Join(wd, "data", "index", "plugins")
-	os.MkdirAll(plugins, os.ModeDir)
+	os.MkdirAll(plugins, 0766)
 
 	themes := filepath.Join(wd, "data", "index", "themes")
-	os.MkdirAll(themes, os.ModeDir)
+	os.MkdirAll(themes, 0766)
 }
 
 // setTempDir sets the temp dir
