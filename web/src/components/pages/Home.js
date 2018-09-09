@@ -55,7 +55,7 @@ class Home extends Component {
     if ( isLoading ) {
       latestSearches = <Loadicon />
     }  else {
-      if ( error ) {
+      if ( !Array.isArray(searches) || !searches.length || error ) {
         latestSearches = <p className="error">Sorry, there was a problem fetching data.</p>
       } else {
         latestSearches = searches.map( (search, idx) => {
