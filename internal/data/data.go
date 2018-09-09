@@ -8,4 +8,4 @@ import (
 )
 
 // Assets contains project assets.
-var Assets http.FileSystem = http.Dir(filepath.Join("../../", "web", "build"))
+var Assets http.FileSystem = http.Dir(filepath.Join("web", "build"))
