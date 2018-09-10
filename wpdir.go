@@ -111,6 +111,9 @@ func mkdirs(wd string) {
 	db := filepath.Join(wd, "data", "db")
 	os.MkdirAll(db, 0766)
 
+	ssl := filepath.Join(wd, "data", "ssl")
+	os.MkdirAll(ssl, 0760)
+
 	plugins := filepath.Join(wd, "data", "index", "plugins")
 	os.MkdirAll(plugins, 0766)
 
