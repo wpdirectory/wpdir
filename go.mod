@@ -25,6 +25,8 @@ require (
 	github.com/prometheus/common v0.0.0-20180801064454-c7de2306084e // indirect
 	github.com/prometheus/procfs v0.0.0-20180725123919-05ee40e3a273 // indirect
 	github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
+	github.com/shurcooL/httpfs v0.0.0-20171119174359-809beceb2371 // indirect
+	github.com/shurcooL/vfsgen v0.0.0-20180909233225-12c1e538e8c6 // indirect
 	github.com/spf13/afero v1.1.0 // indirect
 	github.com/spf13/cast v1.2.0 // indirect
 	github.com/spf13/jwalterweatherman v0.0.0-20180109140146-7c0cea34c8ec // indirect
