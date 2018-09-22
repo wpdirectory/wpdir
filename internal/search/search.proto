@@ -30,6 +30,7 @@ message Search {
     Status status = 8;
     Options options = 9;
     uint32 matches = 10 [(gogoproto.jsontag) = "matches"];
+    uint32 revision = 11;
 }
 
 message Options {
