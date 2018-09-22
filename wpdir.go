@@ -30,6 +30,7 @@ func main() {
 	// Set and Parse flags
 	flagHelp := flag.Bool("help", false, "Display help information")
 	flagFresh := flag.Bool("fresh", false, "Begin with fresh data load")
+	flagDev := flag.Bool("dev", false, "Enable Dev mode")
 	flag.Parse()
 
 	if *flagHelp {
@@ -43,11 +44,9 @@ func main() {
 	l := log.New()
 
 	// Create Config
-	c := config.Setup(version, commit, date)
+	c := config.Setup(version, commit, date, flagDev)
 
 	l.Printf("Hostname: %s\n", c.Host)
-
-	//l.Printf("Version: %s Commit: %s Date: %s\n", Version, Commit, Date)
 
 	// Ensure Directory Structure Exists
 	mkdirs(c.WD)
