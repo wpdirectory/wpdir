@@ -16,12 +16,11 @@ type Config struct {
 	WD            string
 	UpdateWorkers int
 	SearchWorkers int
-	DNS           struct {
-		Email  string
-		APIKey string
-	}
-	Host  string
-	Ports struct {
+	Host          string
+	Domains       string
+	Standalone    bool
+	DevMode       bool
+	Ports         struct {
 		HTTP  string
 		HTTPS string
 	}
@@ -35,6 +34,9 @@ func Setup(version, commit, date string) *Config {
 	viper.SetDefault("updateworkers", 4)
 	viper.SetDefault("searchworkers", 6)
 	viper.SetDefault("host", "http://localhost")
+	viper.SetDefault("domains", "wpdirectory.net,www.wpdirectory.net")
+	viper.SetDefault("standalone", false)
+	viper.SetDefault("dev", false)
 	viper.SetDefault("ports.http", "80")
 	viper.SetDefault("ports.https", "443")
 
@@ -62,6 +64,9 @@ func Setup(version, commit, date string) *Config {
 		UpdateWorkers: viper.GetInt("updateworkers"),
 		SearchWorkers: viper.GetInt("searchworkers"),
 		Host:          viper.GetString("host"),
+		Domains:       viper.GetString("domains"),
+		Standalone:    viper.GetBool("standalone"),
+		DevMode:       viper.GetBool("dev"),
 	}
 
 	config.Ports.HTTP = viper.GetString("ports.http")
