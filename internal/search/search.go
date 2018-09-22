@@ -181,7 +181,7 @@ func (sm *Manager) processSearch(ID string) error {
 	r.RLock()
 	total = uint64(len(r.List))
 	list := r.List
-	srch.Revision = uint32(r.Revision)
+	revision := uint32(r.Revision)
 	r.RUnlock()
 	for _, e := range list {
 		// Limit to 100000 matches
@@ -286,6 +286,7 @@ func (sm *Manager) processSearch(ID string) error {
 	srch.Completed = time.Now().Format(time.RFC3339)
 	srch.Status = Completed
 	srch.Matches = uint32(totalMatches)
+	srch.Revision = revision
 	sm.Unlock()
 
 	sm.RLock()
