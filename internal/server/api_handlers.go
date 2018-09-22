@@ -69,6 +69,7 @@ func (s *Server) getSearch() http.HandlerFunc {
 		Completed string               `json:"completed,omitempty"`
 		Progress  uint32               `json:"progress"`
 		Status    search.Search_Status `json:"status"`
+		Behind    uint32               `json:"behind"`
 		QueuePos  int                  `json:"queue_pos"`
 		Opts      search.Options       `json:"options"`
 	}
@@ -81,6 +82,21 @@ func (s *Server) getSearch() http.HandlerFunc {
 				var resp getSearchResponse
 				srch := s.Manager.Get(searchID)
 
+				old := srch.Revision
+				var cur uint32
+				switch srch.Repo {
+				case "plugins":
+					s.Manager.Plugins.RLock()
+					cur = uint32(s.Manager.Plugins.Revision)
+					s.Manager.Plugins.RUnlock()
+				case "themes":
+					s.Manager.Themes.RLock()
+					cur = uint32(s.Manager.Plugins.Revision)
+					s.Manager.Themes.RUnlock()
+				default:
+					// error
+				}
+
 				resp.ID = srch.ID
 				resp.Input = srch.Input
 				resp.Repo = srch.Repo
@@ -89,6 +105,7 @@ func (s *Server) getSearch() http.HandlerFunc {
 				resp.Completed = srch.Completed
 				resp.Progress = srch.Progress
 				resp.Status = srch.Status
+				resp.Behind = cur - old
 				resp.QueuePos = s.Manager.Queue.Pos(searchID)
 				resp.Opts = *srch.Options
 
