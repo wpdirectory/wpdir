@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/acme"
+	"golang.org/x/crypto/acme/autocert"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -18,6 +20,103 @@ import (
 	"github.com/wpdirectory/wpdir/internal/data"
 	"github.com/wpdirectory/wpdir/internal/limit"
 )
+
+func (s *Server) startUp() {
+	s.Router = chi.NewRouter()
+
+	// Middleware Stack
+	s.Router.Use(middleware.RequestID)
+	s.Router.Use(middleware.RealIP)
+	s.Router.Use(middleware.Logger)
+	s.Router.Use(middleware.Recoverer)
+	s.Router.Use(middleware.DefaultCompress)
+	s.Router.Use(middleware.RedirectSlashes)
+
+	// Metrics
+	s.Router.Use(metricsMiddleware)
+
+	// Set a timeout value on the request context (ctx), that will signal
+	// through ctx.Done() that the request has timed out and further
+	// processing should be stopped.
+	s.Router.Use(middleware.Timeout(60 * time.Second))
+
+	// TODO: Remove this for prod?
+	cors := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	})
+	s.Router.Use(cors.Handler)
+
+	FileServer(s.Router, "/assets")
+
+	s.routes()
+
+	if s.Config.Standalone {
+		// Note: use a sensible value for data directory
+        // this is where cached certificates are stored
+        dataDir := filepath.Join(s.Config.WD, "data", "ssl")
+
+		m := &autocert.Manager{
+            Prompt:     autocert.AcceptTOS,
+            HostPolicy: autocert.HostWhitelist("wpdirectory.net", "www.wpdirectory.net", "dh.wpdirectory.net"),
+            Cache:      autocert.DirCache(dataDir),
+		}
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			w.Header().Set("Connection", "close")
+			url := "https://" + req.Host + req.URL.String()
+			http.Redirect(w, req, url, http.StatusMovedPermanently)
+		})
+
+		s.http = &http.Server{
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 5 * time.Second,
+			IdleTimeout:  10 * time.Second,
+			Handler: m.HTTPHandler(handler),
+			Addr: ":" + s.Config.Ports.HTTP,
+		}
+
+		go func() { log.Fatal(s.http.ListenAndServe()) }()
+
+		tlsConfig := &tls.Config{
+			CurvePreferences: []tls.CurveID{
+				tls.CurveP256,
+				tls.X25519,
+			},
+			MinVersion: tls.VersionTLS12,
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			},
+			GetCertificate: m.GetCertificate,
+			NextProtos: []string{
+				"h2", "http/1.1",
+				acme.ALPNProto, // enable tls-alpn ACME challenges
+			},
+		}
+
+        s.https = &http.Server{
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  120 * time.Second,
+			Handler:      s.Router,
+			Addr:         ":" + s.Config.Ports.HTTPS,
+			TLSConfig:    tlsConfig,
+		}
+	
+		go func() { log.Fatal(s.https.ListenAndServeTLS("", "")) }()
+	} else {
+		s.startHTTP()
+	}
+}
 
 // startHTTP starts the HTTP server.
 func (s *Server) startHTTP() {
@@ -144,6 +243,8 @@ func (s *Server) apiRoutes() chi.Router {
 
 	middleware := stdlib.NewMiddleware(limit.New(), stdlib.WithForwardHeader(true))
 
+	r.Get("/loaded", s.getLoaded())
+	
 	r.Get("/search/{id}", s.getSearch())
 	r.Post("/search/new", middleware.Handler(s.createSearch()).(http.HandlerFunc))
 	r.Get("/searches/{limit}", s.getSearches())
