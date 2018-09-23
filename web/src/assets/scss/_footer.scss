@@ -11,4 +11,13 @@ footer.footer {
         padding: rem-calc(20 10);
         text-align: center;
     }
+
+    .dreamhost {
+        fill: #828282;
+        transition: fill 0.6s ease;
+        &:hover,
+        &:active {
+            fill: #0073EC;
+        }
+    }
 }
