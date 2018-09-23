@@ -44,7 +44,7 @@ func main() {
 	l := log.New()
 
 	// Create Config
-	c := config.Setup(version, commit, date, flagDev)
+	c := config.Setup(version, commit, date, *flagDev)
 
 	l.Printf("Hostname: %s\n", c.Host)
 
