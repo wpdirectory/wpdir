@@ -15,11 +15,19 @@ class About extends Component {
             <p>WPdir was inspired by the various Directory Slurper projects by <a href="https://github.com/markjaquith/WordPress-Plugin-Directory-Slurper" rel="noopener noreferrer" target="_blank">Mark Jaquith</a>, <a href="https://github.com/Ipstenu/WordPress-Theme-Directory-Slurper" rel="noopener noreferrer" target="_blank">Ipstenu</a> and many others. It is built using Go on the backend and React on the frontend, it uses Google's <a href="https://github.com/google/codesearch/" rel="noopener noreferrer" target="_blank">codesearch</a> tool for indexing and search.</p>
             <p>If you have feedback, questions or issues please let me know on <a href="https://github.com/wpdirectory/wpdir">github.com/wpdirectory/wpdir</a> or send me a message on the WordPress Slack (peterbooker).</p>
           </div>
+
+          <div className="panel cell small-12">
+            <h2>Sponsorship</h2>
+            <p>WPDirectory is sponsored by <a href="https://www.dreamhost.com/" rel="noopener noreferrer">DreamHost</a> who kindly provide the hosting on their excellent <a href="https://www.dreamhost.com/cloud/computing/" rel="noopener noreferrer" target="_blank">DreamCompute</a> system. This helps to secure WPDirectory as a service for the WordPress community.</p>
+            <p>You can read about our experience setting up WPDirectory on DreamCompute <a href="https://www.peterbooker.com" rel="noopener noreferrer">here</a>.</p>
+          </div>
+
           <div className="panel cell small-12">
             <h2>Licenses</h2>
             <p>Logo(s) were kindly contributed by <a href="https://github.com/reallinfo" rel="noopener noreferrer" target="_blank">reallinfo</a> and are licensed under <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener noreferrer" target="_blank">CC BY 4.0</a>.</p>
             <p>The <code>codesearch</code> library has been included from <a href="https://github.com/etsy/hound/tree/master/codesearch" rel="noopener noreferrer" target="_blank">etsy/hound</a> under MIT, which was amended from <a href="https://github.com/google/codesearch" rel="noopener noreferrer" target="_blank">google/codesearch</a> under <a href="https://github.com/google/codesearch/blob/master/LICENSE" rel="noopener noreferrer" target="_blank">BSD 3</a>.</p>
           </div>
+          
           <div className="panel cell small-12">
             <h2>Privacy</h2>
             <p>WPdirectory does not store any information relating to visistors and/or users. The only information collected is internal metrics, via Prometheus, things like how many searches occured. That is right- no cookies, ads, visitor tracking, etc.</p>
