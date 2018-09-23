@@ -48,7 +48,7 @@ class Searches extends Component {
     if ( isLoading ) {
       searchList = <tr><td><Loadicon /></td></tr>
     }  else {
-      if ( error ) {
+      if ( !Array.isArray(searches) || !searches.length || error ) {
         searchList = <tr><td><p className="error">Sorry, there was a problem fetching data.</p></td></tr>
       } else {
         searchList = searches.map( (search, idx) => {
