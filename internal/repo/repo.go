@@ -264,11 +264,6 @@ func (r *Repo) ProcessUpdate(slug string, rev int) error {
 	r.SetRev(rev)
 	r.save()
 
-	//err = utils.RemoveContents(filepath.Join(r.cfg.WD, "tmp"))
-	//if err != nil {
-		//r.log.Printf("Failed to clean tmp dir: %s\n", err)
-	//}
-
 	return nil
 }
 

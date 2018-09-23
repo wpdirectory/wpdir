@@ -28,20 +28,6 @@ func New(log *log.Logger, config *config.Config, fresh *bool) *Server {
 	pr := repo.New(config, log, "plugins", 0)
 	tr := repo.New(config, log, "themes", 0)
 
-	// Load Existing from DB
-	pr.LoadExisting()
-	tr.LoadExisting()
-
-	// Initial List
-	err := pr.UpdateList(fresh)
-	if err != nil {
-		log.Fatalf("Could not get initial plugin list")
-	}
-	err = tr.UpdateList(fresh)
-	if err != nil {
-		log.Fatalf("Could not get initial theme list")
-	}
-
 	// TODO: Auto generate in background
 	//pr.GenerateInstallsChart()
 	//tr.GenerateInstallsChart()
@@ -62,19 +48,43 @@ func New(log *log.Logger, config *config.Config, fresh *bool) *Server {
 		Manager: sm,
 	}
 
-	// Start Update Workers
-	// These process updates from the queue
-	go repo.StartUpdateWorkers(config.UpdateWorkers, pr, tr)
-
-	// Start Worker to Process Searches
-	go sm.Worker()
+	// Load Existing Data
+	go s.LoadData(fresh)
 
 	return s
 }
 
+// LoadData loads all existing DB and Index data
+func (s *Server) LoadData(fresh *bool) {
+	// Load Existing from DB
+	s.Manager.Plugins.LoadExisting()
+	s.Manager.Themes.LoadExisting()
+
+	// Initial List
+	err := s.Manager.Plugins.UpdateList(fresh)
+	if err != nil {
+		s.Logger.Fatalf("Could not get initial plugin list")
+	}
+	err = s.Manager.Themes.UpdateList(fresh)
+	if err != nil {
+		s.Logger.Fatalf("Could not get initial theme list")
+	}
+
+	// Start Update Workers
+	// These process updates from the queue
+	repo.StartUpdateWorkers(s.Config.UpdateWorkers, s.Manager.Plugins, s.Manager.Themes)
+
+	// Start Worker to Process Searches
+	go s.Manager.Worker()
+
+	s.Manager.Lock()
+	s.Manager.Loaded = true
+	s.Manager.Unlock()
+}
+
 // Setup starts the HTTP Server
 func (s *Server) Setup() {
-	s.startHTTP()
+	s.startUp()
 }
 
 // Shutdown will release resources and stop the server.

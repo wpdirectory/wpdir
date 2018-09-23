@@ -34,11 +34,20 @@ func (s *Server) getSearches() http.HandlerFunc {
 		if err != nil || limit < 10 || limit > 100 {
 			var resp errResponse
 			resp.Err = "You must specify a valid limit (10-100)."
+			w.WriteHeader(http.StatusBadRequest)
 			writeResp(w, resp)
 			return
 		}
 
 		list := db.GetLatestPublicSearchList(limit)
+
+		if len(list) == 0 {
+			var resp errResponse
+			resp.Err = "There are currently no searches."
+			w.WriteHeader(http.StatusNoContent)
+			writeResp(w, resp)
+			return
+		}
 
 		for _, id := range list {
 			var srch search.Search
@@ -52,6 +61,22 @@ func (s *Server) getSearches() http.HandlerFunc {
 			}
 			resp.Searches = append(resp.Searches, srch)
 		}
+
+		writeResp(w, resp)
+	}
+}
+
+// getLoaded fetches the state of the search manager
+// Checks the app is fully loaded and ready to search
+func (s *Server) getLoaded() http.HandlerFunc {
+	type getLoadedResponse struct {
+		Loaded bool `json:"loaded"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		var resp getLoadedResponse
+		
+		resp.Loaded = s.Manager.IsLoaded()
 
 		writeResp(w, resp)
 	}
@@ -118,6 +143,7 @@ func (s *Server) getSearch() http.HandlerFunc {
 			if err != nil || bytes == nil {
 				var resp errResponse
 				resp.Err = fmt.Sprintf("Search %s not found", searchID)
+				w.WriteHeader(http.StatusNotFound)
 				writeResp(w, resp)
 				return
 			}
@@ -127,6 +153,7 @@ func (s *Server) getSearch() http.HandlerFunc {
 			if err != nil {
 				var resp errResponse
 				resp.Err = fmt.Sprintf("Could not Unmarshal Search data for: %s\n", searchID)
+				w.WriteHeader(http.StatusInternalServerError)
 				writeResp(w, resp)
 				return
 			}
@@ -137,6 +164,7 @@ func (s *Server) getSearch() http.HandlerFunc {
 		} else {
 			var resp errResponse
 			resp.Err = "You must specify a valid Search ID."
+			w.WriteHeader(http.StatusBadRequest)
 			writeResp(w, resp)
 		}
 	}
@@ -156,6 +184,7 @@ func (s *Server) getSearchSummary() http.HandlerFunc {
 			if err != nil || bytes == nil {
 				var resp errResponse
 				resp.Err = fmt.Sprintf("Summary not found for Search %s\n", searchID)
+				w.WriteHeader(http.StatusNotFound)
 				writeResp(w, resp)
 				return
 			}
@@ -165,6 +194,7 @@ func (s *Server) getSearchSummary() http.HandlerFunc {
 			if err != nil {
 				var resp errResponse
 				resp.Err = fmt.Sprintf("Could not Unmarshal Summary data for Search %s\n", searchID)
+				w.WriteHeader(http.StatusInternalServerError)
 				writeResp(w, resp)
 				return
 			}
@@ -177,6 +207,7 @@ func (s *Server) getSearchSummary() http.HandlerFunc {
 		} else {
 			var resp errResponse
 			resp.Err = "You must specify a valid Search ID."
+			w.WriteHeader(http.StatusBadRequest)
 			writeResp(w, resp)
 		}
 	}
@@ -193,6 +224,7 @@ func (s *Server) getSearchMatches() http.HandlerFunc {
 			if err != nil || bytes == nil {
 				var resp errResponse
 				resp.Err = fmt.Sprintf("Matches not found for Search %s and Slug %s\n", searchID, slug)
+				w.WriteHeader(http.StatusNotFound)
 				writeResp(w, resp)
 				return
 			}
@@ -202,6 +234,7 @@ func (s *Server) getSearchMatches() http.HandlerFunc {
 			if err != nil {
 				var resp errResponse
 				resp.Err = fmt.Sprintf("Could not Unmarshal Matches data for Search %s and Slug %s\n", searchID, slug)
+				w.WriteHeader(http.StatusInternalServerError)
 				writeResp(w, resp)
 				return
 			}
@@ -210,6 +243,7 @@ func (s *Server) getSearchMatches() http.HandlerFunc {
 		} else {
 			var resp errResponse
 			resp.Err = "You must specify a valid Search ID and Item Slug."
+			w.WriteHeader(http.StatusBadRequest)
 			writeResp(w, resp)
 		}
 	}
@@ -234,6 +268,7 @@ func (s *Server) getMatchFile() http.HandlerFunc {
 		if err != nil {
 			var resp errResponse
 			resp.Err = "Could not decode the POST body"
+			w.WriteHeader(http.StatusBadRequest)
 			writeResp(w, resp)
 			return
 		}
@@ -244,6 +279,7 @@ func (s *Server) getMatchFile() http.HandlerFunc {
 			if err != nil {
 				var resp errResponse
 				resp.Err = "File could not be found"
+				w.WriteHeader(http.StatusNotFound)
 				writeResp(w, resp)
 				return
 			}
@@ -297,6 +333,16 @@ func (s *Server) createSearch() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		var resp createSearchResponse
+
+		// Check the application has loaded fully
+		if !s.Manager.IsLoaded() {
+			var resp errResponse
+			resp.Err = "Please wait for the application to finish loading."
+			w.WriteHeader(http.StatusNotAcceptable)
+			writeResp(w, resp)
+			return
+		}
+
 		decoder := json.NewDecoder(r.Body)
 
 		var data createSearchRequest

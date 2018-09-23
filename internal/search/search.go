@@ -24,16 +24,25 @@ type Manager struct {
 	Plugins *repo.Repo
 	Themes  *repo.Repo
 	limit   int
+	Loaded  bool
 	sync.RWMutex
 }
 
 // NewManager returns a new SearchManager struct
 func NewManager(limit int) *Manager {
 	return &Manager{
-		Queue: queue.New(100),
-		List:  make(map[string]*Search),
-		limit: limit,
+		Queue:  queue.New(100),
+		List:   make(map[string]*Search),
+		limit:  limit,
+		Loaded: false,
 	}
+}
+
+// IsLoaded ...
+func (sm *Manager) IsLoaded() bool {
+	sm.RLock()
+	defer sm.RUnlock()
+	return sm.Loaded
 }
 
 // Get ...
