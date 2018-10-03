@@ -158,9 +158,35 @@ func (s *Server) getSearch() http.HandlerFunc {
 				return
 			}
 
-			srch.Status = search.Completed
+			old := srch.Revision
+			var cur uint32
+			switch srch.Repo {
+			case "plugins":
+				s.Manager.Plugins.RLock()
+				cur = uint32(s.Manager.Plugins.Revision)
+				s.Manager.Plugins.RUnlock()
+			case "themes":
+				s.Manager.Themes.RLock()
+				cur = uint32(s.Manager.Plugins.Revision)
+				s.Manager.Themes.RUnlock()
+			default:
+					// error
+			}
 
-			writeResp(w, srch)
+			var resp getSearchResponse
+			
+			resp.ID = srch.ID
+			resp.Input = srch.Input
+			resp.Repo = srch.Repo
+			resp.Matches = srch.Matches
+			resp.Started = srch.Started
+			resp.Completed = srch.Completed
+			resp.Progress = srch.Progress
+			resp.Status = search.Completed
+			resp.Behind = cur - old
+			resp.Opts = *srch.Options
+
+			writeResp(w, resp)
 		} else {
 			var resp errResponse
 			resp.Err = "You must specify a valid Search ID."
