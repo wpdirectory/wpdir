@@ -10,6 +10,7 @@ import Search from './components/pages/Search'
 import Searches from './components/pages/Searches'
 import Repos from './components/pages/Repos'
 import About from './components/pages/About'
+import Examples from './components/pages/Examples'
 import NotFound from './components/pages/NotFound'
 
 class App extends Component {
@@ -27,6 +28,7 @@ class App extends Component {
               <Route path="/search/:id" component={Search} />
               <Route path="/repos" component={Repos} />
               <Route path="/about" component={About} />
+              <Route path="/examples" component={Examples} />
               <Route component={NotFound} />
             </Switch>
           </section>
