@@ -6,7 +6,7 @@ import (
 
 var updateQueue chan UpdateRequest
 
-// UpdateRequest ...
+// UpdateRequest holds info about an extension which needs to be updated
 type UpdateRequest struct {
 	Slug     string
 	Repo     string

@@ -53,6 +53,7 @@ func (s *Server) startUp() {
 
 	FileServer(s.Router, "/assets")
 
+	// Add root routes
 	s.routes()
 
 	if s.Config.Standalone {

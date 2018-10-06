@@ -10,22 +10,22 @@ func init() {
 	runner = cron.New()
 }
 
-// Add ...
+// Add a Task
 func Add(s string, f func()) {
 	runner.AddFunc(s, f)
 }
 
-// Start ...
+// Start Task runner
 func Start() {
 	runner.Start()
 }
 
-// Stop ...
+// Stop Task runner
 func Stop() {
 	runner.Stop()
 }
 
-// Entries ...
+// Entries returns Task list
 func Entries() {
 	runner.Entries()
 }
