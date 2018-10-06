@@ -11,6 +11,7 @@ import (
 // TODO: Rewrite how the index.html file is served
 // Need to embed SEO related info too
 
+// static is the static HTML (index.html) handler used for all known root routes.
 func (s *Server) static() http.HandlerFunc {
 	file, err := data.Assets.Open("/index.html")
 	if err != nil {
@@ -41,6 +42,7 @@ func (s *Server) static() http.HandlerFunc {
 	}
 }
 
+// notFound is the 404 Not Found Handler
 func (s *Server) notFound() http.HandlerFunc {
 	file, err := data.Assets.Open("/index.html")
 	if err != nil {

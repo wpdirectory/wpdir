@@ -435,6 +435,7 @@ func (r *Repo) UpdateList(fresh *bool) error {
 	return nil
 }
 
+// jobCheckChangelog checks the SVN changelog for updates
 func (r *Repo) jobCheckChangelog() {
 	// Skip if the update queue is not empty
 	if len(r.UpdateQueue) > 0 {
@@ -476,6 +477,7 @@ func (r *Repo) jobCheckChangelog() {
 	r.log.Printf("%d %s added to the update queue\n", len(list), r.ExtType)
 }
 
+// jobUpdateMeta uses the API to update extension meta data
 func (r *Repo) jobUpdateMeta() {
 	exts, err := r.api.GetList(r.ExtType)
 	if err != nil {
