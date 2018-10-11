@@ -527,3 +527,12 @@ $progress-block-height: 100px;
         }
     }
 }
+
+/*--------------------------------------------------------------
+# Code Blocks
+--------------------------------------------------------------*/
+pre {
+    background-color: #e6e6e6;
+    padding: rem-calc(10 20);
+    margin-bottom: rem-calc(20);
+}
