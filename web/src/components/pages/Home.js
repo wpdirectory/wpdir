@@ -77,12 +77,12 @@ class Home extends Component {
             <SearchForm />
           </div>
           <div className="panel cell small-12 medium-6 large-4">
-            <h3>Search Tips</h3>
+            <h2>Search Tips</h2>
             <p>The search input uses <a href="https://github.com/google/re2/wiki/Syntax" target="_blank" rel="noopener noreferrer">RE2</a> regex and may use syntax a little different to what you are used to.</p>
             <p>Using regular expressions (regex) can be difficult so the <Link to={'/examples/'} title={'Examples'}>examples</Link> page guides you through some common searches and explains how they match the intended targets.</p>
           </div>
           <div className="panel cell small-12 medium-12 large-4">
-            <h3>Recent Searches</h3>
+            <h2>Recent Searches</h2>
             <ul className="search-list">
               {latestSearches}
             </ul>

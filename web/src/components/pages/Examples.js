@@ -10,18 +10,18 @@ class Examples extends Component {
       <div className="page page-examples grid-container">
         <div className="grid-x grid-margin-x grid-margin-y">
           <div className="panel cell small-12">
-            <h2>Examples</h2>
+            <h1>Examples</h1>
             <p>Writing regular expressions can be difficult so this page seeks to help you use WPDirectory by providing some examples and explaining what they do.</p>
       	    <p>To get more familiar with regular expressins in general, consider reading the following <a href="https://www.regular-expressions.info/">regex introduction and tutorials</a>. Keeping in mind that many interpreters exist for regex, for this site, that is the <a href="https://github.com/google/re2/wiki/Syntax">Golang RE2 syntax</a>.</p>
             
-            <h3>Functions</h3>
+            <h2>Functions</h2>
             <p>Let us start with something easy, let us search for use of the privacy function <code>wp_privacy_anonymize_data</code>, we can do this by searching for:</p>
             <pre>
                 wp_privacy_anonymize_data\(
             </pre>
             <p>This works by matching the full name of the function when it is immediately followed by an opening parentheses <code>(</code>. Because parentheses <code>()</code> have a special meaning in regex we need to escape it <code>\(</code> to say that we want to match that exact character.</p>
 
-            <h3>Hooks</h3>
+            <h2>Hooks</h2>
             <p>Next up are hooks, let us search for the use of any hooks (actions/filters) beginning with <code>wp_privacy</code>, we can do this with:</p>
             <pre>
                 add_(action|filter)\([\s|'|"]+wp_privacy\w*['|"]

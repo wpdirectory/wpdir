@@ -125,15 +125,15 @@ class Search extends Component {
             <h2>Overview</h2>
               <div className="info grid-x grid-margin-x grid-margin-y">
                 <div className="cell small-12">
-                  <h5>Search Regex</h5>
+                  <h3>Search Regex</h3>
                   <pre>{this.state.input}</pre>
                 </div>
                 <div className="cell small-12 medium-4">
-                  <h5>Repository</h5>
+                  <h3>Repository</h3>
                   {this.upperCaseFirst(this.state.repo)}
                 </div>
                 <div className="cell small-12 medium-4">
-                  <h5>Total Matches</h5>
+                  <h3>Total Matches</h3>
                   {this.state.matches}
                   {(() => {
                     if (this.state.matches > 100000) {
@@ -142,11 +142,11 @@ class Search extends Component {
                   })()}
                 </div>
                 <div className="cell small-12 medium-4">
-                  <h5>Time Taken</h5>
+                  <h3>Time Taken</h3>
                   {duration}
                 </div>
                 <div className="cell small-12 medium-4">
-                  <h5>Completed</h5>
+                  <h3>Completed</h3>
                   {timeSince}
                 </div>
               </div>
@@ -158,15 +158,15 @@ class Search extends Component {
             <h2>Info</h2>
             <div className="info grid-x grid-margin-x grid-margin-y">
               <div className="cell small-12">
-                <h5>Search Regex</h5>
+                <h3>Search Regex</h3>
                 <pre>{this.state.input}</pre>
               </div>
               <div className="cell small-12 medium-4">
-                <h5>Repository</h5>
+                <h3>Repository</h3>
                 {this.upperCaseFirst(this.state.repo)}
               </div>
               <div className="cell small-12 medium-4">
-                <h5>Total Matches</h5>
+                <h3>Total Matches</h3>
                 {this.state.matches}
               </div>
             </div>
@@ -178,11 +178,11 @@ class Search extends Component {
             <h2>Info</h2>
             <div className="info grid-x grid-margin-x grid-margin-y">
               <div className="cell small-12">
-                <h5>Search Input</h5>
+                <h3>Search Input</h3>
                 <pre>{this.state.input}</pre>
               </div>
               <div className="cell small-12 medium-4">
-                <h5>Repository</h5>
+                <h3>Repository</h3>
                 {this.upperCaseFirst(this.state.repo)}
               </div>
             </div>

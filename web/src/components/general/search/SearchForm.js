@@ -75,7 +75,7 @@ class SearchForm extends Component {
 
       return (
         <form className="search-form" onSubmit={this.handleSubmit}>
-          <h3>New Search</h3>
+          <h2>New Search</h2>
           <div className="input-choice">
             <label>Regular Expression:</label>
             <input className="input" type="text" placeholder="" value={input} onChange={this.updateInput} />
