@@ -12,6 +12,7 @@ class Examples extends Component {
           <div className="panel cell small-12">
             <h2>Examples</h2>
             <p>Writing regular expressions can be difficult so this page seeks to help you use WPDirectory by providing some examples and explaining what they do.</p>
+      	    <p>To get more familiar with regular expressins in general, consider reading the following <a href="https://www.regular-expressions.info/">regex introduction and tutorials</a>. Keeping in mind that many interpreters exist for regex, for this site, that is the <a href="https://github.com/google/re2/wiki/Syntax">Golang RE2 syntax</a>.</p>
             
             <h3>Functions</h3>
             <p>Let us start with something easy, let us search for use of the privacy function <code>wp_privacy_anonymize_data</code>, we can do this by searching for:</p>
