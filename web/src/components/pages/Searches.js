@@ -63,11 +63,11 @@ class Searches extends Component {
       <div className="page page-searches grid-container">
         <div className="grid-x grid-margin-x grid-margin-y">
           <div className="panel cell small-12">
-            <h2>Search List</h2>
+            <h1>Previous Searches</h1>
             <table className="searches-table">
               <thead>
                 <tr>
-                  <th width="auto">Input</th>
+                  <th width="auto">Search string</th>
                   <th width="100">Repo</th>
                   <th width="100">Matches</th>
                 </tr>
