@@ -72,7 +72,7 @@ class Repos extends Component {
             <li><span className="name">Total</span> {plugins.total}</li>
             <li><span className="name">Open</span> {plugins.total - plugins.closed}</li>
             <li><span className="name">Closed</span> {plugins.closed}</li>
-            <li><span className="name">Updated</span> <time dateTime={plugins.updated} title={plugins.updated}>{timeago().format(Date.parse(plugins.updated))}</time></li>
+            <li><span className="name">Last updated</span> <time dateTime={plugins.updated} title={plugins.updated}>{timeago().format(Date.parse(plugins.updated))}</time></li>
           </ul>
         )
         themesContent = (
@@ -81,7 +81,7 @@ class Repos extends Component {
             <li><span className="name">Total</span> {themes.total}</li>
             <li><span className="name">Open</span> {themes.total - themes.closed}</li>
             <li><span className="name">Closed</span> {themes.closed}</li>
-            <li><span className="name">Updated</span> <time dateTime={themes.updated} title={themes.updated}>{timeago().format(Date.parse(themes.updated))}</time></li>
+            <li><span className="name">Last updated</span> <time dateTime={themes.updated} title={themes.updated}>{timeago().format(Date.parse(themes.updated))}</time></li>
           </ul>
         )
       }
@@ -90,9 +90,12 @@ class Repos extends Component {
     return (
       <div className="page page-repos grid-container">
         <div className="grid-x grid-margin-x grid-margin-y">
+          <div class="panel cell small-12 medium-12 large-12">
+              <h1>Repository Overview</h1>
+              <p>This page contains an overview of the data stored for plugins and themes from the WordPress Directories.</p>
+          </div>
           <div className="panel cell small-12 medium-12 large-6">
             <h2>Plugins Overview</h2>
-            <p>Below is a general overview of the data stored for WordPress plugins.</p>
             <div className="stats">
               {pluginsContent}
             </div>
@@ -107,7 +110,6 @@ class Repos extends Component {
           </div>
           <div className="panel cell small-12 medium-12 large-6">
             <h2>Themes Overview</h2>
-            <p>Below is a general overview of the data stored for WordPress themes.</p>
             <div className="stats">
               {themesContent}
             </div>
