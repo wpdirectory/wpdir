@@ -20,7 +20,10 @@ class Header extends Component {
         <div className="grid-x">
 
           <div className="title cell small-6 medium-4 large-3">
-            <Link to="/"><Logo width={255} height={50} /></Link>
+            <Link to="/">
+                <Logo width={255} height={50} />
+                { '/' === window.location.pathname ? <h1 className="show-for-sr">WP Directory</h1> : null }
+            </Link>
           </div>
 
           <div className="toggle-area cell small-6 medium-8 large-9">

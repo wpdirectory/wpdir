@@ -451,7 +451,7 @@ func (s *Server) getRepo() http.HandlerFunc {
 	}
 }
 
-// getRepoOverview ...
+// getRepoOverview returns an overview of the Repositories
 func (s *Server) getRepoOverview() http.HandlerFunc {
 	type getRepoOverviewResponse struct {
 		Plugins             repo.Repo `json:"plugins,omitempty"`

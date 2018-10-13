@@ -38,14 +38,14 @@ func NewManager(limit int) *Manager {
 	}
 }
 
-// IsLoaded ...
+// IsLoaded checks if the service has fully loaded
 func (sm *Manager) IsLoaded() bool {
 	sm.RLock()
 	defer sm.RUnlock()
 	return sm.Loaded
 }
 
-// Get ...
+// Get takes an ID and returns a Search
 func (sm *Manager) Get(ID string) Search {
 	sm.RLock()
 	defer sm.RUnlock()
@@ -53,7 +53,7 @@ func (sm *Manager) Get(ID string) Search {
 	return *s
 }
 
-// Set ...
+// Set saves a Search to memory
 func (sm *Manager) Set(s *Search) {
 	sm.Lock()
 	defer sm.Unlock()
@@ -63,7 +63,7 @@ func (sm *Manager) Set(s *Search) {
 	}
 }
 
-// Exists ...
+// Exists checks a Search exists in memory
 func (sm *Manager) Exists(ID string) bool {
 	sm.RLock()
 	defer sm.RUnlock()
@@ -71,12 +71,12 @@ func (sm *Manager) Exists(ID string) bool {
 	return ok
 }
 
-// Empty ...
+// Empty deletes all Search data from DB
 func (sm *Manager) Empty() error {
 	return db.DeleteSearches()
 }
 
-// NewSearch ...
+// NewSearch creates a new Search in memory and adds it to the queue
 func (sm *Manager) NewSearch(sr Request) string {
 	sm.Lock()
 	defer sm.Unlock()
@@ -96,7 +96,8 @@ func (sm *Manager) NewSearch(sr Request) string {
 	return ID
 }
 
-// Worker ...
+// Worker checks the Search queue and processes Searches
+// Only one Search can be processed at once
 func (sm *Manager) Worker() {
 
 	for {
@@ -109,20 +110,20 @@ func (sm *Manager) Worker() {
 
 }
 
-// SummaryList ...
+// SummaryList contains the Search Summary
 type SummaryList struct {
 	List  map[string]*Result
 	Total uint64
 	sync.RWMutex
 }
 
-// MatchList ...
+// MatchList contains the Search Match List
 type MatchList struct {
 	List map[string]*Matches
 	sync.RWMutex
 }
 
-// processSearch ...
+// processSearch processes a Search using the provided ID
 func (sm *Manager) processSearch(ID string) error {
 	start := time.Now()
 
@@ -171,11 +172,10 @@ func (sm *Manager) processSearch(ID string) error {
 	}
 
 	limiter := make(chan struct{}, sm.limit)
-
 	var wg sync.WaitGroup
 
+	// Select the relevant Repository
 	var r *repo.Repo
-
 	switch srch.Repo {
 	case "plugins":
 		r = sm.Plugins
@@ -314,16 +314,17 @@ func (sm *Manager) processSearch(ID string) error {
 	// Delete from Memory once saved in DB
 	delete(sm.List, searchID)
 
-	// Metrics
+	// Update Metrics
 	metrics.SearchCount.Inc()
 	metrics.SearchDuration.Observe(time.Since(start).Seconds())
 
+	// Run Garbage Collector
 	runtime.GC()
 
 	return nil
 }
 
-// Request ...
+// Request contains a Search request
 type Request struct {
 	Input   string
 	Repo    string

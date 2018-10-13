@@ -181,7 +181,7 @@ class Summary extends Component {
           { needsPagination && <Pagination currentPage={currentPage} totalPages={numPages} prevClick={this.prevPage} nextClick={this.nextPage} /> }
           <ul className="accordion summary">
             <li className="header">
-              <button className="name" onClick={this.sortByName}>Name{this.sortIcon('name')}</button>
+              <button className="name" onClick={this.sortByName}>{ 'plugins' === this.props.repo ? 'Plugin' : 'Theme' } Name{this.sortIcon('name')}</button>
               <button className="installs" onClick={this.sortByInstalls}>Installs{this.sortIcon('installs')}</button>
               <button className="matches" onClick={this.sortByMatches}>Matches{this.sortIcon('matches')}</button>
             </li>

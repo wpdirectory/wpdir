@@ -91,7 +91,7 @@ func (e *Extension) GetStatus() string {
 	}
 }
 
-// SwapIndexes ...
+// SwapIndexes switches to a new index
 func (e *Extension) SwapIndexes(idx *index.Index) error {
 	e.Lock()
 	defer e.Unlock()

@@ -5,11 +5,11 @@ import (
 )
 
 var (
-	// SearchQueue ...
+	// SearchQueue contains a gauge of searches currently queued.
 	SearchQueue prometheus.Gauge
-	// SearchDuration ...
+	// SearchDuration contains a histogram of search durations.
 	SearchDuration prometheus.Histogram
-	// SearchCount ...
+	// SearchCount contains a counter of searches.
 	SearchCount prometheus.Counter
 )
 
