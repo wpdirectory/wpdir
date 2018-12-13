@@ -9,7 +9,10 @@ const messages = [
   'Listening To Jazz',
   'Initiating the Loop',
   'Yodaing conditions, I am',
-  'do_action( \'search-directory\' )'
+  'do_action( \'search-directory\' )',
+  'Hopefully not _doing_it_wrong()',
+  'Pressing this',
+  'Getting some REST'
 ]
 
 class ProgressBlock extends Component {
