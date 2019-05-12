@@ -35,7 +35,7 @@ require (
 	github.com/stretchr/testify v1.2.2 // indirect
 	github.com/ulule/limiter v2.2.0+incompatible
 	github.com/wcharczuk/go-chart v0.0.0-20180415235301-9e3a080aa3e7
-	github.com/wpdirectory/wporg v0.0.0-20180806220619-cb2e70e4b5fd
+	github.com/wpdirectory/wporg v0.0.0-20190512111825-d61ae0bb2684
 	golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b
 	golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81 // indirect
 	golang.org/x/net v0.0.0-20180530234432-1e491301e022 // indirect
