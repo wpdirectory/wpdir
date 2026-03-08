@@ -1,7 +1,7 @@
 <p align="center"><img src="web/public/assets/horizontal.svg" alt="wpdir" height="120px"></p>
 <p align="center"><strong>Lightning fast searching of the WordPress Plugin &#38; Theme Repositories.</strong></p>
 
-[![License](https://img.shields.io/badge/license-MIT-red.svg)](https://github.com/wpdirectory/wpdir/blob/master/LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/wpdirectory/wpdir)](https://goreportcard.com/report/github.com/wpdirectory/wpdir) [![Build Status](https://travis-ci.org/wpdirectory/wpdir.svg?branch=master)](https://travis-ci.org/wpdirectory/wpdir)
+*(Notice: This project has been replaced by https://github.com/PeterBooker/veloria, with the live service now available at https://veloria.net/. All existing searches were migrated and the existing search URLs will redirect to the search on Veloria.)*
 
 WPDirectory provides a web interface for regex searching the WordPress.org [Plugin](https://plugins.svn.wordpress.org/) and [Theme](https://themes.svn.wordpress.org/) Repositories. You can read more about how and why it came to be [here](https://www.peterbooker.com/wpdirectory-reveal/).
 
