@@ -4,7 +4,7 @@ const messages = [
   'Filling Up Loading Bar',
   'Capitalizing P\'s',
   'Making Up Results',
-  'Updating to PHP7',
+  'Updating to PHP8',
   'Resolving Dependencies',
   'Listening To Jazz',
   'Initiating the Loop',
